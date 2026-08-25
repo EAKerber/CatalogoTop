@@ -1,0 +1,9 @@
+{
+  "name": "catalogotop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gerador simplificado de catálogos A4 da Top Mobili",
+  "scripts": {
+    "test": "node scripts/validate.mjs"
+  }
+}
