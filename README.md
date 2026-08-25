@@ -37,9 +37,17 @@ A primeira versão inclui:
 
 Um template altera densidade e tratamento do card. Ele **não duplica** o cabeçalho/rodapé institucional.
 
-## Execução
+## Relação com o Gerador V1
 
-Não há build obrigatório. Sirva a pasta por HTTP (GitHub Pages, Netlify, Vercel ou servidor local) e abra `index.html`.
+O projeto `EAKerber/Gerador_de_catalogos_v1_AI` foi auditado como fonte somente leitura, na baseline `main@050589347e55613182a00ed1e22f6efd2f1a2540`.
+
+O CatalogoTop não é um fork do editor. Reaproveita apenas componentes e princípios que sobrevivem à simplificação. A primeira reutilização concreta é o subconjunto da biblioteca vetorial institucional em `src/icons.js`; conceitos de normalização, compilação determinística, tokens e preflight de impressão são mantidos seletivamente.
+
+A matriz de decisão está em [`docs/reuse-from-gerador-v1.md`](docs/reuse-from-gerador-v1.md).
+
+## Execução local
+
+Não há build obrigatório. Sirva a pasta por HTTP e abra `index.html`.
 
 ```bash
 python -m http.server 8000
@@ -47,13 +55,25 @@ python -m http.server 8000
 
 A importação Excel usa SheetJS 0.18.5 via CDN. CSV e o restante da aplicação continuam funcionais sem essa dependência externa.
 
+## Netlify
+
+O repositório inclui `netlify.toml` para manter o deploy estático e usar `npm test` como gate de publicação:
+
+```toml
+[build]
+  command = "npm test"
+  publish = "."
+```
+
+A política operacional, campos pendentes de readback e checklist de Deploy Preview/produção estão em [`docs/netlify.md`](docs/netlify.md).
+
 ## Validação
 
 ```bash
 npm test
 ```
 
-O teste é propositalmente leve e sem dependências: verifica sintaxe JavaScript e contratos estáticos essenciais da primeira versão.
+O teste é propositalmente leve e sem dependências: verifica sintaxe JavaScript e contratos estáticos essenciais, incluindo A4, templates, importação, biblioteca de ícones e configuração Netlify.
 
 ## Estrutura
 
@@ -62,7 +82,11 @@ O teste é propositalmente leve e sem dependências: verifica sintaxe JavaScript
 - `src/core.js` — estado, persistência e normalização;
 - `src/importer.js` — CSV/Excel e mapeamento de colunas;
 - `src/templates.js` — registro de templates;
+- `src/icons.js` — subconjunto vetorial institucional reaproveitado do V1;
 - `src/render.js` — paginação e componentes A4;
 - `src/app.js` — interação da interface;
 - `assets/logo-top-mobili.svg` — wordmark vetorial baseado na referência fornecida;
-- `docs/architecture.md` — decisões e limites do paradigma simplificado.
+- `docs/architecture.md` — decisões e limites do paradigma simplificado;
+- `docs/reuse-from-gerador-v1.md` — auditoria do que portar e do que rejeitar;
+- `docs/netlify.md` — contrato de deploy e operação Netlify;
+- `netlify.toml` — configuração versionada de publicação.
