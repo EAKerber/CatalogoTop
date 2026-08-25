@@ -33,17 +33,7 @@
   }
 
   function icon(type) {
-    const common = 'viewBox="0 0 24 24" aria-hidden="true"';
-    const icons = {
-      pin: `<svg ${common}><path d="M12 21s6-5.4 6-12A6 6 0 1 0 6 9c0 6.6 6 12 6 12Z"/><circle cx="12" cy="9" r="2"/></svg>`,
-      phone: `<svg ${common}><path d="M7.2 3.5 9.8 8l-2 1.7c1.1 2.3 2.9 4.1 5.2 5.2l1.7-2 4.5 2.6-.8 3.2c-.3 1-1.3 1.7-2.4 1.6C9.1 19.7 4.3 14.9 3.7 8c-.1-1.1.6-2.1 1.6-2.4l1.9-.6Z"/></svg>`,
-      medal: `<svg ${common}><circle cx="12" cy="9" r="5"/><path d="m9 14-2 7 5-2 5 2-2-7M10 9l1.4 1.4L14.5 7"/></svg>`,
-      box: `<svg ${common}><path d="m4 7 8-4 8 4v10l-8 4-8-4V7Z"/><path d="m4 7 8 4 8-4M12 11v10"/></svg>`,
-      truck: `<svg ${common}><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`,
-      headset: `<svg ${common}><path d="M4 13v-2a8 8 0 0 1 16 0v2M4 13h3v6H5a1 1 0 0 1-1-1v-5ZM20 13h-3v6h2a1 1 0 0 0 1-1v-5ZM17 19c0 1.1-.9 2-2 2h-3"/></svg>`,
-      calendar: `<svg ${common}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M7 14h2M11 14h2M15 14h2M7 18h2M11 18h2"/></svg>`
-    };
-    return icons[type] || icons.box;
+    return NS.Icons?.render(type) || '';
   }
 
   function renderSpecs(specs, limit) {
@@ -90,10 +80,10 @@
     return `<footer class="catalog-page-footer">
       <div class="footer-line"></div>
       <div class="footer-grid">
-        ${footerItem('pin', 'TOP MOBILI FERRAGENS', config.location)}
-        ${footerItem('phone', config.whatsapp, 'Atendimento via WhatsApp')}
-        ${footerItem('medal', 'QUALIDADE')}
-        ${footerItem('box', 'ESTOQUE')}
+        ${footerItem('location', 'TOP MOBILI FERRAGENS', config.location)}
+        ${footerItem('whatsapp', config.whatsapp, 'Atendimento via WhatsApp')}
+        ${footerItem('award', 'QUALIDADE')}
+        ${footerItem('stock', 'ESTOQUE')}
         ${footerItem('truck', 'ENTREGA RÁPIDA')}
         ${footerItem('headset', 'ATENDIMENTO')}
         <div class="footer-meta">
