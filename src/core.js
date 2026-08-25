@@ -3,7 +3,7 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const STORAGE_KEY = 'catalogotop:state:v1';
-  const SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 2;
 
   const APP_CONFIG = Object.freeze({
     brandName: 'Top Mobili',
@@ -59,6 +59,66 @@
     return normalizeSpecs(specs).map(item => item.label ? `${item.label}: ${item.value}` : item.value).join('\n');
   }
 
+  function normalizeVariants(variants) {
+    if (!Array.isArray(variants)) return [];
+    return variants.slice(0, 12).map((variant, index) => {
+      const item = typeof variant === 'string' ? { label: variant } : (variant || {});
+      return {
+        id: String(item.id || `variant-${index + 1}`),
+        label: String(item.label || item.color || item.name || '').trim(),
+        image: String(item.image || item.imageUrl || '').trim()
+      };
+    }).filter(item => item.label || item.image);
+  }
+
+  function parseVariantsText(text) {
+    return normalizeVariants(String(text || '')
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map((line, index) => {
+        const [label = '', image = ''] = line.split('|').map(part => part.trim());
+        return { id: `variant-${index + 1}`, label, image };
+      }));
+  }
+
+  function variantsToText(variants) {
+    return normalizeVariants(variants)
+      .map(item => item.image ? `${item.label} | ${item.image}` : item.label)
+      .join('\n');
+  }
+
+  function normalizeTableRows(rows) {
+    if (!Array.isArray(rows)) return [];
+    return rows.slice(0, 24).map((row, index) => {
+      const item = row || {};
+      return {
+        id: String(item.id || `row-${index + 1}`),
+        variant: String(item.variant || item.color || item.finish || '').trim(),
+        code: String(item.code || item.sku || item.reference || '').trim(),
+        package: String(item.package || item.packaging || '').trim(),
+        price: String(item.price || '').trim()
+      };
+    }).filter(item => item.variant || item.code || item.package || item.price);
+  }
+
+  function parseTableRowsText(text) {
+    return normalizeTableRows(String(text || '')
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map((line, index) => {
+        const [variant = '', code = '', packageValue = '', price = ''] = line.split('|').map(part => part.trim());
+        return { id: `row-${index + 1}`, variant, code, package: packageValue, price };
+      }));
+  }
+
+  function tableRowsToText(rows) {
+    return normalizeTableRows(rows)
+      .map(item => [item.variant, item.code, item.package, item.price].join(' | ').replace(/(?:\s*\|\s*)+$/g, ''))
+      .join('\n');
+  }
+
   function normalizeProduct(product) {
     return {
       id: product.id || uuid(),
@@ -71,6 +131,8 @@
       notes: String(product.notes || '').trim(),
       image: String(product.image || '').trim(),
       specs: normalizeSpecs(product.specs),
+      variants: normalizeVariants(product.variants),
+      tableRows: normalizeTableRows(product.tableRows),
       updatedAt: product.updatedAt || new Date().toISOString()
     };
   }
@@ -158,6 +220,8 @@
             ...product,
             id: existing.id,
             image: product.image || existing.image,
+            variants: product.variants.length ? product.variants : existing.variants,
+            tableRows: product.tableRows.length ? product.tableRows : existing.tableRows,
             updatedAt: new Date().toISOString()
           };
         }
@@ -176,8 +240,14 @@
     resetCatalog,
     mergeProducts,
     normalizeProduct,
+    normalizeVariants,
+    normalizeTableRows,
     parseSpecsText,
     specsToText,
+    parseVariantsText,
+    variantsToText,
+    parseTableRowsText,
+    tableRowsToText,
     createInitialState
   };
 })();
