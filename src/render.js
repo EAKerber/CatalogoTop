@@ -41,18 +41,68 @@
     return normalized.slice(0, limit).map(item => `<li>${item.label ? `<span>${esc(item.label)}</span>` : ''}<strong>${esc(item.value)}</strong></li>`).join('');
   }
 
+  function limitsFor(template, hasTable) {
+    if (template.id === 'compact') return { variants: 3, rows: 3, specs: hasTable ? 1 : 2 };
+    if (template.id === 'showcase') return { variants: 5, rows: 6, specs: hasTable ? 3 : 5 };
+    return { variants: 4, rows: 4, specs: hasTable ? 2 : 3 };
+  }
+
+  function renderVisuals(product, limit) {
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    const withImage = variants.filter(item => item && item.image).slice(0, limit);
+    const labelOnly = variants.filter(item => item && item.label && !item.image).slice(0, limit);
+
+    if (!withImage.length) {
+      const labels = labelOnly.length
+        ? `<div class="catalog-variant-labels">${labelOnly.map(item => `<span>${esc(item.label)}</span>`).join('')}</div>`
+        : '';
+      return `<div class="catalog-card-visuals single"><img src="${esc(product.image || PLACEHOLDER)}" alt="${esc(product.description)}" />${labels}</div>`;
+    }
+
+    const omitted = Math.max(0, variants.length - withImage.length);
+    return `<div class="catalog-card-visuals multi variants-${Math.min(withImage.length, 5)}">
+      ${withImage.map(item => `<figure><img src="${esc(item.image)}" alt="${esc(`${product.description} — ${item.label}`)}" /><figcaption>${esc(item.label || 'Variação')}</figcaption></figure>`).join('')}
+      ${omitted ? `<span class="catalog-variant-more">+${omitted}</span>` : ''}
+    </div>`;
+  }
+
+  function renderCommercialTable(rows, showPrices, limit) {
+    const normalized = Array.isArray(rows) ? rows.filter(Boolean) : [];
+    if (!normalized.length) return '';
+    const visible = normalized.slice(0, limit);
+    const columns = [
+      { key: 'variant', label: 'Cor', enabled: normalized.some(row => row.variant) },
+      { key: 'code', label: 'Código', enabled: normalized.some(row => row.code) },
+      { key: 'package', label: 'Embalagem', enabled: normalized.some(row => row.package) },
+      { key: 'price', label: 'Preço', enabled: showPrices && normalized.some(row => row.price) }
+    ].filter(column => column.enabled);
+    if (!columns.length) return '';
+
+    return `<div class="catalog-card-table-wrap">
+      <table class="catalog-card-table">
+        <thead><tr>${columns.map(column => `<th>${esc(column.label)}</th>`).join('')}</tr></thead>
+        <tbody>${visible.map(row => `<tr>${columns.map(column => `<td>${esc(row[column.key] || '—')}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+      ${normalized.length > visible.length ? `<small class="catalog-table-more">+${normalized.length - visible.length} linha(s)</small>` : ''}
+    </div>`;
+  }
+
   function cardMarkup(product, template, showPrices) {
-    const specLimit = template.id === 'compact' ? 2 : template.id === 'showcase' ? 5 : 3;
-    const specs = renderSpecs(product.specs, specLimit);
-    return `<article class="catalog-card">
-      <div class="catalog-card-image"><img src="${esc(product.image || PLACEHOLDER)}" alt="${esc(product.description)}" /></div>
+    const hasTable = Array.isArray(product.tableRows) && product.tableRows.length > 0;
+    const limits = limitsFor(template, hasTable);
+    const specs = renderSpecs(product.specs, limits.specs);
+    const table = renderCommercialTable(product.tableRows, showPrices, limits.rows);
+    const classes = [hasTable ? 'has-table' : '', product.variants?.length ? 'has-variants' : ''].filter(Boolean).join(' ');
+    return `<article class="catalog-card ${classes}">
+      ${renderVisuals(product, limits.variants)}
       <div class="catalog-card-content">
         <div class="catalog-card-code">${esc(product.code)}</div>
         <h3>${esc(product.description)}</h3>
         ${product.subcategory ? `<p class="catalog-card-subcategory">${esc(product.subcategory)}</p>` : ''}
         ${specs ? `<ul class="catalog-card-specs">${specs}</ul>` : ''}
-        ${product.notes ? `<p class="catalog-card-notes">${esc(product.notes)}</p>` : ''}
-        ${showPrices && product.price ? `<div class="catalog-card-price">${esc(product.price)}</div>` : ''}
+        ${table}
+        ${product.notes && !hasTable ? `<p class="catalog-card-notes">${esc(product.notes)}</p>` : ''}
+        ${showPrices && product.price && !hasTable ? `<div class="catalog-card-price">${esc(product.price)}</div>` : ''}
       </div>
     </article>`;
   }
