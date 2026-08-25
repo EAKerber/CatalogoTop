@@ -6,6 +6,7 @@
   <title>CatalogoTop | Top Mobili</title>
   <meta name="description" content="Gerador simplificado de catálogos A4 da Top Mobili." />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="cards.css" />
 </head>
 <body>
   <header class="app-shell-header">
@@ -86,6 +87,19 @@
           <label>Especificações
             <textarea id="specs" rows="5" placeholder="Uma por linha. Ex.:&#10;Carga: 35 kg&#10;Ciclos: 40.000"></textarea>
           </label>
+          <details class="product-detail-group">
+            <summary>Variações e tabela <span>opcional · entrada simples</span></summary>
+            <div class="product-detail-fields">
+              <label>Cores / acabamentos
+                <textarea id="variants" rows="4" placeholder="Branco | https://...&#10;Preto | https://..."></textarea>
+                <small>Uma variação por linha: <strong>nome | URL da imagem</strong>. A URL é opcional; sem imagem, a variação aparece como legenda.</small>
+              </label>
+              <label>Tabela comercial
+                <textarea id="commercialRows" rows="5" placeholder="Branco | 1268-BR | CX 10 | R$ 17,64&#10;Preto | 1268-PT | CX 10 | R$ 18,20"></textarea>
+                <small>Uma linha por combinação: <strong>cor | código | embalagem | preço</strong>. Campos vazios podem ser mantidos entre os separadores.</small>
+              </label>
+            </div>
+          </details>
           <label>Observações<textarea id="notes" rows="2" placeholder="Notas que precisam acompanhar o produto"></textarea></label>
           <div class="image-picker" id="imageDropzone">
             <input id="imageFile" type="file" accept="image/*" />
@@ -189,5 +203,6 @@
   <script defer src="src/icons.js"></script>
   <script defer src="src/render.js"></script>
   <script defer src="src/app.js"></script>
+  <script defer src="src/product-details.js"></script>
 </body>
 </html>
