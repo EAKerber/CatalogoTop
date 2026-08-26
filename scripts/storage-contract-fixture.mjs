@@ -22,20 +22,23 @@ for (const file of ['src/product-store.js', 'src/asset-client.js', 'src/indexed-
 
 const getBranch = files.products.indexOf("if (request.method === 'GET')");
 const putBranch = files.products.indexOf("if (request.method !== 'PUT')");
-const writeGuard = files.products.indexOf('if (!hasWriteSession(request))');
+const writeGuard = files.products.indexOf('if (!await hasWriteSession(request))');
 
 const checks = [
   ['produção usa store global forte', files.storage.includes("getStore(PRODUCT_STORE, { consistency: 'strong' })")],
-  ['preview usa deploy store isolado', files.storage.includes('getDeployStore(PRODUCT_STORE)') && files.storage.includes('getDeployStore(ASSET_STORE)')],
+  ['preview usa deploy store isolado', files.storage.includes('getDeployStore(PRODUCT_STORE)') && files.storage.includes('getDeployStore(ASSET_STORE)') && files.storage.includes('getDeployStore(SESSION_STORE)')],
   ['GET de produtos é público', getBranch >= 0 && putBranch > getBranch && writeGuard > putBranch],
-  ['PUT exige sessão de escrita', files.products.includes("request.method !== 'PUT'") && files.products.includes('hasWriteSession(request)')],
+  ['PUT exige sessão de escrita assíncrona', files.products.includes("request.method !== 'PUT'") && files.products.includes('if (!await hasWriteSession(request))')],
   ['PUT exige expectedRevision', files.products.includes('expectedRevision') && files.products.includes('revision_conflict')],
   ['snapshot anterior entra em history', files.products.includes('history/${String(current.revision)')],
   ['concorrência preserva candidato conflitante', files.products.includes('concurrent_write') && files.products.includes('conflicts/${Date.now()}')],
   ['sessão usa cookie HttpOnly Secure Strict', files.storage.includes('HttpOnly; Secure; SameSite=Strict')],
-  ['senha é scrypt e comparação timing-safe', files.storage.includes('scryptSync') && files.storage.includes('timingSafeEqual')],
+  ['frase é verificada por scrypt e timing-safe', files.storage.includes('ACCESS_PHRASE_SCRYPT') && files.storage.includes('scryptSync') && files.storage.includes('timingSafeEqual')],
+  ['sessão é token aleatório guardado no Blob store', files.storage.includes('randomBytes(32)') && files.storage.includes('SESSION_STORE') && files.storage.includes('sessionKey(token)')],
+  ['sessão pode ser consultada sem nova frase', files.session.includes("request.method === 'GET'") && files.session.includes('writable: await hasWriteSession(request)')],
+  ['sessão não depende de env secret', !files.storage.includes('CATALOGOTOP_SESSION_SECRET') && !files.storage.includes('CATALOGOTOP_WRITE_PASSWORD_SCRYPT')],
   ['assets são content-addressed por sha256', files.assets.includes("createHash('sha256')") && files.assets.includes('sha256/${hash}')],
-  ['assets exigem sessão só para POST', files.assets.includes("request.method === 'GET'") && files.assets.includes('hasWriteSession(request)')],
+  ['assets exigem sessão só para POST', files.assets.includes("request.method === 'GET'") && files.assets.includes('if (!await hasWriteSession(request))')],
   ['browser reduz imagem antes do upload', files.assetClient.includes('MAX_EDGE = 1800') && files.assetClient.includes('canvas.toBlob')],
   ['data URLs são materializados antes de persistir', files.assetClient.includes('materializeProducts') && files.assetClient.includes('isDataUrl')],
   ['cache local usa IndexedDB', files.cache.includes('indexedDB.open') && files.cache.includes('products-current')],
