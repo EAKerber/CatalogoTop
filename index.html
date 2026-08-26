@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="editorial-composition.css" />
   <link rel="stylesheet" href="catalog-page.css" />
   <link rel="stylesheet" href="composer-layout.css" />
+  <link rel="stylesheet" href="preview-viewport.css" />
   <link rel="stylesheet" href="print.css" media="print" />
 </head>
 <body>
@@ -223,10 +224,20 @@
         </aside>
         <section class="preview-column">
           <div class="preview-toolbar">
-            <span id="selectedCount">0 selecionados</span>
-            <span id="pageCount">1 página</span>
+            <div class="preview-toolbar-meta">
+              <span id="selectedCount">0 selecionados</span>
+              <span id="pageCount">1 página</span>
+            </div>
+            <div class="preview-zoom-controls" aria-label="Zoom da prévia do catálogo">
+              <button id="btnPreviewZoomOut" type="button" aria-label="Diminuir zoom">−</button>
+              <button class="preview-fit-button" id="btnPreviewFit" type="button" aria-pressed="false">Ajustar</button>
+              <output class="preview-zoom-value" id="previewZoomValue" aria-live="polite">100%</output>
+              <button id="btnPreviewZoomIn" type="button" aria-label="Aumentar zoom">+</button>
+            </div>
           </div>
-          <div id="catalogPreview" class="catalog-preview"></div>
+          <div class="catalog-preview-viewport" id="catalogPreviewViewport">
+            <div id="catalogPreview" class="catalog-preview"></div>
+          </div>
         </section>
       </div>
     </section>
@@ -262,6 +273,7 @@
   <script defer src="src/print.js"></script>
   <script defer src="src/form-steps.js"></script>
   <script defer src="src/mobile-workspace.js"></script>
+  <script defer src="src/preview-zoom.js"></script>
   <script defer src="src/app.js"></script>
   <script defer src="src/catalog-selection-order.js"></script>
   <script defer src="src/product-details.js"></script>
