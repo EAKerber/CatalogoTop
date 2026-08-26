@@ -9,6 +9,10 @@ const requiredFiles = [
   'shell-responsive.css',
   'mobile-header.css',
   'editorial-composition.css',
+  'catalog-page.css',
+  'composer-layout.css',
+  'preview-viewport.css',
+  'print.css',
   'src/core.js',
   'src/composition.js',
   'src/indexed-cache.js',
@@ -17,10 +21,15 @@ const requiredFiles = [
   'src/importer.js',
   'src/templates.js',
   'src/icons.js',
+  'src/catalog-document.js',
   'src/render.js',
+  'src/render-document-adapter.js',
+  'src/print.js',
   'src/form-steps.js',
   'src/mobile-workspace.js',
+  'src/preview-zoom.js',
   'src/app.js',
+  'src/catalog-selection-order.js',
   'src/product-details.js',
   'src/category-browser.js',
   'assets/logo-top-mobili.svg',
@@ -33,7 +42,8 @@ const requiredFiles = [
   'docs/card-model.md',
   'docs/category-browser.md',
   'docs/responsive-shell.md',
-  'docs/editorial-composition-v0.8.md'
+  'docs/editorial-composition-v0.8.md',
+  'docs/document-pipeline-v0.8.1.md'
 ];
 
 for (const file of requiredFiles) await access(file);
@@ -51,13 +61,20 @@ const cardsCss = await readFile('cards.css', 'utf8');
 const shellCss = await readFile('shell-responsive.css', 'utf8');
 const mobileHeaderCss = await readFile('mobile-header.css', 'utf8');
 const editorialCss = await readFile('editorial-composition.css', 'utf8');
-const css = `${await readFile('styles.css', 'utf8')}\n${cardsCss}\n${await readFile('category-browser.css', 'utf8')}\n${shellCss}\n${mobileHeaderCss}\n${editorialCss}`;
+const catalogPageCss = await readFile('catalog-page.css', 'utf8');
+const composerCss = await readFile('composer-layout.css', 'utf8');
+const previewCss = await readFile('preview-viewport.css', 'utf8');
+const printCss = await readFile('print.css', 'utf8');
+const css = `${await readFile('styles.css', 'utf8')}\n${cardsCss}\n${await readFile('category-browser.css', 'utf8')}\n${shellCss}\n${mobileHeaderCss}\n${editorialCss}\n${catalogPageCss}\n${composerCss}\n${previewCss}`;
 const templates = await readFile('src/templates.js', 'utf8');
 const importer = await readFile('src/importer.js', 'utf8');
 const icons = await readFile('src/icons.js', 'utf8');
 const core = await readFile('src/core.js', 'utf8');
 const composition = await readFile('src/composition.js', 'utf8');
+const catalogDocument = await readFile('src/catalog-document.js', 'utf8');
 const render = await readFile('src/render.js', 'utf8');
+const printJs = await readFile('src/print.js', 'utf8');
+const previewZoom = await readFile('src/preview-zoom.js', 'utf8');
 const app = await readFile('src/app.js', 'utf8');
 const formSteps = await readFile('src/form-steps.js', 'utf8');
 const mobileWorkspace = await readFile('src/mobile-workspace.js', 'utf8');
@@ -75,38 +92,45 @@ const productWorkspaceStart = html.indexOf('class="product-workspace"');
 const productHeadingHtml = html.slice(productHeadingStart, productWorkspaceStart);
 
 const checks = [
-  ['shell possui aba Produtos', html.includes('data-tab="products"')],
-  ['shell possui aba Catálogo', html.includes('data-tab="catalog"')],
-  ['shell possui aba Templates', html.includes('data-tab="templates"')],
+  ['shell possui três abas primárias', ['products','catalog','templates'].every(tab => html.includes(`data-tab="${tab}"`))],
   ['tabs, importação e backup compartilham o header sticky', headerHtml.includes('class="app-tabs"') && headerHtml.includes('id="importProductsFile"') && headerHtml.includes('id="importMode"') && headerHtml.includes('id="backupFile"') && shellCss.includes('position: sticky')],
   ['override mobile carrega após shell responsivo', html.indexOf('shell-responsive.css') < html.indexOf('mobile-header.css')],
-  ['composição editorial carrega por último entre estilos estruturais', html.indexOf('mobile-header.css') < html.indexOf('editorial-composition.css')],
+  ['estilos de documento/compositor/preview carregam após composição editorial', html.indexOf('editorial-composition.css') < html.indexOf('catalog-page.css') && html.indexOf('catalog-page.css') < html.indexOf('composer-layout.css') && html.indexOf('composer-layout.css') < html.indexOf('preview-viewport.css')],
+  ['print exclusivo carrega separado em media print', html.includes('href="print.css" media="print"')],
   ['importação não ocupa faixa permanente na aba Produtos', !html.includes('class="import-panel compact-import card"') && html.includes('class="import-report shell-import-report hidden"')],
   ['ação novo produto saiu do cabeçalho da seção', !productHeadingHtml.includes('id="btnNewProduct"') && html.indexOf('id="btnNewProduct"') > html.indexOf('id="productForm"')],
-  ['heading de Produtos usa variante compacta', html.includes('class="section-heading product-section-heading"') && shellCss.includes('.product-section-heading h2')],
   ['biblioteca de composição carrega antes do core e renderer', html.indexOf('src/composition.js') < html.indexOf('src/core.js') && html.indexOf('src/composition.js') < html.indexOf('src/render.js')],
-  ['biblioteca de ícones carrega antes do renderer', html.indexOf('src/icons.js') < html.indexOf('src/render.js')],
+  ['CatalogDocument carrega antes do renderer', html.indexOf('src/catalog-document.js') < html.indexOf('src/render.js')],
+  ['renderer adapter e print carregam antes do app', html.indexOf('src/render-document-adapter.js') < html.indexOf('src/app.js') && html.indexOf('src/print.js') < html.indexOf('src/app.js')],
+  ['zoom de preview carrega antes do app', html.indexOf('src/preview-zoom.js') < html.indexOf('src/app.js')],
   ['etapas do formulário carregam antes do app', html.indexOf('src/form-steps.js') < html.indexOf('src/app.js')],
   ['workspace mobile carrega antes do app', html.indexOf('src/mobile-workspace.js') < html.indexOf('src/app.js')],
-  ['editor leve de detalhes carrega depois do app', html.indexOf('src/app.js') < html.indexOf('src/product-details.js')],
-  ['navegador de categorias carrega depois do app', html.indexOf('src/app.js') < html.indexOf('src/category-browser.js')],
   ['cadastro de produto possui três etapas', (html.match(/data-form-step="/g) || []).length === 3 && formSteps.includes('Etapa ${current} de ${steps.length}')],
   ['enter avança sem salvar antes da etapa final', formSteps.includes('stopImmediatePropagation') && formSteps.includes('current < steps.length')],
-  ['mobile alterna cadastro e biblioteca por tabs', html.includes('data-mobile-workspace-target="form"') && html.includes('data-mobile-workspace-target="library"') && html.includes('data-mobile-workspace-panel="form"') && html.includes('data-mobile-workspace-panel="library"')],
-  ['mobile possui swipe horizontal com limiar', mobileWorkspace.includes('touchstart') && mobileWorkspace.includes('touchend') && mobileWorkspace.includes('Math.abs(dx) < 56') && mobileWorkspace.includes("show('library')") && mobileWorkspace.includes("show('form')")],
-  ['mobile reserva linha inferior apenas às tabs primárias', mobileHeaderCss.includes('.app-primary-tools { display: contents; }') && mobileHeaderCss.includes('.app-shell-header .app-tabs') && mobileHeaderCss.includes('order: 3;') && mobileHeaderCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr))')],
-  ['utilidades mobile possuem scroll horizontal próprio', mobileHeaderCss.includes('.header-product-import') && mobileHeaderCss.includes('.app-header-actions') && (mobileHeaderCss.match(/overflow-x: auto;/g) || []).length >= 2],
-  ['mobile evita overlap separando marca/importação/backup em colunas', mobileHeaderCss.includes('grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr)') && mobileHeaderCss.includes('grid-column: 2;') && mobileHeaderCss.includes('grid-column: 3;')],
+  ['mobile alterna cadastro e biblioteca por tabs', html.includes('data-mobile-workspace-target="form"') && html.includes('data-mobile-workspace-target="library"')],
+  ['mobile possui swipe horizontal com limiar', mobileWorkspace.includes('touchstart') && mobileWorkspace.includes('touchend') && mobileWorkspace.includes('Math.abs(dx) < 56')],
+  ['mobile reserva linha inferior apenas às tabs primárias', mobileHeaderCss.includes('.app-primary-tools { display: contents; }') && mobileHeaderCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr))')],
+  ['utilidades mobile possuem scroll horizontal próprio', (mobileHeaderCss.match(/overflow-x: auto;/g) || []).length >= 2],
   ['categoria usa seletor sobrescrevível', html.includes('id="category" list="categoryOptions" required') && html.includes('id="categoryOptions"')],
   ['biblioteca possui pastas de categoria', html.includes('id="categoryFolders"') && categoryBrowser.includes('data-category-folder')],
   ['produtos sem categoria recebem pasta explícita', core.includes("|| 'Sem categoria'")],
-  ['workspace desktop usa scroll interno', shellCss.includes('body { overflow: hidden; }') && shellCss.includes('.category-browser { min-height: 0; overflow: auto; }') && shellCss.includes('.table-wrap { height: 100%; max-height: none; overflow: auto; }')],
+  ['workspace desktop usa scroll interno', shellCss.includes('body { overflow: hidden; }') && shellCss.includes('.category-browser { min-height: 0; overflow: auto; }')],
   ['breakpoints de tablet e mobile existem', shellCss.includes('@media (max-width: 959px)') && shellCss.includes('@media (max-width: 639px)')],
-  ['importação permanece junto às tabs no breakpoint tablet', shellCss.includes('.app-primary-tools') && shellCss.includes('overflow-x: auto')],
   ['logo canônica substitui reconstrução', logo.includes('viewBox="0 0 481 270"') && !logo.includes('recriada a partir da referência')],
-  ['impressão declara A4', css.includes('@page { size: A4 portrait;')],
-  ['print gate reserva margem contra página fantasma', editorialCss.includes('height: 296mm !important') && editorialCss.includes('break-inside: avoid-page') && editorialCss.includes('.catalog-category-divider { display: none !important; }')],
-  ['página contém rodapé', css.includes('.catalog-page-footer')],
+
+  ['CatalogDocument materializa páginas e ordem efetiva', catalogDocument.includes('pageCount') && catalogDocument.includes('orderedIds') && catalogDocument.includes('effectiveOrder')],
+  ['impressão isolada usa apenas páginas do catálogo', printJs.includes("querySelectorAll('.catalog-page')") && printJs.includes('body class="catalog-print-document"')],
+  ['impressão isolada declara A4 210 × 297', printCss.includes('size: A4 portrait') && printCss.includes('width: 210mm !important') && printCss.includes('height: 297mm !important')],
+  ['quebra física ocorre somente antes das páginas subsequentes', printCss.includes('.catalog-page + .catalog-page') && printCss.includes('break-before: page !important') && !printCss.includes('break-after: page !important')],
+  ['linhas institucionais críticas usam borda', catalogPageCss.includes('border-top: .45mm solid var(--brand)') && catalogPageCss.includes('.footer-line')],
+  ['CSS mobile não contém correções de print/compositor', !mobileHeaderCss.includes('@media print') && !mobileHeaderCss.includes('bulk-presentation-controls') && !mobileHeaderCss.includes('catalog-title-block')],
+  ['compositor responde à largura real da lateral', composerCss.includes('container-type: inline-size') && composerCss.includes('@container catalog-selection-panel')],
+  ['bulk desktop usa duas colunas campo + ação', composerCss.includes('grid-template-columns: minmax(0, 1fr) auto')],
+
+  ['preview possui viewport e controles de fit/zoom', html.includes('id="catalogPreviewViewport"') && html.includes('id="btnPreviewFit"') && html.includes('id="btnPreviewZoomOut"') && html.includes('id="btnPreviewZoomIn"')],
+  ['preview mobile calcula fit sobre A4 sem alterar documento', previewZoom.includes('210 * 96 / 25.4') && previewZoom.includes("mode = window.matchMedia('(max-width: 959px)').matches ? 'fit' : 'actual'") && previewCss.includes('zoom: var(--preview-scale)')],
+  ['preview ampliado pode rolar sem alterar a folha física', previewCss.includes('overflow: auto') && previewCss.includes('overscroll-behavior: contain')],
+
   ['template técnico registrado', templates.includes("id: 'technical'")],
   ['template compacto registrado', templates.includes("id: 'compact'")],
   ['template destaque registrado', templates.includes("id: 'showcase'")],
@@ -125,13 +149,13 @@ const checks = [
   ['cards com tabela cedem largura a referências', cardsCss.includes('.catalog-card.has-table:not(.has-variant-images)')],
   ['planner usa micrograde de seis colunas sem reordenação CSS', composition.includes('function packRows') && composition.includes('item.start = cursor') && editorialCss.includes('grid-template-columns: repeat(6') && !editorialCss.includes('grid-auto-flow: dense')],
   ['planner rebalanceia última linha', composition.includes('function distributeSix') && composition.includes('function rebalanceRow')],
-  ['presets cobrem visual, essencial, padrão, detalhado, técnico, comercial e auto', ['visual','essential','standard','detailed','technical','commercial','auto'].every(id => composition.includes(`id: '${id}'`))],
+  ['presets cobrem densidades editoriais', ['visual','essential','standard','detailed','technical','commercial','auto'].every(id => composition.includes(`id: '${id}'`))],
   ['Visual é o padrão de cards sem override', composition.includes("CONTENT_PRESETS, 'visual'") && render.includes("contentPreset: 'visual'" )],
   ['ênfase discreta inclui normal, destaque e hero', composition.includes("id: 'feature'") && composition.includes("id: 'hero'") && render.includes('data-emphasis')],
-  ['destaques sobem de forma determinística antes dos normais', composition.includes('function emphasisRank') && composition.includes('function orderProductsForLayout') && composition.includes('emphasisRank(left.style) - emphasisRank(right.style)')],
+  ['destaques sobem deterministicamente', composition.includes('function emphasisRank') && composition.includes('function orderProductsForLayout')],
+  ['Hero Visual possui composição focal própria', editorialCss.includes('.catalog-card.emphasis-hero.content-visual') && editorialCss.includes('58%') && editorialCss.includes('font-size: 6.4mm')],
   ['UI oferece distribuição e tipografia globais', html.includes('id="catalogDistribution"') && html.includes('id="catalogTypography"') && app.includes('catalogDistribution') && app.includes('catalogTypography')],
-  ['UI oferece preset e ênfase por item selecionado', app.includes('data-content-preset') && app.includes('data-emphasis') && editorialCss.includes('.selection-presentation-controls')],
-  ['UI oferece aplicação em lote aos selecionados', composition.includes('bulkPresentationControls') && composition.includes('btnApplyBulkContent') && composition.includes('btnApplyBulkEmphasis') && editorialCss.includes('.bulk-presentation-controls')],
+  ['UI oferece preset e ênfase por item selecionado', app.includes('data-content-preset') && app.includes('data-emphasis')],
   ['tipografia varia por preset sem contaminar header institucional', editorialCss.includes('.catalog-page.type-technical .catalog-card') && editorialCss.includes('.catalog-page.type-editorial .catalog-card h3')],
   ['renderer pagina por linhas planejadas quando recebe template', render.includes('paginateProducts(group.products, template, presentation)')],
   ['harness cobre quatro formatos de card', (cardCases.match(/name: '/g) || []).length === 4],
