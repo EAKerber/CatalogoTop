@@ -36,6 +36,22 @@
     return NS.Icons?.render(type) || '';
   }
 
+  function ensureCategoryStyles() {
+    if (typeof document === 'undefined' || document.getElementById('catalog-category-page-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'catalog-category-page-styles';
+    style.textContent = `
+      .catalog-category-divider{width:min(100%,210mm);margin:18px auto -3px;padding:0 4px;display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:8px 12px;color:#61666d;font-size:11px}
+      .catalog-category-divider span{text-transform:uppercase;letter-spacing:.13em;font-weight:800;color:#e41920}
+      .catalog-category-divider strong{font-size:14px;color:#171a20;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .catalog-category-divider small{white-space:nowrap;color:#7b8087}
+      .catalog-category-divider + .catalog-page{margin-top:10px}
+      @media(max-width:639px){.catalog-category-divider{grid-template-columns:1fr auto;margin-top:12px}.catalog-category-divider span{display:none}.catalog-category-divider strong{font-size:12px}.catalog-category-divider small{font-size:9px}}
+      @media print{.catalog-category-divider{display:none!important}.catalog-category-divider + .catalog-page{margin-top:0!important}}
+    `;
+    document.head.appendChild(style);
+  }
+
   function renderSpecs(specs, limit) {
     const normalized = Array.isArray(specs) ? specs.filter(item => item && item.value) : [];
     return normalized.slice(0, Math.max(0, limit)).map(item => `<li>${item.label ? `<span>${esc(item.label)}</span>` : ''}<strong>${esc(item.value)}</strong></li>`).join('');
@@ -255,6 +271,7 @@
   }
 
   function renderCatalog(root, state) {
+    ensureCategoryStyles();
     const template = NS.Templates.getTemplate(state.catalog.templateId);
     const { selected, groups, pages } = buildCategoryPages(state, template.perPage);
     root.innerHTML = pages.map((page, index) => `${page.categoryPageIndex === 0 && selected.length ? categoryDividerMarkup(page) : ''}${pageMarkup(page, index, pages.length, state, template)}`).join('');
