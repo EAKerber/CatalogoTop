@@ -17,8 +17,7 @@ Permanece local ao navegador:
 - seleção atual do catálogo;
 - template escolhido;
 - catálogo em elaboração;
-- filtros e estado de UI;
-- sessão editorial.
+- filtros e estado de UI.
 
 Esse boundary evita que uma pessoa compondo um catálogo altere a seleção de outra pessoa.
 
@@ -46,11 +45,13 @@ Antes de gravar a nova revisão, o snapshot anterior é preservado em `history/N
 
 ### `GET /api/write-session`
 
-Informa se o cookie atual possui uma sessão de escrita válida.
+Informa se o cookie atual possui uma sessão de escrita válida. Isso permite que o browser reconheça uma sessão já aberta sem pedir novamente a frase.
 
 ### `POST /api/write-session`
 
-Recebe a frase compartilhada. A frase não é persistida no navegador nem no repositório. O servidor compara via scrypt + `timingSafeEqual` contra o hash configurado no ambiente Netlify e retorna cookie de uma hora com `HttpOnly`, `Secure` e `SameSite=Strict`.
+Recebe a frase compartilhada. A frase não é persistida no navegador nem no repositório. O servidor compara via scrypt + `timingSafeEqual` contra um verificador público de alta entropia versionado no código. Se válida, gera um token aleatório de 256 bits, grava apenas o hash desse token no Blob store de sessões e devolve o token em cookie de uma hora com `HttpOnly`, `Secure` e `SameSite=Strict`.
+
+Não há segredo de sessão ou API key em variável de ambiente. A segurança depende da frase compartilhada forte; o verifier scrypt no repositório permite tentativa offline, por isso a frase gerada não deve ser substituída por senha curta ou reutilizada de outro serviço.
 
 ### `POST /api/assets`
 
@@ -65,9 +66,10 @@ Leitura pública e cache imutável. Produtos guardam apenas a URL relativa do as
 Produção usa stores globais com consistência forte:
 
 - `catalogotop-products`;
-- `catalogotop-assets`.
+- `catalogotop-assets`;
+- `catalogotop-sessions`.
 
-Deploy Previews e branch deploys usam stores ligados ao deploy. Testes de PR não podem escrever na base global de produção.
+Deploy Previews e branch deploys usam stores ligados ao deploy. Testes de PR não podem escrever na base global de produção e também não compartilham sessões com produção.
 
 ## Imagens
 
@@ -106,8 +108,8 @@ Se a rede falhar, o último snapshot IndexedDB permanece utilizável para seleç
 
 - leitura pública;
 - escrita protegida por frase compartilhada e sessão curta;
-- segredo de sessão somente em variável de ambiente;
-- hash scrypt da frase no ambiente;
+- frase verificada por scrypt + comparação timing-safe;
+- token de sessão aleatório; apenas seu SHA-256 é persistido no Blob store;
 - cookie HttpOnly/Secure/SameSite=Strict;
 - Origin same-site como defesa complementar;
 - validação de método e Content-Type;
@@ -116,7 +118,7 @@ Se a rede falhar, o último snapshot IndexedDB permanece utilizável para seleç
 - revisionamento obrigatório;
 - snapshots de histórico.
 
-Origin não é considerado autenticação. A autoridade real de escrita é a sessão assinada pelo servidor.
+Origin não é considerado autenticação. A autoridade real de escrita é o token aleatório emitido após a validação da frase.
 
 ## Fora do recorte
 
@@ -136,8 +138,9 @@ Antes de promover para produção:
 - CI estrutural verde;
 - Deploy Preview sobe Functions e stores isolados;
 - GET vazio funciona sem sessão;
-- senha incorreta não abre escrita;
-- senha correta abre sessão;
+- frase incorreta não abre escrita;
+- frase correta abre sessão;
+- `GET /api/write-session` reconhece a sessão sem nova frase;
 - PUT revisão 0 cria revisão 1 no preview;
 - GET retorna revisão 1;
 - upload e readback de uma imagem funcionam;
