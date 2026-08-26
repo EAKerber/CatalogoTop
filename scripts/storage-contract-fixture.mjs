@@ -26,7 +26,7 @@ const writeGuard = files.products.indexOf('if (!await hasWriteSession(request))'
 
 const checks = [
   ['produção usa store global forte', files.storage.includes("getStore(PRODUCT_STORE, { consistency: 'strong' })")],
-  ['preview usa deploy store isolado', files.storage.includes('getDeployStore(PRODUCT_STORE)') && files.storage.includes('getDeployStore(ASSET_STORE)') && files.storage.includes('getDeployStore(SESSION_STORE)')],
+  ['preview usa deploy stores isolados com consistência forte', files.storage.includes("getDeployStore({ name, consistency: 'strong' })") && files.storage.includes('deployStore(PRODUCT_STORE)') && files.storage.includes('deployStore(ASSET_STORE)') && files.storage.includes('deployStore(SESSION_STORE)')],
   ['GET de produtos é público', getBranch >= 0 && putBranch > getBranch && writeGuard > putBranch],
   ['PUT exige sessão de escrita assíncrona', files.products.includes("request.method !== 'PUT'") && files.products.includes('if (!await hasWriteSession(request))')],
   ['PUT exige expectedRevision', files.products.includes('expectedRevision') && files.products.includes('revision_conflict')],
