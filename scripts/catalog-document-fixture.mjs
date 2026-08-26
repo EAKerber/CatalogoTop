@@ -34,7 +34,7 @@ const product = (id, category) => ({
 const products = [
   product('a-normal', 'Dobradiças'),
   product('a-feature', 'Dobradiças'),
-  product('a-hero', 'Dobradiças'),
+  product('a-full', 'Dobradiças'),
   product('b-1', 'Corrediças'),
   product('b-2', 'Corrediças'),
   product('b-3', 'Corrediças')
@@ -49,8 +49,8 @@ const state = {
     presentation: Composition.normalizePresentation({
       distribution: 'balanced',
       itemStyles: {
-        'a-feature': { emphasis: 'feature', contentPreset: 'visual' },
-        'a-hero': { emphasis: 'hero', contentPreset: 'visual' }
+        'a-feature': { emphasis: 'feature', contentPreset: 'visual', width: 'simple' },
+        'a-full': { emphasis: 'feature', contentPreset: 'visual', width: 'full' }
       }
     })
   }
@@ -58,16 +58,31 @@ const state = {
 const template = { id: 'technical', columns: 2, rows: 4, perPage: 8, className: 'template-technical' };
 const doc = CatalogDocument.build(state, template);
 
+if (doc.schemaVersion !== 2) fail('CatalogDocument deve expor contrato v2 com largura em slots');
 if (doc.pageCount !== 2) fail(`fixture deve materializar 2 páginas, recebeu ${doc.pageCount}`);
 if (doc.categoryCount !== 2) fail('fixture deve preservar duas categorias');
-if (doc.orderedIds.slice(0, 3).join(',') !== 'a-feature,a-normal,a-hero') fail('ordem materializada deve priorizar Destaque e ancorar Hero no fim da página');
-if (doc.pages[0].items.at(-1)?.productId !== 'a-hero') fail('Hero deve ser o último item materializado de sua página');
-if (doc.pages[0].items.at(-1)?.row !== doc.pages[0].layout.rowCount) fail('Hero deve ocupar a última linha usada');
+if (doc.orderedIds.slice(0, 3).join(',') !== 'a-normal,a-feature,a-full') fail('ordem materializada deve preservar a ordem factual da seleção');
 if (doc.pages[0].category !== 'Dobradiças' || doc.pages[1].category !== 'Corrediças') fail('categorias devem preservar ordem da primeira aparição');
-if (doc.effectiveOrderById['a-feature'] !== 1 || doc.effectiveOrderById['a-hero'] !== 3) fail('ordem efetiva deve refletir âncora Hero por id');
+if (doc.effectiveOrderById['a-normal'] !== 1 || doc.effectiveOrderById['a-full'] !== 3) fail('ordem efetiva deve ser endereçável por id sem prioridade implícita');
+
+const full = doc.pages[0].items.find(item => item.productId === 'a-full');
+if (!full || full.width !== 'full' || full.slotSpan !== 2 || full.span !== 6) fail('CatalogDocument deve materializar largura full em slots e micrograde');
+const feature = doc.pages[0].items.find(item => item.productId === 'a-feature');
+if (!feature || feature.emphasis !== 'feature' || feature.width !== 'simple' || feature.slotSpan !== 1) fail('ênfase visual e largura precisam permanecer independentes');
 
 const reordered = CatalogDocument.withEffectiveOrder(state, doc);
-if (reordered.selectedIds.slice(0, 3).join(',') !== 'a-feature,a-normal,a-hero') fail('state derivado deve refletir ordem efetiva sem mutar o original');
+if (reordered.selectedIds.slice(0, 3).join(',') !== 'a-normal,a-feature,a-full') fail('state derivado deve refletir a mesma ordem efetiva sem mutar o original');
 if (state.selectedIds[0] !== 'a-normal') fail('CatalogDocument não pode mutar a ordem factual do state');
+
+const legacyState = {
+  ...state,
+  catalog: {
+    ...state.catalog,
+    presentation: { itemStyles: { 'a-full': { emphasis: 'hero', contentPreset: 'visual' } } }
+  }
+};
+const legacyDoc = CatalogDocument.build(legacyState, template);
+const legacyFull = legacyDoc.pages[0].items.find(item => item.productId === 'a-full');
+if (!legacyFull || legacyFull.emphasis !== 'feature' || legacyFull.width !== 'full') fail('Hero legado deve migrar sem manter semântica estrutural especial');
 
 console.log('PASS catalog document fixture');

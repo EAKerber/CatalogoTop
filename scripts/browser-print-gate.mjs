@@ -56,9 +56,7 @@ function fixtureStateScript() {
     product('a-normal-1', 'Dobradiças'),
     product('a-feature', 'Dobradiças'),
     product('a-normal-2', 'Dobradiças'),
-    product('a-normal-3', 'Dobradiças'),
-    product('a-normal-4', 'Dobradiças'),
-    product('a-hero', 'Dobradiças'),
+    product('a-full', 'Dobradiças'),
     product('b-1', 'Corrediças'),
     product('b-2', 'Corrediças'),
     product('b-3', 'Corrediças')
@@ -76,8 +74,8 @@ function fixtureStateScript() {
         distribution: 'balanced',
         typography: 'neutral',
         itemStyles: {
-          'a-feature': { emphasis: 'feature', contentPreset: 'visual' },
-          'a-hero': { emphasis: 'hero', contentPreset: 'visual' }
+          'a-feature': { emphasis: 'feature', contentPreset: 'visual', width: 'simple' },
+          'a-full': { emphasis: 'feature', contentPreset: 'visual', width: 'full' }
         }
       })
     }
@@ -96,39 +94,45 @@ try {
 
   const materialized = await page.evaluate(fixtureStateScript);
   if (materialized.pageCount !== 2) throw new Error(`CatalogDocument deveria ter 2 páginas; recebeu ${materialized.pageCount}`);
-  const expectedFirstCategory = 'a-feature,a-normal-1,a-normal-2,a-normal-3,a-normal-4,a-hero';
-  if (materialized.orderedIds.slice(0, 6).join(',') !== expectedFirstCategory) throw new Error(`ordem Destaque/fluxo/Hero incorreta: ${materialized.orderedIds.join(',')}`);
+  const expectedFirstCategory = 'a-normal-1,a-feature,a-normal-2,a-full';
+  if (materialized.orderedIds.slice(0, 4).join(',') !== expectedFirstCategory) throw new Error(`ordem factual deve ser preservada: ${materialized.orderedIds.join(',')}`);
   const firstPage = materialized.pages[0];
-  const heroModel = firstPage.items.find(item => item.productId === 'a-hero');
-  if (!heroModel || heroModel.row !== firstPage.layout.rowCount || heroModel.row !== 4) throw new Error(`Hero deve ancorar a última linha da página: ${JSON.stringify(heroModel)}`);
-  if (firstPage.items.at(-1)?.productId !== 'a-hero') throw new Error('Hero deve ser o último item materializado da página');
+  const fullModel = firstPage.items.find(item => item.productId === 'a-full');
+  if (!fullModel || fullModel.width !== 'full' || fullModel.slotSpan !== 2 || fullModel.span !== 6) throw new Error(`card full deve ocupar todos os slots técnicos: ${JSON.stringify(fullModel)}`);
+  if (fullModel.row !== 3) throw new Error(`residual deve permanecer acima do card full: ${JSON.stringify(fullModel)}`);
+  const featureModel = firstPage.items.find(item => item.productId === 'a-feature');
+  if (!featureModel || featureModel.width !== 'simple' || featureModel.slotSpan !== 1) throw new Error('Destaque visual não deve alterar largura física');
 
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#catalogPreview .catalog-page');
   const preview = await page.evaluate(() => {
     const firstPage = document.querySelector('#catalogPreview .catalog-page');
-    const hero = firstPage?.querySelector('[data-product-id="a-hero"]');
+    const full = firstPage?.querySelector('[data-product-id="a-full"]');
     const normal = firstPage?.querySelector('[data-product-id="a-normal-1"]');
-    const heroTitle = hero?.querySelector('h3');
+    const fullTitle = full?.querySelector('h3');
     const normalTitle = normal?.querySelector('h3');
     const cards = [...(firstPage?.querySelectorAll('.catalog-card') || [])];
     return {
       pages: document.querySelectorAll('#catalogPreview .catalog-page').length,
       firstCard: cards[0]?.dataset.productId || '',
       lastCard: cards.at(-1)?.dataset.productId || '',
-      heroRow: hero ? getComputedStyle(hero).gridRowStart : '',
+      fullRow: full ? getComputedStyle(full).gridRowStart : '',
+      fullWidth: full?.dataset.cardWidth || '',
+      fullSlots: full?.dataset.slotSpan || '',
       chromeVisibleInPreview: Boolean(document.querySelector('#catalogPreview .app-shell-header')),
-      heroColumns: hero ? getComputedStyle(hero).gridTemplateColumns : '',
-      heroTitleSize: heroTitle ? parseFloat(getComputedStyle(heroTitle).fontSize) : 0,
-      normalTitleSize: normalTitle ? parseFloat(getComputedStyle(normalTitle).fontSize) : 0
+      fullColumns: full ? getComputedStyle(full).gridTemplateColumns : '',
+      fullTitleSize: fullTitle ? parseFloat(getComputedStyle(fullTitle).fontSize) : 0,
+      normalTitleSize: normalTitle ? parseFloat(getComputedStyle(normalTitle).fontSize) : 0,
+      widthControlExists: Boolean(document.querySelector('[data-card-width="a-full"]'))
     };
   });
   if (preview.pages !== 2) throw new Error(`preview deveria ter 2 páginas; recebeu ${preview.pages}`);
-  if (preview.firstCard !== 'a-feature' || preview.lastCard !== 'a-hero') throw new Error(`preview deve colocar Destaque no fluxo e Hero como âncora: ${JSON.stringify(preview)}`);
-  if (preview.heroRow !== '4') throw new Error(`Hero deveria ocupar a quarta/última linha no fixture: ${preview.heroRow}`);
+  if (preview.firstCard !== 'a-normal-1' || preview.lastCard !== 'a-full') throw new Error(`preview deve preservar ordem e manter full após residual: ${JSON.stringify(preview)}`);
+  if (preview.fullRow !== '3' || preview.fullWidth !== 'full' || preview.fullSlots !== '2') throw new Error(`preview não materializou largura full: ${JSON.stringify(preview)}`);
+  if (!preview.widthControlExists) throw new Error('compositor deve expor controle de largura por card');
   if (preview.chromeVisibleInPreview) throw new Error('preview contém chrome da aplicação');
-  if (preview.heroColumns.trim().split(/\s+/).length < 2) throw new Error(`Hero Visual precisa de composição focal em duas áreas; recebeu ${preview.heroColumns}`);
-  if (!(preview.heroTitleSize > preview.normalTitleSize * 1.2)) throw new Error(`Hero precisa ampliar hierarquia tipográfica: hero=${preview.heroTitleSize}, normal=${preview.normalTitleSize}`);
+  if (preview.fullColumns.trim().split(/\s+/).length < 2) throw new Error(`Destaque + Linha inteira precisa de composição focal em duas áreas; recebeu ${preview.fullColumns}`);
+  if (!(preview.fullTitleSize > preview.normalTitleSize * 1.2)) throw new Error(`Destaque + Linha inteira precisa ampliar hierarquia tipográfica: full=${preview.fullTitleSize}, normal=${preview.normalTitleSize}`);
 
   const printableHtml = await page.evaluate(() => window.CatalogoTop.Print.buildPrintableHtml(window.CatalogoTop.Core.getState()));
   const printPage = await browser.newPage({ viewport: { width: 794, height: 1123 } });
@@ -138,6 +142,7 @@ try {
   const printDom = await printPage.evaluate(() => {
     const firstPage = document.querySelector('.catalog-page');
     const cards = [...(firstPage?.querySelectorAll('.catalog-card') || [])];
+    const full = firstPage?.querySelector('[data-product-id="a-full"]');
     return {
       pages: document.querySelectorAll('.catalog-page').length,
       headers: document.querySelectorAll('.catalog-page-header').length,
@@ -147,6 +152,7 @@ try {
       divider: document.querySelectorAll('.catalog-category-divider').length,
       firstCard: cards[0]?.dataset.productId || '',
       lastCard: cards.at(-1)?.dataset.productId || '',
+      fullWidth: full?.dataset.cardWidth || '',
       headerLine: getComputedStyle(document.querySelector('.catalog-title-block i')).borderTopWidth,
       footerLine: getComputedStyle(document.querySelector('.footer-line')).borderTopWidth
     };
@@ -154,7 +160,7 @@ try {
 
   if (printDom.pages !== 2 || printDom.headers !== 2 || printDom.footers !== 2) throw new Error(`documento print incompleto: ${JSON.stringify(printDom)}`);
   if (printDom.appShell || printDom.selectionPanel || printDom.divider) throw new Error(`documento print contaminado pela UI: ${JSON.stringify(printDom)}`);
-  if (printDom.firstCard !== 'a-feature' || printDom.lastCard !== 'a-hero') throw new Error(`ordem do documento print divergiu do CatalogDocument: ${JSON.stringify(printDom)}`);
+  if (printDom.firstCard !== 'a-normal-1' || printDom.lastCard !== 'a-full' || printDom.fullWidth !== 'full') throw new Error(`documento print divergiu do CatalogDocument: ${JSON.stringify(printDom)}`);
   if (parseFloat(printDom.headerLine) <= 0 || parseFloat(printDom.footerLine) <= 0) throw new Error('linhas institucionais precisam existir sem background graphics');
 
   const pdfBytes = await printPage.pdf({
@@ -229,7 +235,7 @@ try {
   if (afterTouch <= beforeTouch + 8) throw new Error(`gesto vertical iniciado sobre o PDF deve rolar a página: antes=${beforeTouch}, depois=${afterTouch}`);
   await mobileContext.close();
 
-  console.log('PASS browser print gate: A4 físico, Hero ancorado após a sobra, UI isolada, Fit mobile e scroll touch vertical');
+  console.log('PASS browser print gate: A4 físico, largura por slots, ordem factual, UI isolada, Fit mobile e scroll touch vertical');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

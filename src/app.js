@@ -105,6 +105,7 @@
         <div class="selection-presentation-controls">
           <label>Conteúdo<select data-content-preset="${Render.esc(product.id)}">${optionMarkup(Composition.CONTENT_PRESETS, style.contentPreset)}</select></label>
           <label>Ênfase<select data-emphasis="${Render.esc(product.id)}">${optionMarkup(Composition.EMPHASIS_PRESETS, style.emphasis)}</select></label>
+          <label>Largura<select data-card-width="${Render.esc(product.id)}">${optionMarkup(Composition.WIDTH_PRESETS, style.width)}</select></label>
         </div>
       </label>`;
     }).join('') : '<div class="empty-state compact-empty"><strong>Nenhum produto disponível.</strong><span>Ajuste o filtro ou cadastre produtos ativos.</span></div>';
@@ -329,6 +330,11 @@
       const emphasis = event.target.closest('[data-emphasis]');
       if (emphasis) {
         setItemPresentation(emphasis.dataset.emphasis, { emphasis: emphasis.value });
+        return;
+      }
+      const width = event.target.closest('[data-card-width]');
+      if (width) {
+        setItemPresentation(width.dataset.cardWidth, { width: width.value });
         return;
       }
       const checkbox = event.target.closest('[data-select-product]');

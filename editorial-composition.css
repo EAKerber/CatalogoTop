@@ -1,4 +1,4 @@
-/* v0.8 — composição editorial determinística sem editor livre. */
+/* v0.9 — composição editorial por conteúdo, ênfase visual e largura em slots. */
 
 .catalog-controls.editorial-controls {
   grid-template-columns: minmax(180px, 1fr) 200px 170px 170px auto auto;
@@ -10,14 +10,15 @@
 
 .bulk-presentation-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px auto 88px auto;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 8px;
   align-items: end;
-  padding: 8px 10px;
+  padding: 9px 10px;
   border-bottom: 1px solid var(--line);
   background: #fff;
 }
 .bulk-presentation-controls > strong {
+  grid-column: 1 / -1;
   align-self: center;
   color: var(--ink-2);
   font-size: 10px;
@@ -26,6 +27,7 @@
 .bulk-presentation-controls label {
   display: grid;
   gap: 3px;
+  min-width: 0;
   color: var(--muted);
   font-size: 8px;
   font-weight: 800;
@@ -55,7 +57,7 @@
 .selection-presentation-controls {
   grid-column: 2 / -1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, .85fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   padding: 3px 0 0;
 }
@@ -63,10 +65,10 @@
   display: grid;
   gap: 3px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: .05em;
 }
 .selection-presentation-controls select {
   width: 100%;
@@ -83,8 +85,8 @@
 .select-product:not(.selected) .selection-presentation-controls { display: none; }
 
 /*
- * O renderer usa uma micrograde de seis colunas. A ordem vem do planner e
- * cards destacados são priorizados no topo de cada categoria antes do packing.
+ * O renderer usa uma micrograde de seis colunas, mas o planner pensa em slots
+ * do template. Largura controla geometria; ênfase controla apenas aparência.
  */
 .catalog-products.editorial-grid {
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -98,17 +100,6 @@
 }
 .catalog-card.emphasis-feature h3 { font-size: 3.55mm; }
 .catalog-card.emphasis-feature .catalog-card-price { font-size: 4.6mm; }
-.catalog-card.emphasis-hero {
-  grid-template-columns: 46% minmax(0, 1fr);
-  border-color: #cfd2d6;
-}
-.catalog-card.emphasis-hero h3 {
-  font-size: 4.5mm;
-  -webkit-line-clamp: 4;
-}
-.catalog-card.emphasis-hero .catalog-card-code { font-size: 2.9mm; }
-.catalog-card.emphasis-hero .catalog-card-price { font-size: 5.5mm; color: var(--brand-deep); }
-.catalog-card.emphasis-hero .catalog-card-visuals.single { padding: 4mm 3mm 4mm 4mm; }
 
 /* Presets de conteúdo: mudam prioridade, não os dados armazenados. */
 .catalog-card.content-visual {
@@ -160,6 +151,63 @@
 }
 .catalog-card.content-commercial:not(.has-table) .catalog-card-visuals { background: #fff; }
 
+/*
+ * Cards largos usam a área extra deliberadamente. Isso é independente da
+ * ênfase: um card largo pode continuar visualmente normal.
+ */
+.catalog-card.width-wide.content-visual,
+.catalog-card.width-full.content-visual {
+  grid-template-columns: minmax(0, 56%) minmax(0, 44%);
+  grid-template-rows: minmax(0, 1fr);
+}
+.catalog-card.width-full.content-visual {
+  grid-template-columns: minmax(0, 58%) minmax(0, 42%);
+}
+.catalog-card.width-wide.content-visual .catalog-card-content,
+.catalog-card.width-full.content-visual .catalog-card-content {
+  display: grid;
+  align-content: center;
+  padding: 3.6mm 3.8mm 3.3mm 2.6mm;
+}
+.catalog-card.width-full.content-visual h3 {
+  font-size: 4.45mm;
+  line-height: 1.03;
+  -webkit-line-clamp: 4;
+}
+.catalog-card.width-full.content-visual .catalog-card-code { font-size: 2.9mm; }
+.catalog-card.width-full.content-visual .catalog-card-price {
+  margin-top: 2mm;
+  font-size: 5.5mm;
+  color: var(--brand-deep);
+}
+
+/* "Hero" deixa de ser primitiva estrutural: Destaque + Linha inteira produz
+ * o tratamento focal, sem alterar ordem ou paginação por semântica especial. */
+.catalog-card.width-full.emphasis-feature {
+  border-color: rgba(239, 23, 27, .42);
+  box-shadow: 0 1.2mm 3.6mm rgba(22, 25, 31, .08);
+}
+.catalog-card.width-full.emphasis-feature::before {
+  height: 1.15mm;
+  background: var(--brand);
+}
+.catalog-card.width-full.emphasis-feature.content-visual .catalog-card-visuals {
+  padding: 3mm 2.4mm 3mm 3.2mm;
+}
+.catalog-card.width-full.emphasis-feature.content-visual .catalog-card-content {
+  padding: 4.8mm 4.8mm 4.2mm 2.8mm;
+}
+.catalog-card.width-full.emphasis-feature.content-visual h3 {
+  font-size: 5.15mm;
+  line-height: 1.02;
+  -webkit-line-clamp: 4;
+}
+.catalog-card.width-full.emphasis-feature.content-visual .catalog-card-code { font-size: 3.05mm; }
+.catalog-card.width-full.emphasis-feature.content-visual .catalog-card-price {
+  margin-top: 2.4mm;
+  font-size: 6.4mm;
+}
+
 /* Tipografia é uma escolha do catálogo, não do produto remoto. */
 .catalog-page.type-technical .catalog-card {
   font-family: "Arial Narrow", Arial, sans-serif;
@@ -189,25 +237,20 @@
 .catalog-page.distribution-compact .catalog-products { align-content: start; }
 .catalog-page.distribution-compact .catalog-card { min-height: 0; }
 
-/* O template compacto continua vertical mesmo quando um preset editorial muda conteúdo. */
-.template-compact .catalog-card.content-essential,
-.template-compact .catalog-card.content-detailed,
-.template-compact .catalog-card.content-technical {
+/* No Compacto, somente cards simples permanecem verticais. */
+.template-compact .catalog-card.width-simple.content-essential,
+.template-compact .catalog-card.width-simple.content-detailed,
+.template-compact .catalog-card.width-simple.content-technical {
   grid-template-columns: 1fr;
   grid-template-rows: 38% minmax(0, 1fr);
 }
-.template-compact .catalog-card.content-visual {
+.template-compact .catalog-card.width-simple.content-visual {
   grid-template-columns: 1fr;
   grid-template-rows: 58% minmax(0, 42%);
 }
 
 @media (max-width: 1180px) {
   .catalog-controls.editorial-controls { grid-template-columns: 1fr 1fr 1fr; }
-  .bulk-presentation-controls {
-    grid-template-columns: 1fr 92px auto;
-  }
-  .bulk-presentation-controls > strong { grid-column: 1 / -1; }
-  .bulk-presentation-controls label:nth-of-type(2) { grid-column: 1; }
 }
 
 @media (max-width: 860px) {
@@ -224,14 +267,7 @@
   .catalog-controls.editorial-controls .catalog-meta { grid-column: 1 / -1; }
   .catalog-controls.editorial-controls .checkbox-label { min-height: 36px; }
   .selection-presentation-controls { grid-template-columns: 1fr 1fr; }
-  .bulk-presentation-controls {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 5px;
-    padding: 7px 8px;
-  }
-  .bulk-presentation-controls > strong { grid-column: 1 / -1; }
-  .bulk-presentation-controls label { min-width: 0; }
-  .bulk-presentation-controls .button { min-width: 92px; }
+  .selection-presentation-controls label:last-child { grid-column: 1 / -1; }
 }
 
 /*
@@ -252,48 +288,4 @@
     overflow: visible !important;
   }
   .catalog-category-divider { display: none !important; }
-}
-
-/* Hero deve parecer deliberadamente focal mesmo quando uma linha balanceada
- * também produz um card full-width. No preset Visual ele deixa de ser apenas
- * um card normal esticado e passa a ter imagem dominante + bloco editorial. */
-.catalog-card.emphasis-hero {
-  border-color: rgba(239, 23, 27, .42);
-  box-shadow: 0 1.2mm 3.6mm rgba(22, 25, 31, .08);
-}
-
-.catalog-card.emphasis-hero::before {
-  height: 1.15mm;
-  background: var(--brand);
-}
-
-.catalog-card.emphasis-hero.content-visual,
-.template-compact .catalog-card.emphasis-hero.content-visual {
-  grid-template-columns: minmax(0, 58%) minmax(0, 42%);
-  grid-template-rows: minmax(0, 1fr);
-}
-
-.catalog-card.emphasis-hero.content-visual .catalog-card-visuals {
-  padding: 3mm 2.4mm 3mm 3.2mm;
-}
-
-.catalog-card.emphasis-hero.content-visual .catalog-card-content {
-  display: grid;
-  align-content: center;
-  padding: 4.8mm 4.8mm 4.2mm 2.8mm;
-}
-
-.catalog-card.emphasis-hero.content-visual h3 {
-  font-size: 5.15mm;
-  line-height: 1.02;
-  -webkit-line-clamp: 4;
-}
-
-.catalog-card.emphasis-hero.content-visual .catalog-card-code {
-  font-size: 3.05mm;
-}
-
-.catalog-card.emphasis-hero.content-visual .catalog-card-price {
-  margin-top: 2.4mm;
-  font-size: 6.4mm;
 }
