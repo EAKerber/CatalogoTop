@@ -184,10 +184,16 @@
 
   function saveState() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const sessionOnly = {
+        schemaVersion: state.schemaVersion,
+        products: [],
+        selectedIds: state.selectedIds,
+        catalog: state.catalog
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionOnly));
     } catch (error) {
-      console.error('Falha ao salvar estado:', error);
-      throw new Error('Não foi possível salvar. O armazenamento do navegador pode estar cheio; imagens muito grandes são a causa mais comum.');
+      console.error('Falha ao salvar estado da sessão:', error);
+      throw new Error('Não foi possível salvar o estado local desta sessão.');
     }
   }
 
