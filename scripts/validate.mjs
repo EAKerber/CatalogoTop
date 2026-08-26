@@ -7,6 +7,7 @@ const requiredFiles = [
   'cards.css',
   'category-browser.css',
   'shell-responsive.css',
+  'mobile-header.css',
   'src/core.js',
   'src/importer.js',
   'src/templates.js',
@@ -42,7 +43,8 @@ for (const file of requiredFiles.filter(file => file.endsWith('.js'))) {
 const html = await readFile('index.html', 'utf8');
 const cardsCss = await readFile('cards.css', 'utf8');
 const shellCss = await readFile('shell-responsive.css', 'utf8');
-const css = `${await readFile('styles.css', 'utf8')}\n${cardsCss}\n${await readFile('category-browser.css', 'utf8')}\n${shellCss}`;
+const mobileHeaderCss = await readFile('mobile-header.css', 'utf8');
+const css = `${await readFile('styles.css', 'utf8')}\n${cardsCss}\n${await readFile('category-browser.css', 'utf8')}\n${shellCss}\n${mobileHeaderCss}`;
 const templates = await readFile('src/templates.js', 'utf8');
 const importer = await readFile('src/importer.js', 'utf8');
 const icons = await readFile('src/icons.js', 'utf8');
@@ -68,6 +70,7 @@ const checks = [
   ['shell possui aba Catálogo', html.includes('data-tab="catalog"')],
   ['shell possui aba Templates', html.includes('data-tab="templates"')],
   ['tabs, importação e backup compartilham o header sticky', headerHtml.includes('class="app-tabs"') && headerHtml.includes('id="importProductsFile"') && headerHtml.includes('id="importMode"') && headerHtml.includes('id="backupFile"') && shellCss.includes('position: sticky')],
+  ['override mobile carrega após shell responsivo', html.indexOf('shell-responsive.css') < html.indexOf('mobile-header.css')],
   ['importação não ocupa faixa permanente na aba Produtos', !html.includes('class="import-panel compact-import card"') && html.includes('class="import-report shell-import-report hidden"')],
   ['ação novo produto saiu do cabeçalho da seção', !productHeadingHtml.includes('id="btnNewProduct"') && html.indexOf('id="btnNewProduct"') > html.indexOf('id="productForm"')],
   ['heading de Produtos usa variante compacta', html.includes('class="section-heading product-section-heading"') && shellCss.includes('.product-section-heading h2')],
@@ -80,7 +83,8 @@ const checks = [
   ['enter avança sem salvar antes da etapa final', formSteps.includes('stopImmediatePropagation') && formSteps.includes('current < steps.length')],
   ['mobile alterna cadastro e biblioteca por tabs', html.includes('data-mobile-workspace-target="form"') && html.includes('data-mobile-workspace-target="library"') && html.includes('data-mobile-workspace-panel="form"') && html.includes('data-mobile-workspace-panel="library"')],
   ['mobile possui swipe horizontal com limiar', mobileWorkspace.includes("touchstart") && mobileWorkspace.includes("touchend") && mobileWorkspace.includes('Math.abs(dx) < 56') && mobileWorkspace.includes("show('library')") && mobileWorkspace.includes("show('form')")],
-  ['shell mobile força marca/utilidades acima e tabs abaixo', shellCss.includes('.app-brand { grid-column: 1; grid-row: 1;') && shellCss.includes('.app-header-actions {\n    grid-column: 2;\n    grid-row: 1;') && shellCss.includes('.app-primary-tools {\n    grid-column: 1 / -1;\n    grid-row: 2;')],
+  ['mobile reserva linha inferior apenas às tabs primárias', mobileHeaderCss.includes('.app-primary-tools { display: contents; }') && mobileHeaderCss.includes('.app-shell-header .app-tabs') && mobileHeaderCss.includes('order: 3;') && mobileHeaderCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr))')],
+  ['utilidades mobile possuem scroll horizontal próprio', mobileHeaderCss.includes('.header-product-import') && mobileHeaderCss.includes('.app-header-actions') && (mobileHeaderCss.match(/overflow-x: auto;/g) || []).length >= 2],
   ['categoria usa seletor sobrescrevível', html.includes('id="category" list="categoryOptions" required') && html.includes('id="categoryOptions"')],
   ['biblioteca possui pastas de categoria', html.includes('id="categoryFolders"') && categoryBrowser.includes('data-category-folder')],
   ['produtos sem categoria recebem pasta explícita', core.includes("|| 'Sem categoria'")],
