@@ -120,11 +120,12 @@
   }
 
   function normalizeProduct(product) {
+    const category = String(product.category || '').trim() || 'Sem categoria';
     return {
       id: product.id || uuid(),
       code: String(product.code || '').trim(),
       description: String(product.description || '').trim(),
-      category: String(product.category || '').trim(),
+      category,
       subcategory: String(product.subcategory || '').trim(),
       price: String(product.price || '').trim(),
       status: product.status === 'Inativo' ? 'Inativo' : 'Ativo',
