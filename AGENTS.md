@@ -23,11 +23,14 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 - Número de página e data de criação precisam ser calculados, nunca digitados em cada página.
 - Mudanças que afetem impressão A4 devem ser verificadas em preview e em `@media print`.
 - Mantenha o aplicativo utilizável sem build obrigatório.
+- Categorias funcionam como pastas de primeiro nível para navegação; não introduzir árvore hierárquica genérica sem um caso real que a justifique.
+- No cadastro manual, categoria deve ser escolhida ou criada pelo mesmo campo sobrescrevível; não criar um CRUD paralelo de pastas vazias enquanto isso não for necessário.
+- Cards continuam sendo a unidade principal de apresentação. Variações de cor, especificações e tabelas devem caber no contrato do card/template antes de criar novos componentes complexos.
 - Netlify é uma camada de publicação do site estático, não justificativa para introduzir backend ou estado remoto. O contrato atual está em `netlify.toml` e `docs/netlify.md`.
 - Campos específicos da conta Netlify (site id, URL, domínio, previews) só podem ser documentados após readback; não inferir valores.
 
 ## Estado atual
 
-Recorte inicial: cadastro manual, importação CSV/Excel, seleção, três templates, paginação A4, impressão/PDF e backup JSON.
+Recorte atual: cadastro manual, importação CSV/Excel, categorias como pastas, seleção, três templates, cards com múltiplas cores e tabela comercial, paginação A4, impressão/PDF e backup JSON.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.
