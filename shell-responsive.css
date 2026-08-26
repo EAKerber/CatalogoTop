@@ -1,0 +1,204 @@
+/* v0.5 — shell compacto, workspace sem scroll externo no desktop e breakpoints explícitos. */
+:root { --app-shell-height: 72px; }
+
+.app-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: var(--app-shell-height);
+  padding: 9px 24px;
+  display: grid;
+  grid-template-columns: auto minmax(330px, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  background: rgba(23, 26, 32, .98);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid #2d3139;
+}
+.app-brand { gap: 12px; min-width: 0; }
+.app-brand img { width: 78px; height: 48px; }
+.app-brand h1 { font-size: 20px; line-height: 1; }
+.app-brand p { margin-top: 3px; font-size: 11px; white-space: nowrap; }
+
+.app-shell-header .app-tabs {
+  position: static;
+  z-index: auto;
+  min-width: 0;
+  padding: 0;
+  gap: 4px;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+}
+.app-shell-header .tab {
+  min-width: 94px;
+  min-height: 42px;
+  padding: 9px 13px;
+  color: #b7bcc4;
+}
+.app-shell-header .tab:hover { color: #fff; background: #22262e; }
+.app-shell-header .tab.active { background: #fff; color: var(--ink); }
+
+.app-header-actions { margin-left: 0; gap: 7px; }
+.app-header-actions .button { min-height: 40px; padding: 8px 11px; font-size: 12px; white-space: nowrap; }
+.app-header-actions .secondary { background: #20242b; border-color: #3b414b; color: #fff; }
+.app-header-actions .secondary:hover { background: #292e37; }
+
+.product-form-step { display: none; min-width: 0; }
+.product-form-step.active { display: grid; gap: 12px; align-content: start; }
+.product-stepper {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border-radius: 11px;
+  background: #f2f3f5;
+}
+.product-stepper button {
+  min-width: 0;
+  min-height: 36px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.product-stepper button.active { background: #fff; color: var(--ink); box-shadow: 0 1px 5px rgba(22,25,31,.08); }
+.product-stepper button.done { color: var(--brand-deep); }
+.form-step-actions { align-items: center; }
+.form-step-actions .form-step-counter { color: var(--muted); font-size: 11px; font-weight: 750; white-space: nowrap; }
+.form-step-actions .button { flex: 0 1 auto; }
+.form-step-actions .step-grow { margin-left: auto; }
+
+.import-panel.compact-import { padding: 11px 14px; }
+.import-panel.compact-import h3 { font-size: 15px; }
+.import-panel.compact-import .eyebrow { margin-bottom: 3px; font-size: 9px; }
+.import-panel.compact-import p.muted { font-size: 11px; }
+
+@media (min-width: 1200px) and (min-height: 720px) {
+  html, body { height: 100%; }
+  body { overflow: hidden; }
+  .app-main {
+    height: calc(100dvh - var(--app-shell-height));
+    max-width: 1760px;
+    padding: 16px 24px 18px;
+    overflow: hidden;
+  }
+  .panel.active { height: 100%; overflow: auto; }
+  #products.panel.active {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+  #products .section-heading { margin-bottom: 11px; }
+  #products .section-heading h2 { font-size: clamp(22px, 2vw, 30px); }
+  #products .section-heading .muted { margin-top: 5px; font-size: 12px; }
+  #products .import-panel { margin-bottom: 11px; }
+  .product-workspace { min-height: 0; height: 100%; align-items: stretch; }
+  .product-form {
+    position: static;
+    top: auto;
+    height: 100%;
+    min-height: 0;
+    padding: 14px;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+  .product-form-step.active { min-height: 0; overflow: auto; padding-right: 3px; }
+  .image-picker { min-height: 130px; }
+  .image-picker img { height: 130px; }
+  .product-list-card { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  .product-library { height: 100%; min-height: 0; }
+  .category-browser { min-height: 0; overflow: auto; }
+  .product-table-pane { min-height: 0; overflow: hidden; }
+  .table-wrap { height: 100%; max-height: none; overflow: auto; }
+}
+
+/* Notebook / desktop estreito. Mantém duas colunas, reduz chrome e libera scroll do documento. */
+@media (max-width: 1199px) {
+  :root { --app-shell-height: 68px; }
+  body { overflow: auto; }
+  .app-shell-header { grid-template-columns: auto minmax(290px, 1fr) auto; gap: 12px; padding: 8px 16px; }
+  .app-brand p { display: none; }
+  .app-brand img { width: 66px; height: 42px; }
+  .app-brand h1 { font-size: 18px; }
+  .app-main { padding: 18px 18px 60px; }
+  .product-workspace { grid-template-columns: minmax(330px, 380px) minmax(0, 1fr); }
+  .product-form { position: static; }
+}
+
+/* Tablet: shell em duas linhas e workspaces empilhados. */
+@media (max-width: 959px) {
+  :root { --app-shell-height: auto; }
+  .app-shell-header {
+    position: sticky;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 7px 10px;
+    padding: 8px 12px 7px;
+  }
+  .app-shell-header .app-tabs {
+    grid-column: 1 / -1;
+    order: 3;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .app-shell-header .app-tabs::-webkit-scrollbar { display: none; }
+  .app-shell-header .tab { flex: 1 0 auto; min-width: 96px; min-height: 38px; }
+  .app-header-actions .button { min-height: 38px; padding: 7px 9px; }
+  .product-workspace, .selection-layout { grid-template-columns: 1fr; }
+  .product-list-card { min-height: 420px; }
+  .product-form-step.active { overflow: visible; }
+  .section-heading { margin-bottom: 14px; }
+  .import-panel.compact-import { grid-template-columns: 1fr; gap: 9px; }
+  .import-controls { justify-content: flex-start; }
+}
+
+/* Mobile: controles em uma coluna, biblioteca de categorias horizontal e tabela reduzida. */
+@media (max-width: 639px) {
+  .app-shell-header { padding-left: 9px; padding-right: 9px; }
+  .app-brand { gap: 8px; }
+  .app-brand img { width: 54px; height: 34px; }
+  .app-brand h1 { font-size: 16px; }
+  .app-header-actions { gap: 5px; }
+  .app-header-actions .button { min-height: 36px; padding: 6px 8px; font-size: 10px; }
+  .app-main { padding: 12px 9px 44px; }
+  .section-heading h2 { font-size: 23px; }
+  .section-heading .muted { font-size: 12px; }
+  .heading-actions { width: 100%; }
+  .heading-actions .button { flex: 1; }
+  .field-grid.two, .catalog-controls { grid-template-columns: 1fr; }
+  .product-stepper button { font-size: 9px; padding-left: 5px; padding-right: 5px; }
+  .form-step-actions { flex-wrap: wrap; }
+  .form-step-actions .form-step-counter { order: -1; width: 100%; }
+  .form-step-actions .step-grow { margin-left: 0; }
+  .form-step-actions .button { flex: 1; }
+  .import-controls { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .import-controls .text-link { grid-column: 1 / -1; }
+  .list-toolbar { grid-template-columns: 1fr auto; }
+  .list-toolbar #filterCategory { display: none; }
+  .product-library { grid-template-columns: 1fr; }
+  .category-browser { overflow: hidden; border-right: 0; border-bottom: 1px solid var(--line); }
+  .category-browser-head { display: none; }
+  .category-folders { display: flex; gap: 6px; overflow-x: auto; padding: 8px; scrollbar-width: none; }
+  .category-folders::-webkit-scrollbar { display: none; }
+  .category-folder { flex: 0 0 auto; width: auto; min-width: 132px; }
+  .product-table th:nth-child(1), .product-table td:nth-child(1),
+  .product-table th:nth-child(4), .product-table td:nth-child(4),
+  .product-table th:nth-child(5), .product-table td:nth-child(5) { display: none; }
+  .product-table th, .product-table td { padding: 9px 8px; }
+  .product-table td { font-size: 12px; }
+  .selection-toolbar { grid-template-columns: 1fr; }
+  .select-product { grid-template-columns: 20px 46px minmax(0,1fr) auto; padding: 7px 5px; }
+  .select-product img { width: 46px; height: 44px; }
+  .catalog-preview { overflow-x: auto; justify-content: start; }
+}
+
+@media print {
+  .app-shell-header { display: none !important; }
+}
