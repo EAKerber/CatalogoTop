@@ -125,6 +125,44 @@
     font-size: 10.5px;
     padding: 6px 7px;
   }
+
+  /* Bulk no mobile: título separado e cada ajuste ocupa sua própria linha. */
+  .bulk-presentation-controls {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 6px !important;
+    padding: 8px 10px !important;
+    align-items: end !important;
+  }
+  .bulk-presentation-controls > strong {
+    grid-column: 1 / -1 !important;
+    width: 100%;
+    white-space: nowrap;
+  }
+  .bulk-presentation-controls label {
+    grid-column: 1 !important;
+    min-width: 0 !important;
+  }
+  .bulk-presentation-controls .button {
+    grid-column: 2 !important;
+    width: 112px;
+    min-width: 112px !important;
+    max-width: 112px;
+  }
+  .bulk-presentation-controls select {
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  .selection-presentation-controls {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .selection-presentation-controls label,
+  .selection-presentation-controls select {
+    min-width: 0 !important;
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 420px) {
@@ -132,5 +170,30 @@
   .app-brand img { width: 34px; }
   .app-shell-header {
     grid-template-columns: 38px minmax(0, 1.05fr) minmax(0, .95fr);
+  }
+
+  .bulk-presentation-controls .button {
+    width: 96px;
+    min-width: 96px !important;
+    max-width: 96px;
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+}
+
+/* A linha técnica do header não pode depender de background graphics na impressão. */
+.catalog-title-block i {
+  height: 0 !important;
+  background: transparent !important;
+  border-top: .45mm solid var(--brand) !important;
+}
+
+/* O breakpoint mobile usa display:grid!important; este guard precisa vencer no print. */
+@media print {
+  .app-shell-header { display: none !important; }
+  .catalog-title-block i {
+    height: 0 !important;
+    background: transparent !important;
+    border-top: .45mm solid var(--brand) !important;
   }
 }
