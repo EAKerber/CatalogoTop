@@ -23,4 +23,4 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run physical PDF regression gates
-        run: node scripts/browser-print-gate.mjs && node scripts/browser-collection-gate.mjs
+        run: node scripts/browser-print-gate.mjs && node scripts/browser-collection-gate.mjs && node scripts/browser-table-gate.mjs

@@ -16,11 +16,33 @@
     window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));
   }
 
+  function mergeCollections(allBlocks, collections) {
+    const byId = new Map(collections.map(block => [block.id, block]));
+    const emitted = new Set();
+    const merged = [];
+    (Array.isArray(allBlocks) ? allBlocks : []).forEach(block => {
+      if (block?.type !== 'collection') {
+        merged.push(block);
+        return;
+      }
+      const next = byId.get(String(block.id));
+      if (!next) return;
+      emitted.add(next.id);
+      merged.push(next);
+    });
+    collections.forEach(block => {
+      if (!emitted.has(block.id)) merged.push(block);
+    });
+    return merged;
+  }
+
   function mutateBlocks(mutator) {
     Core.mutate(draft => {
       const presentation = Composition.normalizePresentation(draft.catalog.presentation);
-      const blocks = Collection.normalizeBlocks(presentation.blocks);
-      mutator(blocks, draft);
+      const allBlocks = Array.isArray(presentation.blocks) ? presentation.blocks.slice() : [];
+      const collections = Collection.normalizeBlocks(allBlocks);
+      mutator(collections, draft);
+      const blocks = mergeCollections(allBlocks, collections);
       draft.catalog.presentation = Composition.normalizePresentation({ ...presentation, blocks });
     });
     notify();
@@ -30,6 +52,15 @@
     const map = new Map();
     blocks.forEach(block => block.memberIds.forEach(id => map.set(String(id), block)));
     return map;
+  }
+
+  function allBlockMemberIds() {
+    const ids = new Set();
+    const blocks = state().catalog?.presentation?.blocks;
+    (Array.isArray(blocks) ? blocks : []).forEach(block => {
+      (Array.isArray(block?.memberIds) ? block.memberIds : []).forEach(id => ids.add(String(id)));
+    });
+    return ids;
   }
 
   function selectedProducts() {
@@ -45,7 +76,7 @@
   }
 
   function candidateIds() {
-    const membership = memberMap();
+    const membership = allBlockMemberIds();
     const visible = new Set(visibleSelectedIds().filter(id => !membership.has(id)));
     if (visible.size < 2) return [];
 
@@ -142,7 +173,7 @@
     const ids = candidateIds();
     button.disabled = ids.length < 2 || ids.length > Collection.MAX_MEMBERS;
     button.title = button.disabled
-      ? 'Deixe visível um trecho contíguo de 2 a 12 produtos selecionados da mesma categoria.'
+      ? 'Deixe visível um trecho contíguo de 2 a 12 produtos selecionados da mesma categoria e ainda não usado em outro bloco.'
       : `Agrupar ${ids.length} produtos visíveis`;
     manager.innerHTML = blocks.length
       ? `<div class="collection-manager-title"><strong>Coleções</strong><span>${blocks.length}</span></div>${blocks.map(collectionMarkup).join('')}`
@@ -274,12 +305,14 @@
       if (!block) return;
       Core.mutate(draft => {
         const presentation = Composition.normalizePresentation(draft.catalog.presentation);
-        const blocks = Collection.normalizeBlocks(presentation.blocks);
-        const target = blocks.find(item => item.id === block.id);
+        const allBlocks = Array.isArray(presentation.blocks) ? presentation.blocks.slice() : [];
+        const collections = Collection.normalizeBlocks(allBlocks);
+        const target = collections.find(item => item.id === block.id);
         if (!target) return;
         target.memberIds = target.memberIds.filter(memberId => memberId !== id);
-        const next = blocks.filter(item => item.memberIds.length >= 2);
-        draft.catalog.presentation = Composition.normalizePresentation({ ...presentation, blocks: next });
+        const nextCollections = collections.filter(item => item.memberIds.length >= 2);
+        const blocks = mergeCollections(allBlocks, nextCollections);
+        draft.catalog.presentation = Composition.normalizePresentation({ ...presentation, blocks });
       });
     }, true);
 
@@ -297,6 +330,7 @@
     renderManager();
     $('#selectionCategory')?.addEventListener('change', () => setTimeout(renderManager, 0));
     $('#searchSelection')?.addEventListener('input', () => setTimeout(renderManager, 0));
+    window.addEventListener('catalogotop:products-updated', () => setTimeout(renderManager, 0));
   }
 
   init();

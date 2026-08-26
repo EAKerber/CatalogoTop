@@ -25,13 +25,27 @@
     });
   }
 
-  async function loadCollectionRuntime() {
+  async function loadEditorialRuntime() {
     ensureStyle('collection-block.css');
     for (const src of [
       'src/collection.js',
       'src/collection-document.js',
       'src/collection-render.js',
       'src/collection-controls.js'
+    ]) {
+      await loadScript(src);
+    }
+
+    ensureStyle('table-block.css');
+    ensureStyle('product-actions.css');
+    for (const src of [
+      'src/table-block.js',
+      'src/table-document.js',
+      'src/table-render.js',
+      'src/table-controls.js',
+      'src/product-actions.js',
+      'src/product-delete-ui.js',
+      'src/block-overlap-guard.js'
     ]) {
       await loadScript(src);
     }
@@ -99,7 +113,7 @@
     applyEffectiveOrder();
   }
 
-  loadCollectionRuntime()
+  loadEditorialRuntime()
     .then(() => {
       init();
       window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));

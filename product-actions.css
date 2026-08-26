@@ -1,0 +1,23 @@
+/* Ações diretas e seguras da biblioteca de produtos. */
+.product-row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  white-space: nowrap;
+}
+.product-row-actions .danger-action {
+  color: #a7191d;
+  border-color: rgba(167,25,29,.16);
+  background: #fff7f7;
+}
+.product-row-actions .danger-action:hover,
+.product-row-actions .danger-action:focus-visible {
+  color: #fff;
+  border-color: #a7191d;
+  background: #a7191d;
+}
+@media (max-width: 639px) {
+  .product-row-actions { gap: 2px; }
+  .product-row-actions .icon-button { min-width: 34px; min-height: 34px; }
+}
