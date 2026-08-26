@@ -1,6 +1,6 @@
 # v0.8 — composição editorial determinística
 
-> Estado: em desenvolvimento no PR #6. A estabilização v0.8.1 separa `CatalogDocument`, preview e documento de impressão; detalhes em `docs/document-pipeline-v0.8.1.md`.
+> Estado: consolidado na `main`. A estabilização v0.8.1 separou `CatalogDocument`, preview e documento de impressão; a manutenção v0.8.3 refinou a semântica do Hero e o scroll touch do preview.
 
 ## Princípio
 
@@ -18,11 +18,22 @@ O catálogo evolui de uma grade uniforme para uma composição editorial discret
 
 ## Ênfase
 
-- `Normal`
-- `Destaque` — 4/6 da micrograde.
-- `Hero` — 6/6 da micrograde.
+- `Normal` — segue o fluxo estável da seleção.
+- `Destaque` — 4/6 da micrograde e tem prioridade sobre cards normais dentro do fluxo da categoria.
+- `Hero` — 6/6 da micrograde e funciona como **âncora de página**, não como apenas um Destaque maior.
 
-Dentro de cada categoria, `Hero` e `Destaque` sobem ao topo de forma estável antes dos cards normais. A v0.8.1 materializa essa ordem em `CatalogDocument` e usa a mesma ordem no painel, preview e documento print.
+A partir da v0.8.3, o planner separa explicitamente prioridade de fluxo de âncora editorial. Em uma página com Hero, o planner reserva uma linha inteira para ele, preenche as linhas anteriores com Destaques e Normais, rebalanceia a linha residual quando possível e materializa o Hero como a última linha usada. Assim, a sobra de composição fica **acima do Hero**, nunca abaixo.
+
+Exemplo Técnico 2×4:
+
+```text
+[Destaque 4/6][Normal 2/6]
+[ Normal ][ Normal ]
+[      Normal residual       ]
+[             HERO           ]
+```
+
+Uma página materializa no máximo um Hero. Quando a categoria possui múltiplos Heroes, cada um ancora uma página separada e a ordem original entre Heroes permanece estável.
 
 ## Distribuição e tipografia
 
@@ -38,7 +49,7 @@ O compositor oferece aplicação em lote de conteúdo e ênfase aos produtos atu
 
 Na v0.8.1 o bulk foi reorganizado para responder à largura do próprio painel (`container-type: inline-size`). A estrutura base usa duas colunas: campo + ação. O layout não depende mais de um breakpoint de viewport para caber dentro de uma coluna desktop estreita.
 
-## Mobile/header
+## Mobile/header e preview
 
 Em tablet/mobile o header mantém duas linhas lógicas:
 1. marca + dois grupos de utilidades com scroll horizontal próprio;
@@ -46,19 +57,19 @@ Em tablet/mobile o header mantém duas linhas lógicas:
 
 Em telas muito estreitas, o nome `CatalogoTop` é ocultado e a marca vira o ponto de ancoragem visual da primeira linha.
 
-`mobile-header.css` voltou a tratar somente o header. Regras de compositor e impressão foram removidas desse arquivo.
+O preview A4 usa Fit/zoom sem alterar a geometria materializada de `210 × 297 mm`. Na v0.8.3 o container deixa de conter o overscroll nos dois eixos: horizontal continua contido para inspeção com zoom, enquanto vertical volta a encadear com o documento. `touch-action: pan-x pan-y pinch-zoom` preserva scroll touch e pinch do navegador quando o gesto começa sobre a folha.
 
 ## Documento e PDF — v0.8.1
 
-O fluxo suportado agora é:
+O fluxo suportado é:
 
 ```text
 state → CatalogDocument → preview / print isolado
 ```
 
-O botão de PDF não chama mais `window.print()` sobre a aplicação inteira. `src/print.js` gera um iframe temporário contendo somente `.catalog-page`, aguarda styles/fonts/imagens e imprime esse documento.
+O botão de PDF não chama `window.print()` sobre a aplicação inteira. `src/print.js` gera um iframe temporário contendo somente `.catalog-page`, aguarda styles/fonts/imagens e imprime esse documento.
 
-`print.css` neutraliza os `break-after` legados e quebra somente antes da segunda página em diante. No documento isolado as folhas voltam a `210 × 297 mm`.
+`print.css` quebra somente antes da segunda página em diante. No documento isolado as folhas são `210 × 297 mm`.
 
 As linhas vermelhas institucionais de header/footer são bordas, não backgrounds, para permanecerem visíveis com `printBackground: false`.
 
@@ -68,28 +79,24 @@ Automáticos Node:
 - `Visual` é o padrão de cards sem override;
 - `Essencial` e `Detalhado` existem como limites explícitos de densidade;
 - `Auto` é determinístico;
-- aplicação em lote altera apenas `catalog.presentation`;
-- planner usa seis colunas e ordem Hero/Destaque estável;
+- planner usa seis colunas;
+- Destaque lidera o fluxo, Hero fecha a área usada da página;
+- linha residual é rebalanceada imediatamente acima do Hero;
+- no máximo um Hero é materializado por página;
+- comportamento é coberto nos templates Técnico, Compacto e Showcase;
 - `CatalogDocument` não muta `selectedIds` factual;
-- CSS mobile não contém regras de compositor/PDF;
-- compositor usa container e bulk de duas colunas;
 - print isolado contém apenas folhas A4.
 
 Gate Chromium físico (`CatalogoTop Browser Print Gate`):
-- fixture materializa 2 páginas lógicas;
-- Hero é primeiro no documento e no DOM do preview;
+- fixture materializa exatamente 2 páginas lógicas/físicas A4;
+- Destaque aparece antes do fluxo normal e Hero é o último card da primeira página;
+- Hero preserva a composição Visual focal;
 - documento de impressão não contém shell, selection panel ou divisores de preview;
 - header/footer aparecem em ambas as páginas;
 - linhas institucionais existem com `printBackground: false`;
-- PDF gerado pelo Chromium possui exatamente 2 páginas físicas.
-
-O caminho suportado para o gate físico é o botão `Gerar PDF / Imprimir`, que usa o documento isolado. `Ctrl+P` direto sobre a aplicação permanece apenas como fallback legado até uma limpeza posterior.
-
-Gate manual restante antes do merge:
-- repetir o catálogo real no Deploy Preview;
-- confirmar que o PDF real não cria terceira página vazia;
-- conferir painel do compositor em desktop real e a ordem visual Hero/Destaque;
-- confirmar ausência de regressão no mobile já aprovado.
+- preview mobile entra em Fit sem overflow horizontal;
+- CSS de touch contém overscroll horizontal e libera pan vertical;
+- gesto vertical real iniciado sobre a folha move o scroll do documento no Chromium touch.
 
 ## Fora do recorte
 
