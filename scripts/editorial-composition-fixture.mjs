@@ -20,6 +20,7 @@ const product = (id, extra = {}) => ({ id, code: id.toUpperCase(), description: 
 
 const compact = { id: 'compact', columns: 3, rows: 4, perPage: 12 };
 const technical = { id: 'technical', columns: 2, rows: 4, perPage: 8 };
+const showcase = { id: 'showcase', columns: 2, rows: 3, perPage: 6 };
 const balanced = Composition.normalizePresentation({ distribution: 'balanced' });
 
 if (Composition.styleFor(balanced, 'novo').contentPreset !== 'visual') fail('cards sem override devem usar Visual como padrão');
@@ -44,12 +45,47 @@ const presentation = Composition.normalizePresentation({
   }
 });
 const emphasized = Composition.planProducts([product('a'), product('b'), product('c')], technical, presentation);
-if (emphasized.items.map(item => item.product.id).join(',') !== 'c,a,b') fail('hero e destaque devem subir ao topo mantendo estabilidade dentro de cada prioridade');
+if (emphasized.items.map(item => item.product.id).join(',') !== 'a,b,c') fail('Destaque deve liderar o fluxo e Hero deve ancorar o final da página');
 const a = emphasized.items.find(item => item.product.id === 'a');
 const b = emphasized.items.find(item => item.product.id === 'b');
 const c = emphasized.items.find(item => item.product.id === 'c');
-if (c.span !== 6 || c.row !== 1) fail('hero deve ocupar a primeira linha inteira');
-if (a.span !== 4 || b.span !== 2 || a.row !== 2 || b.row !== 2) fail('destaque deve formar 4+2 logo após hero');
+if (a.span !== 4 || b.span !== 2 || a.row !== 1 || b.row !== 1) fail('Destaque deve formar 4+2 acima do Hero');
+if (c.span !== 6 || c.row !== 2) fail('Hero deve ocupar linha inteira depois do fluxo residual');
+
+const heroPresentation = Composition.normalizePresentation({
+  distribution: 'balanced',
+  itemStyles: { hero: { emphasis: 'hero', contentPreset: 'visual' } }
+});
+const heroWithFive = Composition.paginateProducts([
+  product('n1'), product('n2'), product('n3'), product('n4'), product('n5'), product('hero')
+], technical, heroPresentation);
+if (heroWithFive.length !== 1) fail('cinco normais + Hero devem caber em uma página técnica');
+const heroPage = heroWithFive[0].layout;
+const heroItem = heroPage.items.find(item => item.product.id === 'hero');
+if (heroItem.row !== heroPage.rowCount || heroItem.row !== 4) fail('Hero deve ser a última linha usada e a sobra deve ficar acima');
+if (heroPage.rows[2].reduce((sum, item) => sum + item.span, 0) !== 6) fail('linha residual acima do Hero deve ser rebalanceada, sem vazio horizontal evitável');
+
+for (const [template, count] of [[compact, 7], [showcase, 3]]) {
+  const products = Array.from({ length: count }, (_, index) => product(`p${index + 1}`)).concat(product('hero'));
+  const pages = Composition.paginateProducts(products, template, heroPresentation);
+  const first = pages[0].layout;
+  const hero = first.items.find(item => item.product.id === 'hero');
+  if (!hero || hero.row !== first.rowCount) fail(`Hero deve ancorar a última linha em ${template.id}`);
+}
+
+const multiHeroPresentation = Composition.normalizePresentation({
+  distribution: 'balanced',
+  itemStyles: {
+    h1: { emphasis: 'hero', contentPreset: 'visual' },
+    h2: { emphasis: 'hero', contentPreset: 'visual' }
+  }
+});
+const multiHero = Composition.paginateProducts([
+  product('a'), product('b'), product('c'), product('d'), product('h1'), product('h2')
+], technical, multiHeroPresentation);
+if (multiHero.length !== 2) fail('dois Heroes devem gerar ao menos uma página por âncora');
+if (multiHero.some(page => page.layout.items.filter(item => item.style.emphasis === 'hero').length !== 1)) fail('cada página pode materializar no máximo um Hero');
+if (multiHero.some(page => page.layout.items.at(-1)?.style.emphasis !== 'hero')) fail('Hero deve ser o último item materializado da página');
 
 const autoTechnical = Composition.resolveContentPreset(product('t', { specs: [1,2,3,4,5].map(value => ({ label: 'x', value })) }), 'auto');
 const autoDetailed = Composition.resolveContentPreset(product('d', { specs: [1,2,3].map(value => ({ label: 'x', value })) }), 'auto');
