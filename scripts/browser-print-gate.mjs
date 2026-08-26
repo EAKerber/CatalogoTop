@@ -206,7 +206,8 @@ try {
   });
   if (mobilePreview.mode !== 'fit' || mobilePreview.scale >= 1) throw new Error(`preview mobile deveria entrar em Fit abaixo de 100%: ${JSON.stringify(mobilePreview)}`);
   if (mobilePreview.scrollWidth > mobilePreview.clientWidth + 3) throw new Error(`Fit mobile não deveria exigir scroll horizontal: ${JSON.stringify(mobilePreview)}`);
-  if (mobilePreview.overscrollX !== 'contain' || mobilePreview.overscrollY !== 'auto' || !mobilePreview.touchAction.includes('pan-y')) {
+  const touchAllowsPan = mobilePreview.touchAction === 'manipulation' || mobilePreview.touchAction.includes('pan-y');
+  if (mobilePreview.overscrollX !== 'contain' || mobilePreview.overscrollY !== 'auto' || !touchAllowsPan) {
     throw new Error(`viewport deve conter overscroll horizontal e permitir pan vertical: ${JSON.stringify(mobilePreview)}`);
   }
 
