@@ -14,6 +14,12 @@ O contrato versionado em `netlify.toml` é:
 
 Assim, o deploy continua servindo diretamente `index.html` e os assets do repositório, mas a publicação falha antes do deploy se o smoke test estrutural falhar.
 
+## Estado observado
+
+Readback realizado em 2026-08-25 pela integração Netlify procurando por projetos com nome parcial `catalogotop`: **nenhum projeto encontrado**.
+
+Isso significa apenas que não há um site Netlify identificado por esse nome na conta acessível. Nenhum site novo foi criado automaticamente, porque a criação de um projeto Netlify deve ser uma decisão explícita e precisa definir o destino correto antes de gerar um `siteId`.
+
 ## Modelo recomendado
 
 - Repositório: `EAKerber/CatalogoTop`.
