@@ -54,11 +54,21 @@ const cardCases = await readFile('examples/card-cases.js', 'utf8');
 const netlify = await readFile('netlify.toml', 'utf8');
 const logo = await readFile('assets/logo-top-mobili.svg', 'utf8');
 
+const headerStart = html.indexOf('<header class="app-shell-header">');
+const headerEnd = html.indexOf('</header>', headerStart);
+const headerHtml = html.slice(headerStart, headerEnd);
+const productHeadingStart = html.indexOf('class="section-heading product-section-heading"');
+const productWorkspaceStart = html.indexOf('class="product-workspace"');
+const productHeadingHtml = html.slice(productHeadingStart, productWorkspaceStart);
+
 const checks = [
   ['shell possui aba Produtos', html.includes('data-tab="products"')],
   ['shell possui aba Catálogo', html.includes('data-tab="catalog"')],
   ['shell possui aba Templates', html.includes('data-tab="templates"')],
-  ['tabs e backup compartilham o header sticky', html.indexOf('class="app-tabs"') > html.indexOf('class="app-shell-header"') && html.indexOf('id="backupFile"') > html.indexOf('class="app-tabs"') && shellCss.includes('position: sticky')],
+  ['tabs, importação e backup compartilham o header sticky', headerHtml.includes('class="app-tabs"') && headerHtml.includes('id="importProductsFile"') && headerHtml.includes('id="importMode"') && headerHtml.includes('id="backupFile"') && shellCss.includes('position: sticky')],
+  ['importação não ocupa faixa permanente na aba Produtos', !html.includes('class="import-panel compact-import card"') && html.includes('class="import-report shell-import-report hidden"')],
+  ['ação novo produto saiu do cabeçalho da seção', !productHeadingHtml.includes('id="btnNewProduct"') && html.indexOf('id="btnNewProduct"') > html.indexOf('id="productForm"')],
+  ['heading de Produtos usa variante compacta', html.includes('class="section-heading product-section-heading"') && shellCss.includes('.product-section-heading h2')],
   ['biblioteca de ícones carrega antes do renderer', html.indexOf('src/icons.js') < html.indexOf('src/render.js')],
   ['etapas do formulário carregam antes do app', html.indexOf('src/form-steps.js') < html.indexOf('src/app.js')],
   ['editor leve de detalhes carrega depois do app', html.indexOf('src/app.js') < html.indexOf('src/product-details.js')],
@@ -70,6 +80,7 @@ const checks = [
   ['produtos sem categoria recebem pasta explícita', core.includes("|| 'Sem categoria'")],
   ['workspace desktop usa scroll interno', shellCss.includes('body { overflow: hidden; }') && shellCss.includes('.category-browser { min-height: 0; overflow: auto; }') && shellCss.includes('.table-wrap { height: 100%; max-height: none; overflow: auto; }')],
   ['breakpoints de tablet e mobile existem', shellCss.includes('@media (max-width: 959px)') && shellCss.includes('@media (max-width: 639px)')],
+  ['importação permanece junto às tabs no breakpoint tablet', shellCss.includes('.app-primary-tools') && shellCss.includes('overflow-x: auto')],
   ['logo canônica substitui reconstrução', logo.includes('viewBox="0 0 481 270"') && !logo.includes('recriada a partir da referência')],
   ['impressão declara A4', css.includes('@page { size: A4 portrait;')],
   ['página contém rodapé', css.includes('.catalog-page-footer')],
