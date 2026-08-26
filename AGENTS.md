@@ -62,6 +62,6 @@ Recorte v0.9 consolidado na `main`: `Hero` estrutural foi substituído por largu
 
 Recorte v0.10.1 consolidado na `main`: `Collection` é o segundo primitivo top-level, full-width e atômico entre páginas, com grade local de 2–4 colunas, temas claro/escuro, presets Visual/Compacto/Comercial, overrides locais e paginação por `rowSpan`. Ver `docs/collection-block-v0.10.1.md`.
 
-Recorte v0.10.2 em promoção: `Table` é o terceiro primitivo top-level, full-width e fragmentável com cabeçalho repetido, fontes Produtos/Linhas comerciais, colunas conhecidas e exclusão direta segura na biblioteca. A branch foi reconciliada sobre a `main` após a promoção de Collection e os patches DOM de blocos foram tornados idempotentes para eliminar ciclos entre observadores. Ver `docs/table-block-v0.10.2.md`.
+Recorte v0.10.2 consolidado na `main`: `Table` é o terceiro primitivo top-level, full-width e fragmentável com cabeçalho repetido, fontes Produtos/Linhas comerciais, colunas conhecidas e exclusão direta segura na biblioteca. A reconciliação também tornou idempotentes os patches DOM de Collection/Table, eliminando o ciclo entre observadores identificado pelo Browser Print Gate. Ver `docs/table-block-v0.10.2.md`.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.
