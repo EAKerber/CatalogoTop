@@ -39,7 +39,7 @@ export default async (request: Request, _context: Context) => {
 
   if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405, { allow: 'GET, POST' });
   if (!sameOriginOrNonBrowser(request)) return json({ error: 'origin_rejected' }, 403);
-  if (!hasWriteSession(request)) return json({ error: 'write_session_required' }, 401);
+  if (!await hasWriteSession(request)) return json({ error: 'write_session_required' }, 401);
 
   const contentType = (request.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
   if (!allowedTypes.has(contentType)) return json({ error: 'unsupported_image_type' }, 415);
