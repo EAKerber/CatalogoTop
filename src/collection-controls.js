@@ -262,7 +262,7 @@
       patchSelection();
       renderManager();
     });
-    observer.observe(root, { childList: true, subtree: true });
+    observer.observe(root, { childList: true });
   }
 
   function init() {
