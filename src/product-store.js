@@ -27,6 +27,17 @@
     window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));
   }
 
+  function localSnapshot(products, extra = {}) {
+    return {
+      schemaVersion: 1,
+      revision,
+      updatedAt: new Date().toISOString(),
+      writeId: '',
+      products: Array.isArray(products) ? products : [],
+      ...extra
+    };
+  }
+
   function applyProducts(products) {
     const normalized = (Array.isArray(products) ? products : []).map(Core.normalizeProduct).filter(product => product.code && product.description);
     Core.mutate(draft => {
@@ -103,6 +114,7 @@
         if (fallback.length) {
           if (!localProducts.length) applyProducts(fallback);
           migrationNeeded = true;
+          await IndexedCache.setSnapshot(localSnapshot(fallback, { migrationPending: true }));
           setStatus('Local · publicar', 'warning', 'A base compartilhada está vazia. Clique para publicar a base local.');
         } else {
           await IndexedCache.setSnapshot(snapshot);
@@ -144,6 +156,8 @@
   async function publishProducts(products, { promptOnConflict = true } = {}) {
     if (publishing) return false;
     publishing = true;
+    const localProducts = Array.isArray(products) ? products : [];
+    await IndexedCache.setSnapshot(localSnapshot(localProducts, { pendingWrite: true }));
     setStatus('Sincronizando…', 'loading');
     try {
       if (!await ensureSession()) {
@@ -153,12 +167,12 @@
 
       let materialized;
       try {
-        materialized = await AssetClient.materializeProducts(products);
+        materialized = await AssetClient.materializeProducts(localProducts);
       } catch (error) {
         if (error.code === 'write_session_required') {
           sessionUnlocked = false;
           if (!await ensureSession()) return false;
-          materialized = await AssetClient.materializeProducts(products);
+          materialized = await AssetClient.materializeProducts(localProducts);
         } else {
           throw error;
         }
@@ -172,6 +186,7 @@
           if (!await ensureSession()) return false;
           snapshot = await putProducts(materialized);
         } else if (error.code === 'revision_conflict') {
+          await IndexedCache.setSnapshot(localSnapshot(localProducts, { pendingWrite: true, conflict: true }));
           setStatus('Conflito de revisão', 'conflict');
           if (promptOnConflict) alert('A base foi alterada em outro navegador. Recarregue os produtos compartilhados antes de salvar novamente.');
           return false;
@@ -188,6 +203,7 @@
       return true;
     } catch (error) {
       console.error(error);
+      await IndexedCache.setSnapshot(localSnapshot(localProducts, { pendingWrite: true }));
       setStatus('Alterações locais', 'warning', error.message || String(error));
       alert(`Não foi possível sincronizar os produtos. A alteração continua disponível localmente.\n\n${error.message || error}`);
       return false;
