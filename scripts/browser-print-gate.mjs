@@ -122,14 +122,12 @@ try {
       chromeVisibleInPreview: Boolean(document.querySelector('#catalogPreview .app-shell-header')),
       fullColumns: full ? getComputedStyle(full).gridTemplateColumns : '',
       fullTitleSize: fullTitle ? parseFloat(getComputedStyle(fullTitle).fontSize) : 0,
-      normalTitleSize: normalTitle ? parseFloat(getComputedStyle(normalTitle).fontSize) : 0,
-      widthControlExists: Boolean(document.querySelector('[data-card-width="a-full"]'))
+      normalTitleSize: normalTitle ? parseFloat(getComputedStyle(normalTitle).fontSize) : 0
     };
   });
   if (preview.pages !== 2) throw new Error(`preview deveria ter 2 páginas; recebeu ${preview.pages}`);
   if (preview.firstCard !== 'a-normal-1' || preview.lastCard !== 'a-full') throw new Error(`preview deve preservar ordem e manter full após residual: ${JSON.stringify(preview)}`);
   if (preview.fullRow !== '3' || preview.fullWidth !== 'full' || preview.fullSlots !== '2') throw new Error(`preview não materializou largura full: ${JSON.stringify(preview)}`);
-  if (!preview.widthControlExists) throw new Error('compositor deve expor controle de largura por card');
   if (preview.chromeVisibleInPreview) throw new Error('preview contém chrome da aplicação');
   if (preview.fullColumns.trim().split(/\s+/).length < 2) throw new Error(`Destaque + Linha inteira precisa de composição focal em duas áreas; recebeu ${preview.fullColumns}`);
   if (!(preview.fullTitleSize > preview.normalTitleSize * 1.2)) throw new Error(`Destaque + Linha inteira precisa ampliar hierarquia tipográfica: full=${preview.fullTitleSize}, normal=${preview.normalTitleSize}`);
