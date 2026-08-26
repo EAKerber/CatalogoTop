@@ -2,17 +2,39 @@
 
 Gerador simplificado de catálogos A4 para a Top Mobili.
 
-A aplicação parte de um princípio deliberadamente menor que um editor livre: **produtos são cadastrados/importados, selecionados e distribuídos automaticamente em cards por templates determinísticos**. Cabeçalho, rodapé, paginação e data de criação são componentes padrão compartilhados por todas as páginas.
+A aplicação parte de um princípio deliberadamente menor que um editor livre: **produtos são cadastrados/importados, organizados por categoria, selecionados e distribuídos automaticamente em cards por templates determinísticos**. Cabeçalho, rodapé, paginação e data de criação são componentes padrão compartilhados por todas as páginas.
 
 ## Fluxo atual
 
 1. Cadastre produtos manualmente ou importe CSV/XLSX/XLS/XLSM.
-2. Selecione os produtos que farão parte do catálogo.
-3. Dê um título à categoria e escolha um template.
-4. Revise a paginação A4 gerada automaticamente.
-5. Use **Gerar PDF / Imprimir**.
+2. Organize e navegue os produtos por categorias.
+3. Selecione os produtos que farão parte do catálogo.
+4. Dê um título à categoria e escolha um template.
+5. Revise a paginação A4 gerada automaticamente.
+6. Use **Gerar PDF / Imprimir**.
 
 O estado é salvo no `localStorage` e pode ser exportado/importado como backup JSON.
+
+## Categorias
+
+A base de produtos possui uma navegação lateral por **pastas de categoria**. No cadastro manual, o campo Categoria é obrigatório e usa um seletor sobrescrevível (`datalist`): o usuário pode escolher uma categoria existente ou digitar um nome novo; a pasta passa a existir quando o produto é salvo.
+
+Produtos importados sem categoria são normalizados para `Sem categoria`, evitando itens órfãos fora da navegação. Neste recorte, `Subcategoria` continua sendo metadado e não cria uma árvore de pastas aninhada.
+
+O contrato e os limites dessa metáfora estão em [`docs/category-browser.md`](docs/category-browser.md).
+
+## Cards
+
+O card continua sendo deliberadamente simples, mas já suporta:
+
+- uma imagem principal;
+- múltiplas cores/acabamentos com imagens opcionais;
+- especificações;
+- tabela comercial `cor | código | embalagem | preço`;
+- ocultação de colunas vazias;
+- limites de densidade definidos pelo template.
+
+Para comparar quatro formatos representativos sem poluir a aplicação principal, existe um harness visual em [`examples/card-cases.html`](examples/card-cases.html): produto simples, família de cores, várias referências e card denso. Os dados desse arquivo são sintéticos e servem apenas para teste visual.
 
 ## Importação
 
@@ -73,20 +95,28 @@ A política operacional, campos pendentes de readback e checklist de Deploy Prev
 npm test
 ```
 
-O teste é propositalmente leve e sem dependências: verifica sintaxe JavaScript e contratos estáticos essenciais, incluindo A4, templates, importação, biblioteca de ícones e configuração Netlify.
+O teste é propositalmente leve e sem dependências: verifica sintaxe JavaScript e contratos estáticos essenciais, incluindo A4, templates, importação, categorias, biblioteca de ícones, cards e configuração Netlify.
+
+O mesmo comando roda em `.github/workflows/validate.yml` para pushes/PRs.
 
 ## Estrutura
 
 - `index.html` — shell da aplicação;
-- `styles.css` — UI, templates e impressão A4;
+- `styles.css` — UI base, templates e impressão A4;
+- `cards.css` — composição visual dos cards;
+- `category-browser.css` — navegação por pastas;
 - `src/core.js` — estado, persistência e normalização;
 - `src/importer.js` — CSV/Excel e mapeamento de colunas;
 - `src/templates.js` — registro de templates;
 - `src/icons.js` — subconjunto vetorial institucional reaproveitado do V1;
 - `src/render.js` — paginação e componentes A4;
-- `src/app.js` — interação da interface;
+- `src/app.js` — interação principal da interface;
+- `src/product-details.js` — entrada leve de variações e tabela;
+- `src/category-browser.js` — pastas de categorias e `datalist` do cadastro;
+- `examples/card-cases.html` — harness visual de quatro formatos de card;
 - `assets/logo-top-mobili.svg` — wordmark vetorial baseado na referência fornecida;
 - `docs/architecture.md` — decisões e limites do paradigma simplificado;
+- `docs/category-browser.md` — contrato da organização por categorias;
 - `docs/reuse-from-gerador-v1.md` — auditoria do que portar e do que rejeitar;
 - `docs/netlify.md` — contrato de deploy e operação Netlify;
 - `netlify.toml` — configuração versionada de publicação.
