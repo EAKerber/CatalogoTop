@@ -2,10 +2,12 @@
   'use strict';
 
   const NS = window.CatalogoTop;
-  const { Core, Importer, Templates, Render } = NS;
+  const { Core, Importer, Templates, Render, AssetClient, ProductStore } = NS;
   const $ = selector => document.querySelector(selector);
   const $$ = selector => Array.from(document.querySelectorAll(selector));
   let pendingImport = null;
+  let pendingProductImageBlob = null;
+  let pendingPreviewUrl = '';
 
   function state() { return Core.getState(); }
   function save(mutator) {
@@ -15,6 +17,11 @@
     } catch (error) {
       alert(error.message || String(error));
     }
+  }
+
+  async function publishProducts() {
+    if (!ProductStore) return true;
+    return ProductStore.publishCurrent();
   }
 
   function switchTab(tabId) {
@@ -110,7 +117,14 @@
     renderCatalog();
   }
 
+  function releasePendingPreview() {
+    if (pendingPreviewUrl) URL.revokeObjectURL(pendingPreviewUrl);
+    pendingPreviewUrl = '';
+    pendingProductImageBlob = null;
+  }
+
   function clearProductForm() {
+    releasePendingPreview();
     $('#productForm').reset();
     $('#productId').value = '';
     $('#formTitle').textContent = 'Novo produto';
@@ -120,6 +134,7 @@
   }
 
   function editProduct(id) {
+    releasePendingPreview();
     const product = state().products.find(item => item.id === id);
     if (!product) return;
     $('#productId').value = product.id;
@@ -139,20 +154,17 @@
     $('#productForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  async function fileToDataUrl(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(reader.error || new Error('Falha ao ler imagem.'));
-      reader.readAsDataURL(file);
-    });
-  }
-
   async function setProductImage(file) {
     if (!file || !file.type.startsWith('image/')) return;
-    const dataUrl = await fileToDataUrl(file);
-    $('#imagePreview').src = dataUrl;
-    $('#imageDropzone').classList.add('has-image');
+    try {
+      releasePendingPreview();
+      pendingProductImageBlob = await AssetClient.prepareImage(file);
+      pendingPreviewUrl = URL.createObjectURL(pendingProductImageBlob);
+      $('#imagePreview').src = pendingPreviewUrl;
+      $('#imageDropzone').classList.add('has-image');
+    } catch (error) {
+      alert(error.message || 'Não foi possível preparar a imagem.');
+    }
   }
 
   function reportImport(result, file) {
@@ -165,13 +177,14 @@
       <button class="button primary" id="btnConfirmImport" ${result.products.length ? '' : 'disabled'}>Importar ${result.products.length}</button>
     </div>${invalidText}`;
     $('#importReport').classList.remove('hidden');
-    $('#btnConfirmImport')?.addEventListener('click', () => {
+    $('#btnConfirmImport')?.addEventListener('click', async () => {
       if (!pendingImport) return;
       Core.mergeProducts(pendingImport.products, $('#importMode').value);
       pendingImport = null;
       $('#importProductsFile').value = '';
       $('#importReport').classList.add('hidden');
       renderAll();
+      await publishProducts();
     });
   }
 
@@ -213,12 +226,25 @@
       if (button) editProduct(button.dataset.editProduct);
     });
 
-    $('#productForm').addEventListener('submit', event => {
+    $('#productForm').addEventListener('submit', async event => {
       event.preventDefault();
       const id = $('#productId').value || Core.uuid();
       const existing = state().products.find(product => product.id === id);
-      const previewSrc = $('#imagePreview').getAttribute('src') || '';
       const urlImage = $('#imageUrl').value.trim();
+      let image = existing?.image || '';
+
+      if (pendingProductImageBlob) {
+        if (!ProductStore.isWritable() && !await ProductStore.unlock()) return;
+        try {
+          image = await AssetClient.uploadBlob(pendingProductImageBlob);
+        } catch (error) {
+          if (error.code === 'write_session_required' && await ProductStore.unlock()) image = await AssetClient.uploadBlob(pendingProductImageBlob);
+          else { alert(error.message || 'Não foi possível enviar a imagem.'); return; }
+        }
+      } else if (urlImage) {
+        image = urlImage;
+      }
+
       const product = Core.normalizeProduct({
         ...existing,
         id,
@@ -230,7 +256,7 @@
         status: $('#status').value,
         notes: $('#notes').value,
         specs: Core.parseSpecsText($('#specs').value),
-        image: previewSrc && previewSrc !== Render.PLACEHOLDER ? previewSrc : urlImage || existing?.image || '',
+        image,
         updatedAt: new Date().toISOString()
       });
       if (!product.code || !product.description) return;
@@ -240,9 +266,10 @@
         else draft.products.push(product);
       });
       clearProductForm();
+      await publishProducts();
     });
 
-    $('#btnDeleteProduct').addEventListener('click', () => {
+    $('#btnDeleteProduct').addEventListener('click', async () => {
       const id = $('#productId').value;
       if (!id) return;
       const product = state().products.find(item => item.id === id);
@@ -252,6 +279,7 @@
         draft.selectedIds = draft.selectedIds.filter(item => item !== id);
       });
       clearProductForm();
+      await publishProducts();
     });
 
     const dropzone = $('#imageDropzone');
@@ -261,6 +289,7 @@
     $('#imageFile').addEventListener('change', event => setProductImage(event.target.files[0]));
     $('#imageUrl').addEventListener('change', event => {
       if (!event.target.value.trim()) return;
+      releasePendingPreview();
       $('#imagePreview').src = event.target.value.trim();
       dropzone.classList.add('has-image');
     });
@@ -309,12 +338,15 @@
         Core.setState(parsed);
         clearProductForm();
         renderAll();
+        if (confirm('Backup carregado localmente. Publicar os produtos deste backup na base compartilhada?')) await publishProducts();
       } catch (error) {
         alert('Backup inválido ou incompatível.');
       } finally {
         event.target.value = '';
       }
     });
+
+    window.addEventListener('catalogotop:products-updated', renderAll);
   }
 
   bindEvents();
