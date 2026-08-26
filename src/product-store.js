@@ -62,6 +62,7 @@
       sessionUnlocked = Boolean(payload.writable);
       return sessionUnlocked;
     } catch {
+      sessionUnlocked = false;
       return false;
     }
   }
@@ -81,7 +82,7 @@
       return false;
     }
     sessionUnlocked = true;
-    setStatus(migrationNeeded ? 'Local · publicar' : 'Edição liberada', migrationNeeded ? 'warning' : 'writable');
+    setStatus(migrationNeeded ? 'Local · publicar' : 'Edição liberada', migrationNeeded ? 'warning' : 'writable', 'Edição liberada por até 1 hora. Clique para atualizar a base compartilhada.');
     return true;
   }
 
@@ -108,7 +109,7 @@
         applyProducts(remoteProducts);
         await IndexedCache.setSnapshot(snapshot);
         migrationNeeded = false;
-        setStatus(`Sincronizado · r${revision}`, 'synced');
+        setStatus(`Sincronizado · r${revision}`, 'synced', 'Clique para atualizar a base compartilhada.');
       } else {
         const fallback = localProducts.length ? localProducts : (Array.isArray(cache?.products) ? cache.products : []);
         if (fallback.length) {
@@ -118,7 +119,7 @@
           setStatus('Local · publicar', 'warning', 'A base compartilhada está vazia. Clique para publicar a base local.');
         } else {
           await IndexedCache.setSnapshot(snapshot);
-          setStatus('Sincronizado · vazio', 'synced');
+          setStatus('Sincronizado · vazio', 'synced', 'Clique para atualizar a base compartilhada. A frase será pedida somente quando houver uma escrita.');
         }
       }
       await checkSession();
@@ -161,7 +162,7 @@
     setStatus('Sincronizando…', 'loading');
     try {
       if (!await ensureSession()) {
-        setStatus(migrationNeeded ? 'Local · publicar' : 'Somente leitura', 'readonly');
+        setStatus(migrationNeeded ? 'Local · publicar' : 'Somente leitura', 'readonly', 'A alteração segue local. Tente salvar novamente para liberar a escrita.');
         return false;
       }
 
@@ -183,6 +184,7 @@
         snapshot = await putProducts(materialized);
       } catch (error) {
         if (error.code === 'write_session_required') {
+          sessionUnlocked = false;
           if (!await ensureSession()) return false;
           snapshot = await putProducts(materialized);
         } else if (error.code === 'revision_conflict') {
@@ -199,7 +201,7 @@
       migrationNeeded = false;
       applyProducts(snapshot.products || materialized);
       await IndexedCache.setSnapshot(snapshot);
-      setStatus(`Sincronizado · r${revision}`, 'synced');
+      setStatus(`Sincronizado · r${revision}`, 'synced', 'Clique para atualizar a base compartilhada.');
       return true;
     } catch (error) {
       console.error(error);
@@ -214,15 +216,21 @@
 
   async function reloadRemote() {
     try {
+      setStatus('Atualizando…', 'loading');
       const snapshot = await fetchSnapshot();
       revision = Number(snapshot.revision) || 0;
       applyProducts(snapshot.products || []);
       await IndexedCache.setSnapshot(snapshot);
       migrationNeeded = false;
-      setStatus(`Sincronizado · r${revision}`, 'synced');
+      await checkSession();
+      setStatus(
+        snapshot.products?.length ? `Sincronizado · r${revision}` : 'Sincronizado · vazio',
+        'synced',
+        sessionUnlocked ? 'Base atualizada. Edição segue liberada nesta sessão.' : 'Base atualizada. A frase será pedida somente quando houver uma escrita.'
+      );
       return true;
     } catch (error) {
-      setStatus('Offline · cache local', 'offline');
+      setStatus('Offline · cache local', 'offline', error.message || String(error));
       return false;
     }
   }
@@ -237,8 +245,7 @@
       if (confirm('Descartar alterações locais de produtos e recarregar a base compartilhada?')) await reloadRemote();
       return;
     }
-    if (!sessionUnlocked) await unlock();
-    else await reloadRemote();
+    await reloadRemote();
   }
 
   document.addEventListener('DOMContentLoaded', () => {
