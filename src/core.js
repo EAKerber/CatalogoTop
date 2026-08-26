@@ -3,7 +3,7 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const STORAGE_KEY = 'catalogotop:state:v1';
-  const SCHEMA_VERSION = 3;
+  const SCHEMA_VERSION = 4;
 
   const APP_CONFIG = Object.freeze({
     brandName: 'Top Mobili',
@@ -17,9 +17,23 @@
     return `p-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 
+  function preservedBlocks(value) {
+    const blocks = Array.isArray(value?.blocks) ? value.blocks : [];
+    return blocks.map(block => ({
+      ...block,
+      memberIds: Array.isArray(block?.memberIds) ? block.memberIds.map(String) : [],
+      itemStyles: block?.itemStyles && typeof block.itemStyles === 'object' ? { ...block.itemStyles } : {}
+    }));
+  }
+
   function normalizePresentation(value) {
-    if (NS.Composition?.normalizePresentation) return NS.Composition.normalizePresentation(value);
-    return { distribution: 'balanced', typography: 'neutral', itemStyles: {} };
+    const normalized = NS.Composition?.normalizePresentation
+      ? NS.Composition.normalizePresentation(value)
+      : { distribution: 'balanced', typography: 'neutral', itemStyles: {} };
+    return {
+      ...normalized,
+      blocks: Array.isArray(normalized.blocks) ? normalized.blocks : preservedBlocks(value)
+    };
   }
 
   function createInitialState() {
@@ -32,7 +46,7 @@
         templateId: 'technical',
         showPrices: true,
         createdAt: new Date().toISOString(),
-        presentation: normalizePresentation(null)
+        presentation: normalizePresentation({ blocks: [] })
       }
     };
   }
@@ -211,7 +225,8 @@
       draft.catalog.title = 'Categoria';
       draft.catalog.presentation = normalizePresentation({
         ...draft.catalog.presentation,
-        itemStyles: {}
+        itemStyles: {},
+        blocks: []
       });
     });
   }
@@ -223,6 +238,7 @@
         draft.products = normalized;
         draft.selectedIds = [];
         draft.catalog.presentation.itemStyles = {};
+        draft.catalog.presentation.blocks = [];
         return;
       }
       const byCode = new Map(draft.products.map((p, index) => [p.code.trim().toLowerCase(), index]));
