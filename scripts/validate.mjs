@@ -8,6 +8,8 @@ const requiredFiles = [
   'category-browser.css',
   'shell-responsive.css',
   'mobile-header.css',
+  'editorial-composition.css',
+  'src/composition.js',
   'src/core.js',
   'src/importer.js',
   'src/templates.js',
@@ -27,7 +29,8 @@ const requiredFiles = [
   'docs/reuse-from-gerador-v1.md',
   'docs/card-model.md',
   'docs/category-browser.md',
-  'docs/responsive-shell.md'
+  'docs/responsive-shell.md',
+  'docs/editorial-composition-v0.8.md'
 ];
 
 for (const file of requiredFiles) await access(file);
@@ -44,12 +47,15 @@ const html = await readFile('index.html', 'utf8');
 const cardsCss = await readFile('cards.css', 'utf8');
 const shellCss = await readFile('shell-responsive.css', 'utf8');
 const mobileHeaderCss = await readFile('mobile-header.css', 'utf8');
-const css = `${await readFile('styles.css', 'utf8')}\n${cardsCss}\n${await readFile('category-browser.css', 'utf8')}\n${shellCss}\n${mobileHeaderCss}`;
+const editorialCss = await readFile('editorial-composition.css', 'utf8');
+const css = `${await readFile('styles.css', 'utf8')}\n${cardsCss}\n${await readFile('category-browser.css', 'utf8')}\n${shellCss}\n${mobileHeaderCss}\n${editorialCss}`;
 const templates = await readFile('src/templates.js', 'utf8');
 const importer = await readFile('src/importer.js', 'utf8');
 const icons = await readFile('src/icons.js', 'utf8');
 const core = await readFile('src/core.js', 'utf8');
+const composition = await readFile('src/composition.js', 'utf8');
 const render = await readFile('src/render.js', 'utf8');
+const app = await readFile('src/app.js', 'utf8');
 const formSteps = await readFile('src/form-steps.js', 'utf8');
 const mobileWorkspace = await readFile('src/mobile-workspace.js', 'utf8');
 const detailEditor = await readFile('src/product-details.js', 'utf8');
@@ -71,9 +77,11 @@ const checks = [
   ['shell possui aba Templates', html.includes('data-tab="templates"')],
   ['tabs, importação e backup compartilham o header sticky', headerHtml.includes('class="app-tabs"') && headerHtml.includes('id="importProductsFile"') && headerHtml.includes('id="importMode"') && headerHtml.includes('id="backupFile"') && shellCss.includes('position: sticky')],
   ['override mobile carrega após shell responsivo', html.indexOf('shell-responsive.css') < html.indexOf('mobile-header.css')],
+  ['composição editorial carrega por último entre estilos estruturais', html.indexOf('mobile-header.css') < html.indexOf('editorial-composition.css')],
   ['importação não ocupa faixa permanente na aba Produtos', !html.includes('class="import-panel compact-import card"') && html.includes('class="import-report shell-import-report hidden"')],
   ['ação novo produto saiu do cabeçalho da seção', !productHeadingHtml.includes('id="btnNewProduct"') && html.indexOf('id="btnNewProduct"') > html.indexOf('id="productForm"')],
   ['heading de Produtos usa variante compacta', html.includes('class="section-heading product-section-heading"') && shellCss.includes('.product-section-heading h2')],
+  ['biblioteca de composição carrega antes do core e renderer', html.indexOf('src/composition.js') < html.indexOf('src/core.js') && html.indexOf('src/composition.js') < html.indexOf('src/render.js')],
   ['biblioteca de ícones carrega antes do renderer', html.indexOf('src/icons.js') < html.indexOf('src/render.js')],
   ['etapas do formulário carregam antes do app', html.indexOf('src/form-steps.js') < html.indexOf('src/app.js')],
   ['workspace mobile carrega antes do app', html.indexOf('src/mobile-workspace.js') < html.indexOf('src/app.js')],
@@ -82,7 +90,7 @@ const checks = [
   ['cadastro de produto possui três etapas', (html.match(/data-form-step="/g) || []).length === 3 && formSteps.includes('Etapa ${current} de ${steps.length}')],
   ['enter avança sem salvar antes da etapa final', formSteps.includes('stopImmediatePropagation') && formSteps.includes('current < steps.length')],
   ['mobile alterna cadastro e biblioteca por tabs', html.includes('data-mobile-workspace-target="form"') && html.includes('data-mobile-workspace-target="library"') && html.includes('data-mobile-workspace-panel="form"') && html.includes('data-mobile-workspace-panel="library"')],
-  ['mobile possui swipe horizontal com limiar', mobileWorkspace.includes("touchstart") && mobileWorkspace.includes("touchend") && mobileWorkspace.includes('Math.abs(dx) < 56') && mobileWorkspace.includes("show('library')") && mobileWorkspace.includes("show('form')")],
+  ['mobile possui swipe horizontal com limiar', mobileWorkspace.includes('touchstart') && mobileWorkspace.includes('touchend') && mobileWorkspace.includes('Math.abs(dx) < 56') && mobileWorkspace.includes("show('library')") && mobileWorkspace.includes("show('form')")],
   ['mobile reserva linha inferior apenas às tabs primárias', mobileHeaderCss.includes('.app-primary-tools { display: contents; }') && mobileHeaderCss.includes('.app-shell-header .app-tabs') && mobileHeaderCss.includes('order: 3;') && mobileHeaderCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr))')],
   ['utilidades mobile possuem scroll horizontal próprio', mobileHeaderCss.includes('.header-product-import') && mobileHeaderCss.includes('.app-header-actions') && (mobileHeaderCss.match(/overflow-x: auto;/g) || []).length >= 2],
   ['categoria usa seletor sobrescrevível', html.includes('id="category" list="categoryOptions" required') && html.includes('id="categoryOptions"')],
@@ -93,6 +101,7 @@ const checks = [
   ['importação permanece junto às tabs no breakpoint tablet', shellCss.includes('.app-primary-tools') && shellCss.includes('overflow-x: auto')],
   ['logo canônica substitui reconstrução', logo.includes('viewBox="0 0 481 270"') && !logo.includes('recriada a partir da referência')],
   ['impressão declara A4', css.includes('@page { size: A4 portrait;')],
+  ['print gate reserva margem contra página fantasma', editorialCss.includes('height: 296mm !important') && editorialCss.includes('break-inside: avoid-page') && editorialCss.includes('.catalog-category-divider { display: none !important; }')],
   ['página contém rodapé', css.includes('.catalog-page-footer')],
   ['template técnico registrado', templates.includes("id: 'technical'")],
   ['template compacto registrado', templates.includes("id: 'compact'")],
@@ -103,12 +112,21 @@ const checks = [
   ['Netlify publica site estático da raiz', netlify.includes('publish = "."')],
   ['modelo preserva variações visuais', core.includes('variants: normalizeVariants(product.variants)')],
   ['modelo preserva linhas comerciais', core.includes('tableRows: normalizeTableRows(product.tableRows)')],
+  ['estado local possui apresentação editorial', core.includes('presentation: normalizePresentation') && core.includes('SCHEMA_VERSION = 3')],
   ['formulário possui entrada simples de variações', html.includes('id="variants"') && detailEditor.includes('parseVariantsText')],
   ['formulário possui entrada simples de tabela', html.includes('id="commercialRows"') && detailEditor.includes('parseTableRowsText')],
   ['renderer dispõe múltiplas imagens no card', render.includes('catalog-variant-image-grid')],
   ['renderer materializa tabela comercial', render.includes('catalog-card-table')],
   ['tabela usa pesos fixos de coluna', render.includes('function weightedColumns') && render.includes('<colgroup>')],
   ['cards com tabela cedem largura a referências', cardsCss.includes('.catalog-card.has-table:not(.has-variant-images)')],
+  ['planner usa micrograde de seis colunas sem reordenação CSS', composition.includes('function packRows') && composition.includes('item.start = cursor') && editorialCss.includes('grid-template-columns: repeat(6') && !editorialCss.includes('grid-auto-flow: dense')],
+  ['planner rebalanceia última linha', composition.includes('function distributeSix') && composition.includes('function rebalanceRow')],
+  ['presets de conteúdo incluem auto, visual, técnico e comercial', composition.includes("id: 'auto'") && composition.includes("id: 'visual'") && composition.includes("id: 'technical'") && composition.includes("id: 'commercial'")],
+  ['ênfase discreta inclui normal, destaque e hero', composition.includes("id: 'feature'") && composition.includes("id: 'hero'") && render.includes('data-emphasis')],
+  ['UI oferece distribuição e tipografia globais', html.includes('id="catalogDistribution"') && html.includes('id="catalogTypography"') && app.includes('catalogDistribution') && app.includes('catalogTypography')],
+  ['UI oferece preset e ênfase por item selecionado', app.includes('data-content-preset') && app.includes('data-emphasis') && editorialCss.includes('.selection-presentation-controls')],
+  ['tipografia varia por preset sem contaminar header institucional', editorialCss.includes('.catalog-page.type-technical .catalog-card') && editorialCss.includes('.catalog-page.type-editorial .catalog-card h3')],
+  ['renderer pagina por linhas planejadas quando recebe template', render.includes('paginateProducts(group.products, template, presentation)')],
   ['harness cobre quatro formatos de card', (cardCases.match(/name: '/g) || []).length === 4],
   ['harness amplia o card do renderer real', cardCases.includes("scratch.querySelector('.catalog-card')")]
 ];
