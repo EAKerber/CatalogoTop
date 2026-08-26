@@ -8,8 +8,10 @@
   let pendingImport = null;
   let pendingProductImageBlob = null;
   let pendingPreviewUrl = '';
+  let draggedOrderUnit = '';
 
   function state() { return Core.getState(); }
+
   function save(mutator) {
     try {
       Core.mutate(mutator);
@@ -86,10 +88,6 @@
     return { query: $('#searchSelection').value.trim(), category: $('#selectionCategory').value };
   }
 
-  function optionMarkup(items, selected) {
-    return items.map(item => `<option value="${item.id}" ${item.id === selected ? 'selected' : ''}>${Render.esc(item.name)}</option>`).join('');
-  }
-
   function blockMembership(presentation) {
     const map = new Map();
     (Array.isArray(presentation.blocks) ? presentation.blocks : []).forEach(block => {
@@ -100,30 +98,23 @@
     return map;
   }
 
-  function selectionControls(product, presentation, block) {
-    const id = String(product.id);
-    if (block?.type === 'collection' && NS.Collection) {
-      const normalized = NS.Collection.normalizeBlock(block);
-      const style = NS.Collection.memberStyleFor(normalized, id);
-      return `<div class="collection-member-controls">
-        <label>Ênfase<select data-collection-member-emphasis="${Render.esc(id)}" data-block-id="${Render.esc(normalized.id)}">
-          <option value="normal"${style.emphasis === 'normal' ? ' selected' : ''}>Normal</option>
-          <option value="feature"${style.emphasis === 'feature' ? ' selected' : ''}>Destaque</option>
-        </select></label>
-        <label>Largura<select data-collection-member-width="${Render.esc(id)}" data-block-id="${Render.esc(normalized.id)}">
-          <option value="simple"${style.width === 'simple' ? ' selected' : ''}>Simples</option>
-          <option value="wide"${style.width === 'wide' ? ' selected' : ''}>Largo</option>
-          <option value="full"${style.width === 'full' ? ' selected' : ''}>Linha inteira</option>
-        </select></label>
-      </div>`;
-    }
-    if (block?.type === 'table') return '';
-    const style = Composition.styleFor(presentation, id);
-    return `<div class="selection-presentation-controls">
-      <label>Conteúdo<select data-content-preset="${Render.esc(id)}">${optionMarkup(Composition.CONTENT_PRESETS, style.contentPreset)}</select></label>
-      <label>Ênfase<select data-emphasis="${Render.esc(id)}">${optionMarkup(Composition.EMPHASIS_PRESETS, style.emphasis)}</select></label>
-      <label>Largura<select data-card-width="${Render.esc(id)}">${optionMarkup(Composition.WIDTH_PRESETS, style.width)}</select></label>
-    </div>`;
+  function orderUnitMaps(current) {
+    const byMember = new Map();
+    const leadIds = new Set();
+    if (!NS.CatalogOrder) return { byMember, leadIds };
+    NS.CatalogOrder.categorySequence(current).forEach(category => {
+      NS.CatalogOrder.unitsForCategory(current, category).forEach(unit => {
+        unit.memberIds.forEach(id => byMember.set(String(id), unit));
+        if (unit.memberIds[0]) leadIds.add(String(unit.memberIds[0]));
+      });
+    });
+    return { byMember, leadIds };
+  }
+
+  function unitHandleMarkup(productId, unit, leadIds, reorderDisabled) {
+    if (!unit || !leadIds.has(String(productId))) return '<span class="order-handle-spacer" aria-hidden="true"></span>';
+    const title = reorderDisabled ? 'Limpe a busca para reordenar.' : `Reordenar ${unit.type === 'card' ? 'produto' : unit.type === 'collection' ? 'coleção' : 'tabela'}`;
+    return `<button class="order-handle" type="button" data-order-handle="${Render.esc(unit.id)}" draggable="${reorderDisabled ? 'false' : 'true'}" ${reorderDisabled ? 'disabled' : ''} title="${Render.esc(title)}" aria-label="${Render.esc(title)}">⋮⋮</button>`;
   }
 
   function renderSelection() {
@@ -131,13 +122,15 @@
     const presentation = Composition.normalizePresentation(current.catalog.presentation);
     const membership = blockMembership(presentation);
     const orderMap = NS.SelectionOrder?.effectiveOrderMap(current) || new Map(current.selectedIds.map((id, index) => [String(id), index + 1]));
+    const { byMember, leadIds } = orderUnitMaps(current);
     const { query, category } = selectionFilters();
+    const reorderDisabled = Boolean(query);
     const available = current.products
       .filter(product => product.status === 'Ativo' && productMatches(product, query, category))
       .map((product, domIndex) => ({
         product,
         domIndex,
-        selected: current.selectedIds.includes(product.id),
+        selected: current.selectedIds.map(String).includes(String(product.id)),
         effectiveOrder: orderMap.get(String(product.id)) || Number.POSITIVE_INFINITY
       }))
       .sort((left, right) => {
@@ -148,23 +141,26 @@
 
     $('#selectableProducts').innerHTML = available.length ? available.map(entry => {
       const product = entry.product;
+      const id = String(product.id);
       const selected = entry.selected;
       const order = selected && Number.isFinite(entry.effectiveOrder) ? entry.effectiveOrder : null;
-      const block = membership.get(String(product.id));
-      const baseStyle = Composition.styleFor(presentation, product.id);
+      const block = membership.get(id);
+      const baseStyle = Composition.styleFor(presentation, id);
       const resolvedPreset = Composition.resolveContentPreset(product, baseStyle.contentPreset);
       const blockClass = block?.type === 'collection' ? ' in-collection' : block?.type === 'table' ? ' in-table' : '';
       const badge = selected && block?.type === 'collection'
         ? `<span class="collection-member-badge">Coleção · ${Render.esc(block.title || 'sem título')}</span>`
         : selected && block?.type === 'table'
           ? `<span class="table-member-badge">Tabela · ${Render.esc(block.title || 'sem título')}</span>` : '';
-      return `<label class="select-product ${selected ? 'selected' : ''}${blockClass}"${order ? ` data-effective-order="${order}"` : ''}>
-        <input type="checkbox" data-select-product="${Render.esc(product.id)}" ${selected ? 'checked' : ''} />
+      const unit = selected ? byMember.get(id) : null;
+      const unitAttr = selected && unit && leadIds.has(id) ? ` data-order-unit="${Render.esc(unit.id)}" data-order-category="${Render.esc(unit.category)}"` : '';
+      return `<div class="select-product ${selected ? 'selected' : ''}${blockClass}" data-product-row="${Render.esc(id)}"${order ? ` data-effective-order="${order}"` : ''}${unitAttr}>
+        <input type="checkbox" data-select-product="${Render.esc(id)}" ${selected ? 'checked' : ''} aria-label="${selected ? 'Remover' : 'Adicionar'} ${Render.esc(product.code)} do catálogo" />
+        ${selected ? unitHandleMarkup(id, unit, leadIds, reorderDisabled) : '<span class="order-handle-spacer" aria-hidden="true"></span>'}
         <img src="${Render.esc(imageValue(product))}" alt="" />
         <span><strong>${Render.esc(product.code)} · ${Render.esc(product.description)}</strong><small>${Render.esc([product.category, product.subcategory].filter(Boolean).join(' / '))}${baseStyle.contentPreset === 'auto' ? ` · auto: ${Render.esc(resolvedPreset)}` : ''}</small>${badge}</span>
-        ${order ? `<b class="selection-order" title="Ordem efetiva no catálogo">${order}</b>` : ''}
-        ${selected ? selectionControls(product, presentation, block) : ''}
-      </label>`;
+        ${order ? `<b class="selection-order" title="Ordem editorial efetiva">${order}</b>` : ''}
+      </div>`;
     }).join('') : '<div class="empty-state compact-empty"><strong>Nenhum produto disponível.</strong><span>Ajuste o filtro ou cadastre produtos ativos.</span></div>';
 
     window.dispatchEvent(new CustomEvent('catalogotop:selection-rendered'));
@@ -181,6 +177,9 @@
     const summary = Render.renderCatalog($('#catalogPreview'), current);
     $('#selectedCount').textContent = `${summary.selectedCount} ${summary.selectedCount === 1 ? 'selecionado' : 'selecionados'}`;
     $('#pageCount').textContent = `${summary.pageCount} ${summary.pageCount === 1 ? 'página' : 'páginas'}`;
+    NS.ComposerSelection?.reconcile?.(current);
+    window.dispatchEvent(new CustomEvent('catalogotop:catalog-rendered', { detail: summary.document || null }));
+    return summary;
   }
 
   function renderAll() {
@@ -209,7 +208,7 @@
 
   function editProduct(id) {
     releasePendingPreview();
-    const product = state().products.find(item => item.id === id);
+    const product = state().products.find(item => String(item.id) === String(id));
     if (!product) return;
     $('#productId').value = product.id;
     $('#code').value = product.code;
@@ -285,11 +284,26 @@
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
-  function setItemPresentation(productId, patch) {
+  function removeMembershipFromBlocks(presentation, productId) {
+    const id = String(productId);
+    presentation.blocks = (Array.isArray(presentation.blocks) ? presentation.blocks : [])
+      .map(block => NS.ProductActions?.cleanupBlock ? NS.ProductActions.cleanupBlock(block, id) : block)
+      .filter(Boolean);
+  }
+
+  function setMembership(id, checked) {
     save(draft => {
+      const productId = String(id);
       const presentation = Composition.normalizePresentation(draft.catalog.presentation);
-      presentation.itemStyles[productId] = { ...Composition.styleFor(presentation, productId), ...patch };
+      const selected = draft.selectedIds.map(String);
+      if (checked && !selected.includes(productId)) draft.selectedIds.push(productId);
+      if (!checked) {
+        draft.selectedIds = selected.filter(item => item !== productId);
+        presentation.order = NS.CatalogOrder?.removeFromOrder ? NS.CatalogOrder.removeFromOrder(presentation.order, productId) : presentation.order.filter(item => item !== productId);
+        removeMembershipFromBlocks(presentation, productId);
+      }
       draft.catalog.presentation = presentation;
+      if (checked && NS.CatalogOrder?.effectiveIds) draft.catalog.presentation.order = NS.CatalogOrder.effectiveIds(draft);
     });
   }
 
@@ -301,6 +315,49 @@
     } catch (error) {
       alert(error.message || 'Não foi possível excluir o produto.');
     }
+  }
+
+  function bindOrderEvents(root) {
+    root.addEventListener('dragstart', event => {
+      const handle = event.target.closest('[data-order-handle]');
+      if (!handle || handle.disabled) return;
+      draggedOrderUnit = String(handle.dataset.orderHandle || '');
+      const row = handle.closest('[data-order-unit]');
+      row?.classList.add('is-dragging');
+      event.dataTransfer?.setData('text/plain', draggedOrderUnit);
+      if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+    });
+
+    root.addEventListener('dragover', event => {
+      if (!draggedOrderUnit) return;
+      const row = event.target.closest('[data-order-unit]');
+      if (!row || row.dataset.orderUnit === draggedOrderUnit) return;
+      event.preventDefault();
+      root.querySelectorAll('.order-drop-target').forEach(item => item.classList.remove('order-drop-target'));
+      row.classList.add('order-drop-target');
+    });
+
+    root.addEventListener('drop', event => {
+      if (!draggedOrderUnit) return;
+      const row = event.target.closest('[data-order-unit]');
+      if (!row || row.dataset.orderUnit === draggedOrderUnit) return;
+      event.preventDefault();
+      const rect = row.getBoundingClientRect();
+      const position = event.clientY > rect.top + rect.height / 2 ? 'after' : 'before';
+      NS.PresentationActions?.moveOrderUnit?.(draggedOrderUnit, row.dataset.orderUnit, position);
+    });
+
+    root.addEventListener('dragend', () => {
+      draggedOrderUnit = '';
+      root.querySelectorAll('.is-dragging,.order-drop-target').forEach(item => item.classList.remove('is-dragging', 'order-drop-target'));
+    });
+
+    root.addEventListener('keydown', event => {
+      const handle = event.target.closest('[data-order-handle]');
+      if (!handle || handle.disabled || !event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      event.preventDefault();
+      NS.PresentationActions?.moveOrderUnitRelative?.(handle.dataset.orderHandle, event.key === 'ArrowUp' ? -1 : 1);
+    });
   }
 
   function bindEvents() {
@@ -382,28 +439,33 @@
       dropzone.classList.add('has-image');
     });
 
-    $('#selectableProducts').addEventListener('change', event => {
-      const preset = event.target.closest('[data-content-preset]');
-      if (preset) { setItemPresentation(preset.dataset.contentPreset, { contentPreset: preset.value }); return; }
-      const emphasis = event.target.closest('[data-emphasis]');
-      if (emphasis) { setItemPresentation(emphasis.dataset.emphasis, { emphasis: emphasis.value }); return; }
-      const width = event.target.closest('[data-card-width]');
-      if (width) { setItemPresentation(width.dataset.cardWidth, { width: width.value }); return; }
+    const selectionRoot = $('#selectableProducts');
+    selectionRoot.addEventListener('change', event => {
       const checkbox = event.target.closest('[data-select-product]');
       if (!checkbox) return;
-      const id = checkbox.dataset.selectProduct;
-      save(draft => {
-        if (checkbox.checked && !draft.selectedIds.includes(id)) draft.selectedIds.push(id);
-        if (!checkbox.checked) draft.selectedIds = draft.selectedIds.filter(item => item !== id);
-      });
+      setMembership(checkbox.dataset.selectProduct, checkbox.checked);
     });
+    bindOrderEvents(selectionRoot);
 
     $('#btnSelectVisible').addEventListener('click', () => {
       const { query, category } = selectionFilters();
-      const visibleIds = state().products.filter(product => product.status === 'Ativo' && productMatches(product, query, category)).map(product => product.id);
-      save(draft => { visibleIds.forEach(id => { if (!draft.selectedIds.includes(id)) draft.selectedIds.push(id); }); });
+      const visibleIds = state().products.filter(product => product.status === 'Ativo' && productMatches(product, query, category)).map(product => String(product.id));
+      save(draft => {
+        visibleIds.forEach(id => { if (!draft.selectedIds.map(String).includes(id)) draft.selectedIds.push(id); });
+        const presentation = Composition.normalizePresentation(draft.catalog.presentation);
+        draft.catalog.presentation = presentation;
+        if (NS.CatalogOrder?.effectiveIds) draft.catalog.presentation.order = NS.CatalogOrder.effectiveIds(draft);
+      });
     });
-    $('#btnClearSelection').addEventListener('click', () => save(draft => { draft.selectedIds = []; }));
+
+    $('#btnClearSelection').addEventListener('click', () => save(draft => {
+      draft.selectedIds = [];
+      const presentation = Composition.normalizePresentation(draft.catalog.presentation);
+      presentation.order = [];
+      presentation.blocks = [];
+      draft.catalog.presentation = presentation;
+    }));
+
     $('#catalogTitle').addEventListener('input', event => save(draft => { draft.catalog.title = event.target.value; }));
     $('#catalogShowPrices').addEventListener('change', event => save(draft => { draft.catalog.showPrices = event.target.checked; }));
     $('#catalogTemplate').addEventListener('change', event => save(draft => { draft.catalog.templateId = event.target.value; }));
@@ -416,6 +478,7 @@
     $('#btnNewCatalog').addEventListener('click', () => {
       if (!confirm('Iniciar um novo catálogo? A base de produtos será preservada e apenas a seleção/configuração do catálogo será reiniciada.')) return;
       Core.resetCatalog();
+      NS.ComposerSelection?.clear?.();
       renderAll();
     });
     $('#btnPrint').addEventListener('click', () => { switchTab('catalog'); setTimeout(() => window.print(), 0); });
@@ -436,6 +499,7 @@
       try {
         const parsed = JSON.parse(await file.text());
         Core.setState(parsed);
+        NS.ComposerSelection?.clear?.();
         clearProductForm();
         renderAll();
         if (confirm('Backup carregado localmente. Publicar os produtos deste backup na base compartilhada?')) await publishProducts();
@@ -448,6 +512,18 @@
 
     window.addEventListener('catalogotop:products-updated', renderAll);
   }
+
+  NS.App = {
+    state,
+    switchTab,
+    renderProducts,
+    renderSelection,
+    renderCatalog,
+    renderAll,
+    editProduct,
+    selectionFilters,
+    setMembership
+  };
 
   bindEvents();
   renderAll();
