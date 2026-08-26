@@ -10,6 +10,7 @@
   }
 
   function getRenderableProducts(state) {
+    if (NS.CatalogOrder?.effectiveProducts) return NS.CatalogOrder.effectiveProducts(state, { activeOnly: true });
     const products = Array.isArray(state?.products) ? state.products : [];
     const byId = new Map(products.map(product => [String(product.id), product]));
     const selectedIds = Array.isArray(state?.selectedIds) ? state.selectedIds : [];
@@ -35,7 +36,7 @@
   function normalizePresentation(state) {
     return NS.Composition?.normalizePresentation
       ? NS.Composition.normalizePresentation(state?.catalog?.presentation)
-      : { distribution: 'balanced', typography: 'neutral', itemStyles: {}, blocks: [], imageFrames: {} };
+      : { distribution: 'balanced', typography: 'neutral', order: [], itemStyles: {}, blocks: [], imageFrames: {} };
   }
 
   function resolveBlocks(blocks, products) {
@@ -53,9 +54,9 @@
       }
       if (!block || !valid || block.memberIds.some(id => claimed.has(String(id)))) return;
       const memberSet = new Set(block.memberIds.map(String));
-      const factualIds = products.map(product => String(product.id)).filter(id => memberSet.has(id));
-      block = { ...block, memberIds: factualIds };
-      factualIds.forEach(id => claimed.add(id));
+      const effectiveIds = products.map(product => String(product.id)).filter(id => memberSet.has(id));
+      block = { ...block, memberIds: effectiveIds };
+      effectiveIds.forEach(id => claimed.add(id));
       resolved.push(block);
     });
     return resolved;
@@ -274,9 +275,16 @@
 
   function withEffectiveOrder(state, documentModel) {
     const doc = documentModel || build(state);
-    const ordered = new Set(doc.orderedIds);
-    const remaining = (Array.isArray(state?.selectedIds) ? state.selectedIds : []).map(String).filter(id => !ordered.has(id));
-    return { ...state, selectedIds: [...doc.orderedIds, ...remaining] };
+    return {
+      ...state,
+      catalog: {
+        ...state.catalog,
+        presentation: NS.Composition.normalizePresentation({
+          ...state.catalog?.presentation,
+          order: doc.orderedIds
+        })
+      }
+    };
   }
 
   NS.CatalogDocument = {
