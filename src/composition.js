@@ -4,11 +4,13 @@
   const NS = window.CatalogoTop = window.CatalogoTop || {};
 
   const CONTENT_PRESETS = Object.freeze([
-    { id: 'auto', name: 'Auto' },
-    { id: 'standard', name: 'Padrão' },
     { id: 'visual', name: 'Visual' },
+    { id: 'essential', name: 'Essencial' },
+    { id: 'standard', name: 'Padrão' },
+    { id: 'detailed', name: 'Detalhado' },
     { id: 'technical', name: 'Técnico' },
-    { id: 'commercial', name: 'Comercial' }
+    { id: 'commercial', name: 'Comercial' },
+    { id: 'auto', name: 'Auto' }
   ]);
 
   const EMPHASIS_PRESETS = Object.freeze([
@@ -37,7 +39,7 @@
   function normalizeItemStyle(style) {
     const item = style && typeof style === 'object' ? style : {};
     return {
-      contentPreset: normalizeChoice(item.contentPreset, CONTENT_PRESETS, 'auto'),
+      contentPreset: normalizeChoice(item.contentPreset, CONTENT_PRESETS, 'visual'),
       emphasis: normalizeChoice(item.emphasis, EMPHASIS_PRESETS, 'normal')
     };
   }
@@ -63,17 +65,18 @@
     return normalizeItemStyle(normalized.itemStyles[String(productId)]);
   }
 
-  function resolveContentPreset(product, requested = 'auto') {
-    const normalized = normalizeChoice(requested, CONTENT_PRESETS, 'auto');
+  function resolveContentPreset(product, requested = 'visual') {
+    const normalized = normalizeChoice(requested, CONTENT_PRESETS, 'visual');
     if (normalized !== 'auto') return normalized;
     const rows = Array.isArray(product?.tableRows) ? product.tableRows.length : 0;
     const specs = Array.isArray(product?.specs) ? product.specs.length : 0;
     const variants = Array.isArray(product?.variants) ? product.variants.length : 0;
     const variantImages = Array.isArray(product?.variants) ? product.variants.filter(item => item?.image).length : 0;
     if (rows >= 3 || specs >= 5) return 'technical';
-    if (product?.price && rows === 0 && specs <= 2) return 'commercial';
+    if (rows >= 1 || specs >= 3) return 'detailed';
+    if (product?.price && rows === 0 && specs <= 1) return 'commercial';
     if ((variantImages >= 2 || variants >= 4) && rows === 0) return 'visual';
-    return 'standard';
+    return 'visual';
   }
 
   function baseSpan(template) {
@@ -85,6 +88,20 @@
     if (style.emphasis === 'hero') return 6;
     if (style.emphasis === 'feature') return 4;
     return baseSpan(template);
+  }
+
+  function emphasisRank(style) {
+    if (style.emphasis === 'hero') return 0;
+    if (style.emphasis === 'feature') return 1;
+    return 2;
+  }
+
+  function orderProductsForLayout(products, presentation) {
+    const normalizedPresentation = normalizePresentation(presentation);
+    return (Array.isArray(products) ? products : [])
+      .map((product, index) => ({ product, index, style: styleFor(normalizedPresentation, product?.id) }))
+      .sort((left, right) => emphasisRank(left.style) - emphasisRank(right.style) || left.index - right.index)
+      .map(entry => entry.product);
   }
 
   function distributeSix(count) {
@@ -122,6 +139,7 @@
 
   function packRows(products, template, presentation) {
     const normalizedPresentation = normalizePresentation(presentation);
+    const orderedProducts = orderProductsForLayout(products, normalizedPresentation);
     const rows = [];
     let current = [];
     let used = 0;
@@ -133,7 +151,7 @@
       used = 0;
     };
 
-    products.forEach(product => {
+    orderedProducts.forEach(product => {
       const style = styleFor(normalizedPresentation, product.id);
       const item = {
         product,
@@ -187,10 +205,11 @@
 
   function paginateProducts(products, template, presentation) {
     const maxRows = Math.max(1, Number(template?.rows) || 3);
+    const orderedProducts = orderProductsForLayout(products, presentation);
     const pages = [];
     let current = [];
 
-    for (const product of products) {
+    for (const product of orderedProducts) {
       const candidate = current.concat(product);
       const candidatePlan = planProducts(candidate, template, presentation);
       if (current.length && candidatePlan.rowCount > maxRows) {
@@ -205,6 +224,60 @@
     return pages;
   }
 
+  function optionsMarkup(items, selected) {
+    return items.map(item => `<option value="${item.id}"${item.id === selected ? ' selected' : ''}>${item.name}</option>`).join('');
+  }
+
+  function setupBulkControls() {
+    if (typeof document === 'undefined' || document.getElementById('bulkPresentationControls')) return;
+    const anchor = document.querySelector('.selection-actions');
+    if (!anchor) return;
+
+    const panel = document.createElement('div');
+    panel.id = 'bulkPresentationControls';
+    panel.className = 'bulk-presentation-controls';
+    panel.innerHTML = `
+      <strong>Aplicar a todos os selecionados</strong>
+      <label>Conteúdo
+        <select id="bulkContentPreset">${optionsMarkup(CONTENT_PRESETS, 'visual')}</select>
+      </label>
+      <button class="button secondary compact" id="btnApplyBulkContent" type="button">Aplicar conteúdo</button>
+      <label>Ênfase
+        <select id="bulkEmphasis">${optionsMarkup(EMPHASIS_PRESETS, 'normal')}</select>
+      </label>
+      <button class="button secondary compact" id="btnApplyBulkEmphasis" type="button">Aplicar ênfase</button>`;
+    anchor.insertAdjacentElement('afterend', panel);
+
+    const apply = patch => {
+      const Core = NS.Core;
+      if (!Core) return;
+      const current = Core.getState();
+      const ids = Array.isArray(current.selectedIds) ? current.selectedIds.slice() : [];
+      if (!ids.length) {
+        window.alert?.('Selecione ao menos um produto para aplicar o ajuste em lote.');
+        return;
+      }
+      Core.mutate(draft => {
+        const presentation = normalizePresentation(draft.catalog?.presentation);
+        ids.forEach(id => {
+          presentation.itemStyles[id] = {
+            ...styleFor(presentation, id),
+            ...patch
+          };
+        });
+        draft.catalog.presentation = presentation;
+      });
+      window.dispatchEvent(new Event('catalogotop:products-updated'));
+    };
+
+    panel.querySelector('#btnApplyBulkContent')?.addEventListener('click', () => {
+      apply({ contentPreset: panel.querySelector('#bulkContentPreset').value });
+    });
+    panel.querySelector('#btnApplyBulkEmphasis')?.addEventListener('click', () => {
+      apply({ emphasis: panel.querySelector('#bulkEmphasis').value });
+    });
+  }
+
   NS.Composition = {
     CONTENT_PRESETS,
     EMPHASIS_PRESETS,
@@ -214,8 +287,14 @@
     normalizePresentation,
     styleFor,
     resolveContentPreset,
+    orderProductsForLayout,
     packRows,
     planProducts,
-    paginateProducts
+    paginateProducts,
+    setupBulkControls
   };
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', setupBulkControls, { once: true });
+  }
 })();
