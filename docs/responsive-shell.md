@@ -6,7 +6,7 @@ Este recorte reduz o chrome do aplicativo sem transformar o CatalogoTop em um ed
 
 A marca, as abas **Produtos / Catálogo / Templates**, a importação de produtos e as ações de **Exportar backup / Importar backup** compartilham uma única barra sticky.
 
-A importação de produtos fica imediatamente ao lado das abas, porque é uma ação primária da biblioteca e não precisa ocupar uma faixa permanente dentro da página. O conjunto contém apenas:
+A importação de produtos fica no mesmo shell porque é uma ação primária da biblioteca e não precisa ocupar uma faixa permanente dentro da página. O conjunto contém apenas:
 
 - **Importar produtos** — abre CSV/XLS/XLSX/XLSM;
 - modo **Mesclar por código / Substituir base**;
@@ -14,7 +14,7 @@ A importação de produtos fica imediatamente ao lado das abas, porque é uma a�
 
 O relatório de leitura continua contextual à aba Produtos, mas é materializado apenas quando existe uma importação em andamento ou aguardando confirmação. Portanto ele não reserva altura quando está oculto.
 
-Backup continua separado à direita por ser uma ação global do acervo local, não uma operação exclusiva da aba Produtos.
+Backup continua separado semanticamente por ser uma ação global do acervo local, não uma operação exclusiva da aba Produtos.
 
 ## Área inicial da aba Produtos
 
@@ -86,8 +86,8 @@ Não foi criado carousel genérico, router interno ou estado persistente. O cont
 
 ### Mobile — `< 640 px`
 
-- shell é forçado a exatamente duas linhas lógicas: **marca + backups** acima; **abas + importação** abaixo;
-- a segunda linha pode rolar horizontalmente se não houver largura suficiente;
+- as tabs principais **Produtos / Catálogo / Templates** ficam sozinhas numa linha inferior fixa e nunca participam do scroll horizontal das utilidades;
+- a linha superior mantém marca e utilidades; importação de produtos e backup possuem áreas horizontais roláveis próprias quando falta largura;
 - Produtos possui tabs locais **Cadastro / Produtos** com swipe horizontal opcional;
 - controles de duas colunas passam a uma coluna;
 - pastas de categoria viram uma faixa horizontal rolável dentro da biblioteca;
@@ -99,6 +99,7 @@ Não foi criado carousel genérico, router interno ou estado persistente. O cont
 
 - não criar sidebar global, drawer, command palette ou navegação duplicada;
 - não reintroduzir faixa permanente de importação dentro da aba Produtos;
+- tabs principais não devem desaparecer ao rolar controles de importação/backup no mobile;
 - não introduzir estado persistente para a etapa do formulário ou para o seletor Cadastro/Produtos;
 - swipe não deve interceptar interação iniciada em input, textarea, select, button ou link;
 - não escalar ou reconstruir o A4 para mobile: o documento continua com geometria física e pode rolar horizontalmente;
@@ -107,7 +108,7 @@ Não foi criado carousel genérico, router interno ou estado persistente. O cont
 
 ## Estado após feedback visual
 
-Após as inspeções do preview, o shell foi comprimido em duas rodadas: a importação saiu da faixa branca da aba Produtos e foi colocada junto de **Produtos / Catálogo / Templates**; depois o mobile passou a usar duas linhas estáveis e o workspace de Produtos foi dividido em **Cadastro / Produtos**. Essas revisões continuam pertencendo ao mesmo recorte v0.5.
+Após as inspeções do preview, o shell foi comprimido em três rodadas: a importação saiu da faixa branca da aba Produtos e foi colocada no shell; depois o mobile passou a usar **Cadastro / Produtos** com swipe; por fim as tabs principais foram separadas das utilidades móveis para permanecerem sempre visíveis na linha inferior, enquanto importação e backup assumem o overflow horizontal.
 
 ## Próximo passo relacionado
 
