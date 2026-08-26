@@ -13,6 +13,7 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 
 ## Guardrails
 
+- Mudanças funcionais devem ser desenvolvidas em branch dedicada e promovidas por PR/gates; evitar commits diretos na `main` mesmo quando o recorte parecer pequeno.
 - Não reintroduzir editor livre, drag-and-drop, layers ou posicionamento arbitrário sem decisão explícita de produto.
 - Produto e apresentação permanecem separados.
 - Não inventar preço, especificação, disponibilidade ou qualquer outro fato comercial.
@@ -20,12 +21,15 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 - Colunas desconhecidas de planilha devem ser preservadas como especificações quando possível, não descartadas silenciosamente.
 - Header/footer são componentes compartilhados. Templates não devem copiá-los.
 - Paginação deve derivar do contrato do template, das categorias e da ordem da seleção.
-- Ênfase editorial é exceção explícita à ordem interna: dentro de uma categoria, `Hero` e `Destaque` podem subir ao topo de forma estável antes dos cards normais; não reordenar por outros critérios implícitos.
+- Ênfase editorial é exceção explícita à ordem interna: `Destaque` prioriza o fluxo antes dos cards normais; `Hero` é uma âncora de página, ocupa 6/6 e deve fechar a área usada da página, com a linha residual/sobra imediatamente acima. Não tratar Hero apenas como um grau maior de Destaque.
+- Uma página materializa no máximo um `Hero`; múltiplos Heroes preservam estabilidade e recebem páginas-âncora separadas.
 - Número de página e data de criação precisam ser calculados, nunca digitados em cada página.
 - A ordem exibida no compositor, no preview e no PDF deve derivar do mesmo `CatalogDocument`; `selectedIds` continua sendo estado factual/local e não deve ser mutado apenas para "parecer" a ordem editorial.
 - O pipeline de documento é `state → CatalogDocument → preview / print`. Preview pode conter chrome editorial auxiliar; o documento print contém somente `.catalog-page`.
 - O botão de PDF não deve imprimir a aplicação inteira. A impressão deve usar documento/iframe isolado e stylesheet de print dedicado.
 - CSS de shell/mobile não pode conter regras de A4, compositor ou `@media print`; CSS do compositor deve responder à largura real do painel quando a limitação for de container, não ao viewport.
+- O preview pode aplicar zoom visual, mas a folha materializada e o documento print permanecem A4 físico `210 × 297 mm`.
+- No preview touch, o container pode conter overscroll horizontal para inspecionar zoom, mas deve preservar pan/scroll vertical da página; não capturar o gesto vertical iniciado sobre a folha A4.
 - Mudanças que afetem impressão A4 devem ser verificadas por preview e por gate Chromium que compare páginas lógicas com páginas físicas.
 - Elementos institucionais essenciais do PDF não podem depender de "gráficos de fundo" do navegador; use bordas/SVG para linhas e sinais críticos.
 - Mantenha o aplicativo utilizável sem build obrigatório para o frontend; Functions Netlify podem usar dependências instaladas no deploy.
@@ -42,8 +46,8 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 
 ## Estado atual
 
-Recorte v0.7 consolidado: cadastro manual, importação CSV/Excel, categorias como pastas, seleção, três templates, cards com múltiplas cores e tabela comercial, paginação A4 orientada por categoria, impressão/PDF, backup JSON, ProductStore remoto via Netlify Functions + Blobs, cache local IndexedDB, sessão compartilhada de escrita, revisionamento e assets de imagem separados do JSON.
+Recorte v0.8 consolidado: cadastro/importação e ProductStore remoto v0.7, categorias por páginas, composição editorial determinística em micrograde de seis colunas, presets de conteúdo/tipografia, aplicação em lote, `CatalogDocument` materializado, impressão isolada com gate Chromium A4, Hero Visual focal e preview mobile com Fit/zoom.
 
-Recorte em desenvolvimento v0.8/v0.8.1: composição editorial determinística em micrograde de seis colunas, presets de conteúdo e tipografia, ênfase `Destaque/Hero`, aplicação em lote, prioridade automática de destaques no topo, `CatalogDocument` materializado, preview alinhado à ordem efetiva, documento de impressão isolado e gate Chromium para páginas físicas.
+Manutenção v0.8.3: separar semanticamente `Destaque` (prioridade de fluxo) de `Hero` (âncora final da página), garantir no máximo um Hero por página e permitir scroll vertical touch iniciado sobre o preview sem perder contenção horizontal em zoom.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.
