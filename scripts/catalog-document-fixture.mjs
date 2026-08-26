@@ -60,12 +60,14 @@ const doc = CatalogDocument.build(state, template);
 
 if (doc.pageCount !== 2) fail(`fixture deve materializar 2 páginas, recebeu ${doc.pageCount}`);
 if (doc.categoryCount !== 2) fail('fixture deve preservar duas categorias');
-if (doc.orderedIds.slice(0, 3).join(',') !== 'a-hero,a-feature,a-normal') fail('ordem materializada deve promover Hero e Destaque');
+if (doc.orderedIds.slice(0, 3).join(',') !== 'a-feature,a-normal,a-hero') fail('ordem materializada deve priorizar Destaque e ancorar Hero no fim da página');
+if (doc.pages[0].items.at(-1)?.productId !== 'a-hero') fail('Hero deve ser o último item materializado de sua página');
+if (doc.pages[0].items.at(-1)?.row !== doc.pages[0].layout.rowCount) fail('Hero deve ocupar a última linha usada');
 if (doc.pages[0].category !== 'Dobradiças' || doc.pages[1].category !== 'Corrediças') fail('categorias devem preservar ordem da primeira aparição');
-if (doc.effectiveOrderById['a-hero'] !== 1 || doc.effectiveOrderById['a-feature'] !== 2) fail('ordem efetiva deve ser endereçável por id');
+if (doc.effectiveOrderById['a-feature'] !== 1 || doc.effectiveOrderById['a-hero'] !== 3) fail('ordem efetiva deve refletir âncora Hero por id');
 
 const reordered = CatalogDocument.withEffectiveOrder(state, doc);
-if (reordered.selectedIds.slice(0, 3).join(',') !== 'a-hero,a-feature,a-normal') fail('state derivado deve refletir ordem efetiva sem mutar o original');
+if (reordered.selectedIds.slice(0, 3).join(',') !== 'a-feature,a-normal,a-hero') fail('state derivado deve refletir ordem efetiva sem mutar o original');
 if (state.selectedIds[0] !== 'a-normal') fail('CatalogDocument não pode mutar a ordem factual do state');
 
 console.log('PASS catalog document fixture');
