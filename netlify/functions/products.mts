@@ -18,7 +18,7 @@ export default async (request: Request, _context: Context) => {
 
   if (request.method !== 'PUT') return json({ error: 'method_not_allowed' }, 405, { allow: 'GET, PUT' });
   if (!sameOriginOrNonBrowser(request)) return json({ error: 'origin_rejected' }, 403);
-  if (!hasWriteSession(request)) return json({ error: 'write_session_required' }, 401);
+  if (!await hasWriteSession(request)) return json({ error: 'write_session_required' }, 401);
   if (!request.headers.get('content-type')?.includes('application/json')) return json({ error: 'content_type_required' }, 415);
   const length = Number(request.headers.get('content-length') || 0);
   if (length && length > MAX_PRODUCTS_BYTES) return json({ error: 'payload_too_large' }, 413);
