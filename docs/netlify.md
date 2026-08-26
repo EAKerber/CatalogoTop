@@ -54,6 +54,12 @@ Após a validação, a Function gera um token aleatório de 256 bits e grava ape
 
 `GET /api/write-session` consulta o cookie/store e permite reconhecer a sessão já aberta sem pedir novamente a frase durante sua validade.
 
+### Correção após o primeiro teste manual
+
+O primeiro Deploy Preview do v0.7 revelou duas falhas que os testes estáticos não capturaram: o cliente consultava `GET /api/write-session`, mas a Function inicialmente não implementava readback coerente da sessão; além disso, a primeira implementação dependia de variáveis de ambiente que não estavam materializadas no projeto apesar do retorno de upsert da integração. O efeito observado foi frase sendo solicitada repetidamente e writes sem efeito remoto.
+
+A correção removeu essa dependência: as sessões passaram a ser tokens aleatórios armazenados no próprio Blob store e a Function de sessão ganhou `GET` funcional. Esse caso agora faz parte do fixture estrutural para evitar regressão equivalente.
+
 ## Rotas
 
 - `GET /api/products` — leitura pública da base;
