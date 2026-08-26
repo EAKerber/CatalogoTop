@@ -83,6 +83,8 @@ Gate Chromium físico (`CatalogoTop Browser Print Gate`):
 - linhas institucionais existem com `printBackground: false`;
 - PDF gerado pelo Chromium possui exatamente 2 páginas físicas.
 
+O caminho suportado para o gate físico é o botão `Gerar PDF / Imprimir`, que usa o documento isolado. `Ctrl+P` direto sobre a aplicação permanece apenas como fallback legado até uma limpeza posterior.
+
 Gate manual restante antes do merge:
 - repetir o catálogo real no Deploy Preview;
 - confirmar que o PDF real não cria terceira página vazia;
