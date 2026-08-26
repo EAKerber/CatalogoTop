@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="category-browser.css" />
   <link rel="stylesheet" href="shell-responsive.css" />
   <link rel="stylesheet" href="mobile-header.css" />
+  <link rel="stylesheet" href="header-data-menu.css" />
   <link rel="stylesheet" href="editorial-composition.css" />
   <link rel="stylesheet" href="catalog-page.css" />
   <link rel="stylesheet" href="composer-layout.css" />
@@ -31,18 +32,28 @@
         <button class="tab" data-tab="catalog">Catálogo</button>
         <button class="tab" data-tab="templates">Templates</button>
       </nav>
-      <div class="header-product-import" aria-label="Importação de produtos">
-        <label class="header-import-button file-button" title="Importar produtos por CSV ou Excel">Importar produtos
-          <input id="importProductsFile" type="file" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
-        </label>
-        <select id="importMode" aria-label="Modo de importação"><option value="merge">Mesclar por código</option><option value="replace">Substituir base</option></select>
-        <a class="header-model-link" href="examples/produtos-modelo.csv" download>CSV modelo</a>
-      </div>
     </div>
-    <div class="app-header-actions" aria-label="Sincronização e backup">
+    <div class="app-header-actions" aria-label="Sincronização e dados">
       <button class="button secondary sync-status" id="productSyncStatus" type="button" data-sync-state="loading" title="Estado da base compartilhada">Conectando…</button>
-      <button class="button secondary" id="btnExportBackup" title="Exportar backup JSON">Exportar backup</button>
-      <label class="button secondary file-button" title="Importar backup JSON">Importar backup<input id="backupFile" type="file" accept="application/json,.json" /></label>
+      <details class="header-data-menu" id="headerDataMenu">
+        <summary>Dados <span class="header-data-caret" aria-hidden="true">⌄</span></summary>
+        <div class="header-data-popover">
+          <section class="header-data-section" aria-label="Produtos">
+            <span class="header-data-label">Produtos</span>
+            <label class="header-data-action file-button" title="Importar produtos por CSV ou Excel">Importar produtos…
+              <input id="importProductsFile" type="file" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+            </label>
+            <label class="header-data-field"><span>Modo de importação</span><select id="importMode" aria-label="Modo de importação"><option value="merge">Mesclar por código</option><option value="replace">Substituir base</option></select></label>
+            <a class="header-data-action" data-header-menu-close href="examples/produtos-modelo.csv" download>Baixar CSV modelo</a>
+          </section>
+          <div class="header-data-divider" aria-hidden="true"></div>
+          <section class="header-data-section" aria-label="Backup">
+            <span class="header-data-label">Backup</span>
+            <button class="header-data-action" data-header-menu-close id="btnExportBackup" type="button" title="Exportar backup JSON">Exportar backup</button>
+            <label class="header-data-action file-button" title="Importar backup JSON">Importar backup<input id="backupFile" type="file" accept="application/json,.json" /></label>
+          </section>
+        </div>
+      </details>
     </div>
   </header>
 
@@ -154,6 +165,7 @@
   <script defer src="src/product-actions.js"></script>
   <script defer src="src/catalog-selection-order.js"></script>
   <script defer src="src/app.js"></script>
+  <script defer src="src/header-data-menu.js"></script>
   <script defer src="src/collection-controls.js"></script>
   <script defer src="src/table-controls.js"></script>
   <script defer src="src/product-delete-ui.js"></script>

@@ -20,6 +20,7 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 - Código e descrição são a validação mínima para importação.
 - Colunas desconhecidas de planilha devem ser preservadas como especificações quando possível, não descartadas silenciosamente.
 - Header/footer são componentes compartilhados. Templates não devem copiá-los.
+- No header da aplicação, estado de sincronização permanece visível; importação, modo da importação, CSV modelo e backup são utilidades secundárias agrupadas no menu `Dados`.
 - Paginação deve derivar do contrato do template, das categorias, da ordem factual da seleção e da geometria declarada das unidades editoriais.
 - Conteúdo, ênfase visual e largura são eixos independentes. `Destaque` não altera ordem nem largura; largura é modelada por slots (`simple=1`, `wide=2`, `full=todos`).
 - `Hero` não é primitiva estrutural. Estado legado `emphasis: hero` deve migrar deterministicamente para `Destaque visual + Linha inteira`, sem regra especial de paginação ou reordenação.
@@ -68,6 +69,8 @@ Recorte v0.10.1 consolidado na `main`: `Collection` é o segundo primitivo top-l
 
 Recorte v0.10.2 consolidado na `main`: `Table` é o terceiro primitivo top-level, full-width e fragmentável com cabeçalho repetido, fontes Produtos/Linhas comerciais, colunas conhecidas e exclusão direta segura na biblioteca. A reconciliação também tornou idempotentes os patches DOM de Collection/Table, eliminando o ciclo entre observadores identificado pelo Browser Print Gate. Ver `docs/table-block-v0.10.2.md`.
 
-Recorte v0.11.0 em implementação: consolida fronteiras explícitas de runtime, remove wrappers de `Composition`/`CatalogDocument`/renderer e elimina observers que redecoravam `#selectableProducts`. O objetivo é preservar o output v0.10.2 enquanto prepara a base para inspector e enquadramento. Ver `docs/editor-runtime-boundaries-v0.11.0.md`.
+Recorte v0.11.0 consolidado na `main`: `Composition`, `CatalogDocument` e o renderer editorial são fronteiras explícitas; wrappers globais, carregamento editorial dinâmico e observers de decoração de `#selectableProducts` foram removidos. Ver `docs/editor-runtime-boundaries-v0.11.0.md`.
+
+Recorte v0.11.0.1 em implementação: o estado de sincronização permanece sempre visível e as ações secundárias de importação/backup/CSV são consolidadas no menu `Dados`, sem alterar os contratos operacionais. Ver `docs/header-data-menu-v0.11.0.1.md`.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.
