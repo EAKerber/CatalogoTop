@@ -29,7 +29,7 @@
   function chunk(list, size) {
     const result = [];
     for (let index = 0; index < list.length; index += size) result.push(list.slice(index, index + size));
-    return result.length ? result : [[]];
+    return result;
   }
 
   function icon(type) {
@@ -147,13 +147,13 @@
     </article>`;
   }
 
-  function headerMarkup(title, productCount) {
+  function headerMarkup(category, productCount) {
     return `<header class="catalog-page-header">
       <img class="catalog-logo" src="assets/logo-top-mobili.svg" alt="Top Mobili" />
       <div class="catalog-title-block">
         <span>CATÁLOGO</span>
-        <h2>${esc(title || 'Categoria')}</h2>
-        <p>${productCount} ${productCount === 1 ? 'produto selecionado' : 'produtos selecionados'}</p>
+        <h2>${esc(category || 'Sem categoria')}</h2>
+        <p>${productCount} ${productCount === 1 ? 'produto nesta categoria' : 'produtos nesta categoria'}</p>
         <i aria-hidden="true"></i>
       </div>
       <div class="catalog-blueprint catalog-blueprint-dots" aria-hidden="true"></div>
@@ -184,13 +184,13 @@
     </footer>`;
   }
 
-  function pageMarkup(products, pageIndex, pageTotal, state, template, totalSelected) {
-    return `<article class="catalog-page ${template.className}" style="--catalog-cols:${template.columns};--catalog-rows:${template.rows}">
-      ${headerMarkup(state.catalog.title, totalSelected)}
+  function pageMarkup(page, pageIndex, pageTotal, state, template) {
+    return `<article class="catalog-page ${template.className}" data-category="${esc(page.category)}" data-category-page="${page.categoryPageIndex + 1}" style="--catalog-cols:${template.columns};--catalog-rows:${template.rows}">
+      ${headerMarkup(page.category, page.categoryProductCount)}
       <section class="catalog-page-body">
         <div class="catalog-decoration-circle" aria-hidden="true"></div>
-        <div class="catalog-products">${products.map(product => cardMarkup(product, template, state.catalog.showPrices)).join('')}</div>
-        ${products.length ? '' : '<div class="catalog-empty"><strong>Nenhum produto selecionado.</strong><span>Marque produtos na coluna à esquerda.</span></div>'}
+        <div class="catalog-products">${page.products.map(product => cardMarkup(product, template, state.catalog.showPrices)).join('')}</div>
+        ${page.products.length ? '' : '<div class="catalog-empty"><strong>Nenhum produto selecionado.</strong><span>Marque produtos na coluna à esquerda.</span></div>'}
       </section>
       ${footerMarkup(pageIndex, pageTotal, state.catalog.createdAt)}
     </article>`;
@@ -201,12 +201,70 @@
     return state.selectedIds.map(id => byId.get(id)).filter(product => product && product.status === 'Ativo');
   }
 
+  function buildCategoryPages(state, perPage) {
+    const selected = getRenderableProducts(state);
+    const groups = [];
+    const byCategory = new Map();
+
+    selected.forEach(product => {
+      const category = String(product.category || '').trim() || 'Sem categoria';
+      let group = byCategory.get(category);
+      if (!group) {
+        group = { category, products: [] };
+        byCategory.set(category, group);
+        groups.push(group);
+      }
+      group.products.push(product);
+    });
+
+    const pages = [];
+    groups.forEach((group, categoryIndex) => {
+      const categoryPages = chunk(group.products, perPage);
+      categoryPages.forEach((products, categoryPageIndex) => {
+        pages.push({
+          category: group.category,
+          products,
+          categoryIndex,
+          categoryPageIndex,
+          categoryPageTotal: categoryPages.length,
+          categoryProductCount: group.products.length
+        });
+      });
+    });
+
+    if (!pages.length) {
+      pages.push({
+        category: String(state.catalog?.title || '').trim() || 'Catálogo',
+        products: [],
+        categoryIndex: 0,
+        categoryPageIndex: 0,
+        categoryPageTotal: 1,
+        categoryProductCount: 0
+      });
+    }
+
+    return { selected, groups, pages };
+  }
+
+  function categoryDividerMarkup(page) {
+    return `<div class="catalog-category-divider" data-category-divider="${esc(page.category)}">
+      <span>Categoria</span>
+      <strong>${esc(page.category)}</strong>
+      <small>${page.categoryProductCount} ${page.categoryProductCount === 1 ? 'produto' : 'produtos'} · ${page.categoryPageTotal} ${page.categoryPageTotal === 1 ? 'página' : 'páginas'}</small>
+    </div>`;
+  }
+
   function renderCatalog(root, state) {
     const template = NS.Templates.getTemplate(state.catalog.templateId);
-    const selected = getRenderableProducts(state);
-    const pages = chunk(selected, template.perPage);
-    root.innerHTML = pages.map((products, index) => pageMarkup(products, index, pages.length, state, template, selected.length)).join('');
-    return { selectedCount: selected.length, pageCount: pages.length, template };
+    const { selected, groups, pages } = buildCategoryPages(state, template.perPage);
+    root.innerHTML = pages.map((page, index) => `${page.categoryPageIndex === 0 && selected.length ? categoryDividerMarkup(page) : ''}${pageMarkup(page, index, pages.length, state, template)}`).join('');
+    return {
+      selectedCount: selected.length,
+      pageCount: pages.length,
+      categoryCount: groups.length,
+      categories: groups.map(group => ({ category: group.category, productCount: group.products.length })),
+      template
+    };
   }
 
   function renderTemplatePreview(template) {
@@ -218,5 +276,5 @@
     </div>`;
   }
 
-  NS.Render = { PLACEHOLDER, esc, formatDate, renderCatalog, renderTemplatePreview, getRenderableProducts };
+  NS.Render = { PLACEHOLDER, esc, formatDate, renderCatalog, renderTemplatePreview, getRenderableProducts, buildCategoryPages };
 })();
