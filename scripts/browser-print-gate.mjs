@@ -43,7 +43,7 @@ const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.CatalogoTop?.Core && window.CatalogoTop?.Print && window.CatalogoTop?.CatalogDocument);
+  await page.waitForFunction(() => window.CatalogoTop?.Core && window.CatalogoTop?.Print && window.CatalogoTop?.CatalogDocument && window.CatalogoTop?.PreviewZoom);
 
   const materialized = await page.evaluate(() => {
     const { Core, Composition, CatalogDocument } = window.CatalogoTop;
@@ -97,14 +97,41 @@ try {
 
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#catalogPreview .catalog-page');
-  const preview = await page.evaluate(() => ({
-    pages: document.querySelectorAll('#catalogPreview .catalog-page').length,
-    firstCard: document.querySelector('#catalogPreview .catalog-card')?.dataset.productId || '',
-    chromeVisibleInPreview: Boolean(document.querySelector('#catalogPreview .app-shell-header'))
-  }));
+  const preview = await page.evaluate(() => {
+    const hero = document.querySelector('#catalogPreview [data-product-id="a-hero"]');
+    const normal = document.querySelector('#catalogPreview [data-product-id="a-normal"]');
+    const heroTitle = hero?.querySelector('h3');
+    const normalTitle = normal?.querySelector('h3');
+    return {
+      pages: document.querySelectorAll('#catalogPreview .catalog-page').length,
+      firstCard: document.querySelector('#catalogPreview .catalog-card')?.dataset.productId || '',
+      chromeVisibleInPreview: Boolean(document.querySelector('#catalogPreview .app-shell-header')),
+      heroColumns: hero ? getComputedStyle(hero).gridTemplateColumns : '',
+      heroTitleSize: heroTitle ? parseFloat(getComputedStyle(heroTitle).fontSize) : 0,
+      normalTitleSize: normalTitle ? parseFloat(getComputedStyle(normalTitle).fontSize) : 0
+    };
+  });
   if (preview.pages !== 2) throw new Error(`preview deveria ter 2 páginas; recebeu ${preview.pages}`);
   if (preview.firstCard !== 'a-hero') throw new Error(`primeiro card do preview deveria ser Hero; recebeu ${preview.firstCard}`);
   if (preview.chromeVisibleInPreview) throw new Error('preview contém chrome da aplicação');
+  if (preview.heroColumns.trim().split(/\s+/).length < 2) throw new Error(`Hero Visual precisa de composição focal em duas áreas; recebeu ${preview.heroColumns}`);
+  if (!(preview.heroTitleSize > preview.normalTitleSize * 1.2)) throw new Error(`Hero precisa ampliar hierarquia tipográfica: hero=${preview.heroTitleSize}, normal=${preview.normalTitleSize}`);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.click('#btnPreviewFit');
+  await page.waitForTimeout(120);
+  const mobilePreview = await page.evaluate(() => {
+    const viewport = document.getElementById('catalogPreviewViewport');
+    const root = document.getElementById('catalogPreview');
+    return {
+      clientWidth: viewport?.clientWidth || 0,
+      scrollWidth: viewport?.scrollWidth || 0,
+      scale: parseFloat(getComputedStyle(root).getPropertyValue('--preview-scale')) || 1,
+      mode: window.CatalogoTop.PreviewZoom?.getMode?.() || ''
+    };
+  });
+  if (mobilePreview.mode !== 'fit' || mobilePreview.scale >= 1) throw new Error(`preview mobile deveria entrar em Fit abaixo de 100%: ${JSON.stringify(mobilePreview)}`);
+  if (mobilePreview.scrollWidth > mobilePreview.clientWidth + 3) throw new Error(`Fit mobile não deveria exigir scroll horizontal: ${JSON.stringify(mobilePreview)}`);
 
   const printableHtml = await page.evaluate(() => window.CatalogoTop.Print.buildPrintableHtml(window.CatalogoTop.Core.getState()));
   const printPage = await browser.newPage({ viewport: { width: 794, height: 1123 } });
@@ -137,7 +164,16 @@ try {
   const pdf = await PDFDocument.load(pdfBytes);
   if (pdf.getPageCount() !== 2) throw new Error(`PDF físico deveria ter exatamente 2 páginas; recebeu ${pdf.getPageCount()}`);
 
-  console.log('PASS browser print gate: 2 páginas lógicas = 2 páginas físicas, Hero primeiro e UI isolada');
+  const expectedWidth = 210 * 72 / 25.4;
+  const expectedHeight = 297 * 72 / 25.4;
+  for (const [index, pdfPage] of pdf.getPages().entries()) {
+    const { width, height } = pdfPage.getSize();
+    if (Math.abs(width - expectedWidth) > .6 || Math.abs(height - expectedHeight) > .6) {
+      throw new Error(`página ${index + 1} não é A4: ${width.toFixed(2)} × ${height.toFixed(2)} pt`);
+    }
+  }
+
+  console.log('PASS browser print gate: A4 físico, 2 páginas, Hero focal/primeiro, UI isolada e preview mobile em Fit');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
