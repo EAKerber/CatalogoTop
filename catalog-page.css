@@ -1,0 +1,34 @@
+/* v0.8.1 — regras físicas/print-safe do documento A4.
+ * A geometria base continua em styles.css por compatibilidade; novos ajustes de
+ * documento devem entrar aqui, nunca em CSS de shell/mobile. */
+
+.catalog-page {
+  background: #fff;
+  overflow: hidden;
+}
+
+/* Linhas institucionais críticas não dependem de "gráficos de fundo". */
+.catalog-title-block i {
+  height: 0;
+  background: transparent;
+  border-top: .45mm solid var(--brand);
+}
+
+.footer-line {
+  height: 0;
+  background: transparent;
+  border-top: .45mm solid var(--brand);
+}
+
+.catalog-title-block i::after,
+.footer-line::after {
+  background: #fff;
+}
+
+/* Elementos decorativos baseados em background são deliberadamente opcionais
+ * no PDF; a informação/estrutura não pode depender deles. */
+.catalog-blueprint-dots,
+.catalog-decoration-circle::before,
+.catalog-decoration-circle::after {
+  pointer-events: none;
+}
