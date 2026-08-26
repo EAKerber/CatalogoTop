@@ -1,0 +1,143 @@
+/* Recorte simples: variações visuais + tabela comercial dentro do card. */
+.product-detail-group {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafafa;
+  overflow: hidden;
+}
+.product-detail-group > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 11px 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.product-detail-group > summary::-webkit-details-marker { display: none; }
+.product-detail-group > summary span { color: var(--muted); font-weight: 600; }
+.product-detail-fields { padding: 0 12px 12px; display: grid; gap: 10px; }
+.product-detail-fields label { display: grid; gap: 6px; }
+.product-detail-fields small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+
+.catalog-card-visuals {
+  min-width: 0;
+  min-height: 0;
+  background: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.catalog-card-visuals.single {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  place-items: center;
+  padding: 3mm 2mm 3mm 3mm;
+}
+.catalog-card-visuals.single > img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+.catalog-card-visuals.multi {
+  padding: 2.4mm 1.6mm 2mm 2.7mm;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 1mm;
+  align-content: stretch;
+}
+.catalog-card-visuals.multi figure {
+  margin: 0;
+  min-width: 0;
+  min-height: 0;
+  border: .18mm solid #eceef0;
+  border-radius: 1mm;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: #fff;
+}
+.catalog-card-visuals.multi img { width: 100%; height: 100%; min-height: 0; object-fit: contain; padding: .7mm; }
+.catalog-card-visuals figcaption {
+  min-width: 0;
+  padding: .6mm .7mm;
+  border-top: .18mm solid #eceef0;
+  color: #5f646a;
+  font-size: 1.55mm;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.catalog-variant-labels { display: flex; gap: .7mm; flex-wrap: wrap; justify-content: center; padding-top: 1mm; }
+.catalog-variant-labels span {
+  max-width: 100%;
+  border: .18mm solid #dfe2e5;
+  border-radius: 99mm;
+  padding: .6mm 1.2mm;
+  color: #555a60;
+  font-size: 1.6mm;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.catalog-variant-more {
+  position: absolute;
+  right: 1mm;
+  bottom: 1mm;
+  display: grid;
+  place-items: center;
+  min-width: 5mm;
+  height: 5mm;
+  padding: 0 1mm;
+  border-radius: 99mm;
+  background: rgba(17,17,17,.82);
+  color: #fff;
+  font-size: 1.7mm;
+  font-weight: 800;
+}
+
+.catalog-card-table-wrap { margin-top: 1.4mm; min-width: 0; }
+.catalog-card-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 1.75mm;
+  line-height: 1.1;
+}
+.catalog-card-table th,
+.catalog-card-table td {
+  border-bottom: .18mm solid #e1e3e5;
+  padding: .75mm .5mm;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.catalog-card-table th {
+  color: #6c7177;
+  font-size: 1.45mm;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05mm;
+}
+.catalog-card-table td:last-child,
+.catalog-card-table th:last-child { text-align: right; }
+.catalog-table-more { display: block; margin-top: .7mm; color: #7c8187; font-size: 1.45mm; text-align: right; }
+
+.template-compact .catalog-card-visuals.single { padding: 1.7mm 2mm 1mm; }
+.template-compact .catalog-card-visuals.multi { padding: 1.5mm; gap: .6mm; }
+.template-compact .catalog-card-visuals figcaption { font-size: 1.3mm; }
+.template-compact .catalog-card-table { font-size: 1.45mm; }
+.template-compact .catalog-card-table th { font-size: 1.2mm; }
+.template-compact .catalog-card-table th,
+.template-compact .catalog-card-table td { padding: .45mm .35mm; }
+
+.template-showcase .catalog-card-visuals.single { padding: 4mm 3mm 4mm 4mm; }
+.template-showcase .catalog-card-visuals.multi { padding: 3mm 2mm 3mm 3mm; gap: 1.3mm; }
+.template-showcase .catalog-card-table { font-size: 2mm; }
+.template-showcase .catalog-card-table th { font-size: 1.65mm; }
+
+@media print {
+  .catalog-card-visuals figure,
+  .catalog-card-table tr { break-inside: avoid; }
+}

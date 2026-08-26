@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CatalogoTop · casos de card</title>
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="../cards.css" />
+  <style>
+    body { background: #e8eaed; padding: 24px; }
+    .case-header { max-width: 1180px; margin: 0 auto 22px; }
+    .case-header h1 { margin: 0 0 6px; font-size: 28px; }
+    .case-header p { margin: 0; color: #60656d; }
+    .case-grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .case { background: #fff; border: 1px solid #d7dade; border-radius: 14px; overflow: hidden; }
+    .case-copy { padding: 14px 16px; border-bottom: 1px solid #e6e8ea; }
+    .case-copy span { display: block; color: #c90d13; font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .case-copy h2 { margin: 4px 0 4px; font-size: 18px; }
+    .case-copy p { margin: 0; color: #6c7279; font-size: 12px; line-height: 1.45; }
+    .case-stage { height: 510px; overflow: hidden; position: relative; background: #dfe2e5; }
+    .case-stage > div { position: absolute; left: 50%; top: 14px; width: 210mm; transform: translateX(-50%) scale(.42); transform-origin: top center; }
+    .case-stage .catalog-preview { display: block; }
+    .case-stage .catalog-page { box-shadow: 0 16px 50px rgba(0,0,0,.16); }
+    @media (max-width: 900px) { .case-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="case-header">
+    <h1>Casos de card · teste visual</h1>
+    <p>Dados sintéticos. Este arquivo não faz parte do fluxo de produção; serve para comparar densidade, cores e tabelas sem introduzir componentes extras no aplicativo.</p>
+  </header>
+  <main class="case-grid" id="cardCases"></main>
+
+  <script defer src="../src/core.js"></script>
+  <script defer src="../src/templates.js"></script>
+  <script defer src="../src/icons.js"></script>
+  <script defer src="../src/render.js"></script>
+  <script defer src="card-cases.js"></script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CatalogoTop | Top Mobili</title>
+  <meta name="description" content="Gerador simplificado de catálogos A4 da Top Mobili." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="cards.css" />
+  <link rel="stylesheet" href="category-browser.css" />
+</head>
+<body>
+  <header class="app-shell-header">
+    <div class="app-brand">
+      <img src="assets/logo-top-mobili.svg" alt="Top Mobili" />
+      <div>
+        <h1>CatalogoTop</h1>
+        <p>Produtos → seleção → cards → páginas A4.</p>
+      </div>
+    </div>
+    <div class="app-header-actions">
+      <button class="button secondary" id="btnExportBackup">Exportar backup</button>
+      <label class="button secondary file-button">Importar backup
+        <input id="backupFile" type="file" accept="application/json,.json" />
+      </label>
+    </div>
+  </header>
+
+  <nav class="app-tabs" aria-label="Seções do aplicativo">
+    <button class="tab active" data-tab="products">Produtos</button>
+    <button class="tab" data-tab="catalog">Catálogo</button>
+    <button class="tab" data-tab="templates">Templates</button>
+  </nav>
+
+  <main class="app-main">
+    <section class="panel active" id="products">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">BASE DE PRODUTOS</p>
+          <h2>Cadastre uma vez. Reutilize em vários catálogos.</h2>
+          <p class="muted">Importe planilhas, corrija dados quando necessário e associe uma imagem a cada produto.</p>
+        </div>
+        <button class="button primary" id="btnNewProduct">+ Novo produto</button>
+      </div>
+
+      <div class="import-panel card">
+        <div>
+          <p class="eyebrow">IMPORTAÇÃO</p>
+          <h3>CSV ou Excel</h3>
+          <p class="muted">Aceita .csv, .xlsx, .xls e .xlsm. Código e descrição são obrigatórios; colunas extras viram especificações do card.</p>
+        </div>
+        <div class="import-controls">
+          <label class="button secondary file-button">Escolher arquivo
+            <input id="importProductsFile" type="file" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+          </label>
+          <select id="importMode" aria-label="Modo de importação">
+            <option value="merge">Mesclar por código</option>
+            <option value="replace">Substituir base atual</option>
+          </select>
+          <a class="text-link" href="examples/produtos-modelo.csv" download>Baixar CSV modelo</a>
+        </div>
+        <div id="importReport" class="import-report hidden" aria-live="polite"></div>
+      </div>
+
+      <div class="product-workspace">
+        <form class="card product-form" id="productForm">
+          <div class="form-head">
+            <div>
+              <p class="eyebrow">EDIÇÃO</p>
+              <h3 id="formTitle">Novo produto</h3>
+            </div>
+            <button class="icon-button" id="btnCancelEdit" type="button" title="Limpar formulário">×</button>
+          </div>
+          <input type="hidden" id="productId" />
+          <div class="field-grid two">
+            <label>Código *<input id="code" required autocomplete="off" placeholder="Ex.: 1268" /></label>
+            <label>Status<select id="status"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></label>
+          </div>
+          <label>Descrição *<textarea id="description" rows="3" required placeholder="Nome comercial do produto"></textarea></label>
+          <div class="field-grid two">
+            <label class="product-category-field">Categoria *
+              <input id="category" list="categoryOptions" required autocomplete="off" placeholder="Escolha ou crie uma categoria" />
+              <datalist id="categoryOptions"></datalist>
+              <small>Selecione uma pasta existente ou digite um nome novo para criá-la ao salvar.</small>
+            </label>
+            <label>Subcategoria<input id="subcategory" placeholder="Ex.: Telescópicas" /></label>
+          </div>
+          <div class="field-grid two">
+            <label>Preço<input id="price" placeholder="Ex.: R$ 17,64" /></label>
+            <label>Imagem por URL<input id="imageUrl" inputmode="url" placeholder="https://..." /></label>
+          </div>
+          <label>Especificações
+            <textarea id="specs" rows="5" placeholder="Uma por linha. Ex.:&#10;Carga: 35 kg&#10;Ciclos: 40.000"></textarea>
+          </label>
+          <details class="product-detail-group">
+            <summary>Variações e tabela <span>opcional · entrada simples</span></summary>
+            <div class="product-detail-fields">
+              <label>Cores / acabamentos
+                <textarea id="variants" rows="4" placeholder="Branco | https://...&#10;Preto | https://..."></textarea>
+                <small>Uma variação por linha: <strong>nome | URL da imagem</strong>. A URL é opcional; sem imagem, a variação aparece como legenda.</small>
+              </label>
+              <label>Tabela comercial
+                <textarea id="commercialRows" rows="5" placeholder="Branco | 1268-BR | CX 10 | R$ 17,64&#10;Preto | 1268-PT | CX 10 | R$ 18,20"></textarea>
+                <small>Uma linha por combinação: <strong>cor | código | embalagem | preço</strong>. Campos vazios podem ser mantidos entre os separadores.</small>
+              </label>
+            </div>
+          </details>
+          <label>Observações<textarea id="notes" rows="2" placeholder="Notas que precisam acompanhar o produto"></textarea></label>
+          <div class="image-picker" id="imageDropzone">
+            <input id="imageFile" type="file" accept="image/*" />
+            <img id="imagePreview" alt="Prévia do produto" />
+            <div class="image-picker-copy">
+              <strong>Imagem do produto</strong>
+              <span>Arraste, clique ou use uma URL.</span>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="button primary" type="submit">Salvar produto</button>
+            <button class="button secondary" id="btnDeleteProduct" type="button" disabled>Excluir</button>
+          </div>
+        </form>
+
+        <div class="card product-list-card">
+          <div class="list-toolbar">
+            <input id="searchProducts" type="search" placeholder="Buscar código, descrição, categoria..." />
+            <select id="filterCategory"><option value="">Todas as categorias</option></select>
+            <span id="productCount" class="counter">0 produtos</span>
+          </div>
+          <div class="product-library">
+            <aside class="category-browser" aria-label="Pastas de categorias">
+              <div class="category-browser-head"><span>Pastas</span><span>Categorias</span></div>
+              <div class="category-folders" id="categoryFolders"></div>
+            </aside>
+            <div class="product-table-pane">
+              <div class="table-wrap">
+                <table class="product-table">
+                  <thead><tr><th>Imagem</th><th>Código</th><th>Produto</th><th>Categoria</th><th>Preço</th><th></th></tr></thead>
+                  <tbody id="productRows"></tbody>
+                </table>
+              </div>
+              <div id="productsEmpty" class="empty-state hidden">
+                <strong>Nenhum produto cadastrado.</strong>
+                <span>Comece manualmente ou importe uma planilha.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="catalog">
+      <div class="section-heading catalog-heading">
+        <div>
+          <p class="eyebrow">COMPOSIÇÃO</p>
+          <h2>Selecione os produtos e o template faz o resto.</h2>
+          <p class="muted">Sem editor livre: a paginação é determinística e o cabeçalho/rodapé são compartilhados por todas as páginas.</p>
+        </div>
+        <div class="heading-actions">
+          <button class="button secondary" id="btnNewCatalog">Novo catálogo</button>
+          <button class="button primary" id="btnPrint">Gerar PDF / Imprimir</button>
+        </div>
+      </div>
+
+      <div class="catalog-controls card">
+        <label>Título / categoria<input id="catalogTitle" value="Categoria" /></label>
+        <label>Template<select id="catalogTemplate"></select></label>
+        <label class="checkbox-label"><input id="catalogShowPrices" type="checkbox" checked /> Mostrar preços</label>
+        <div class="catalog-meta">
+          <span>Criado em</span>
+          <strong id="catalogCreatedAt">—</strong>
+        </div>
+      </div>
+
+      <div class="selection-layout">
+        <aside class="card selection-panel">
+          <div class="selection-toolbar">
+            <input id="searchSelection" type="search" placeholder="Filtrar produtos" />
+            <select id="selectionCategory"><option value="">Todas as categorias</option></select>
+          </div>
+          <div class="selection-actions">
+            <button class="button secondary compact" id="btnSelectVisible">Selecionar visíveis</button>
+            <button class="button secondary compact" id="btnClearSelection">Limpar</button>
+          </div>
+          <div id="selectableProducts" class="selectable-products"></div>
+        </aside>
+        <section class="preview-column">
+          <div class="preview-toolbar">
+            <span id="selectedCount">0 selecionados</span>
+            <span id="pageCount">1 página</span>
+          </div>
+          <div id="catalogPreview" class="catalog-preview"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel" id="templates">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">TEMPLATES</p>
+          <h2>Varia o card e a densidade. A identidade da página permanece estável.</h2>
+          <p class="muted">O contrato do template é pequeno: quantidade de cards por página, grade e tratamento visual.</p>
+        </div>
+      </div>
+      <div id="templateCards" class="template-gallery"></div>
+      <div class="card template-contract">
+        <h3>Contrato visual comum</h3>
+        <p>Logo, título da categoria, linha técnica, rodapé institucional, número de página e data de criação são componentes compartilhados. Um novo template não deve duplicar esses blocos.</p>
+      </div>
+    </section>
+  </main>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="src/core.js"></script>
+  <script defer src="src/importer.js"></script>
+  <script defer src="src/templates.js"></script>
+  <script defer src="src/icons.js"></script>
+  <script defer src="src/render.js"></script>
+  <script defer src="src/app.js"></script>
+  <script defer src="src/product-details.js"></script>
+  <script defer src="src/category-browser.js"></script>
+</body>
+</html>
