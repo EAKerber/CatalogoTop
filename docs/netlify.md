@@ -39,18 +39,20 @@ O primeiro production deploy útil após a promoção do PR #1 publicou `main@a7
 - Frontend continua sem framework/build obrigatório.
 - Base compartilhada de produtos usa Netlify Functions + Netlify Blobs.
 - Assets de upload usam Blob separado, content-addressed por SHA-256.
+- Sessões de escrita usam um terceiro Blob store, também isolado entre preview e produção.
 - Produção usa store global com consistência forte.
 - Deploy Preview/branch usam deploy store isolado; nunca devem gravar na base global.
 - seleção atual, template e catálogo em elaboração permanecem locais ao navegador.
 
-## Variáveis de ambiente v0.7
+## Autorização de escrita v0.7
 
-Obrigatórias para escrita:
+Não há API key, OAuth ou segredo de sessão para configurar na conta Netlify.
 
-- `CATALOGOTOP_WRITE_PASSWORD_SCRYPT` — representação scrypt da frase compartilhada;
-- `CATALOGOTOP_SESSION_SECRET` — segredo aleatório usado para assinar o cookie de sessão.
+A frase compartilhada forte é verificada por um valor scrypt versionado no código. O verifier é público e não revela a frase, embora permita tentativa offline; por isso a frase deve continuar longa e exclusiva do CatalogoTop.
 
-Nenhuma delas deve aparecer no repositório ou no bundle do navegador. A frase humana também não é persistida pelo frontend.
+Após a validação, a Function gera um token aleatório de 256 bits e grava apenas o SHA-256 desse token no store `catalogotop-sessions`, com expiração de uma hora. O token bruto volta ao browser apenas por cookie `HttpOnly`, `Secure`, `SameSite=Strict` e `Path=/api`.
+
+`GET /api/write-session` consulta o cookie/store e permite reconhecer a sessão já aberta sem pedir novamente a frase durante sua validade.
 
 ## Rotas
 
@@ -72,13 +74,14 @@ Para o v0.7, o gate inclui:
 1. `npm test` passa;
 2. Deploy Preview fica `ready`;
 3. `GET /api/products` responde sem autenticação;
-4. senha incorreta não libera escrita;
+4. frase incorreta não libera escrita;
 5. frase correta cria sessão;
-6. PUT cria revisão no store do preview;
-7. GET faz readback da revisão criada;
-8. upload/readback de asset funciona;
-9. PUT com revisão obsoleta retorna conflito;
-10. produção permanece intocada durante esses testes.
+6. `GET /api/write-session` reconhece a sessão criada sem nova frase;
+7. PUT cria revisão no store do preview;
+8. GET faz readback da revisão criada;
+9. upload/readback de asset funciona;
+10. PUT com revisão obsoleta retorna conflito;
+11. produção permanece intocada durante esses testes.
 
 O gate visual A4 continua válido para mudanças de apresentação, mas storage não deve alterar geometria editorial.
 
