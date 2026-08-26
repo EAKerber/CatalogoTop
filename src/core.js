@@ -3,7 +3,7 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const STORAGE_KEY = 'catalogotop:state:v1';
-  const SCHEMA_VERSION = 4;
+  const SCHEMA_VERSION = 5;
 
   const APP_CONFIG = Object.freeze({
     brandName: 'Top Mobili',
@@ -26,12 +26,22 @@
     }));
   }
 
+  function uniqueIds(values) {
+    const seen = new Set();
+    return (Array.isArray(values) ? values : []).map(String).filter(id => {
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }
+
   function normalizePresentation(value) {
     const normalized = NS.Composition?.normalizePresentation
       ? NS.Composition.normalizePresentation(value)
-      : { distribution: 'balanced', typography: 'neutral', itemStyles: {} };
+      : { distribution: 'balanced', typography: 'neutral', order: [], itemStyles: {}, blocks: [], imageFrames: {} };
     return {
       ...normalized,
+      order: uniqueIds(normalized.order || value?.order),
       blocks: Array.isArray(normalized.blocks) ? normalized.blocks : preservedBlocks(value)
     };
   }
@@ -46,7 +56,7 @@
         templateId: 'technical',
         showPrices: true,
         createdAt: new Date().toISOString(),
-        presentation: normalizePresentation({ blocks: [] })
+        presentation: normalizePresentation({ order: [], blocks: [] })
       }
     };
   }
@@ -161,16 +171,23 @@
   function migrate(raw) {
     if (!raw || typeof raw !== 'object') return createInitialState();
     const base = createInitialState();
+    const products = Array.isArray(raw.products) ? raw.products.map(normalizeProduct).filter(p => p.code && p.description) : [];
+    const selectedIds = uniqueIds(Array.isArray(raw.selectedIds) ? raw.selectedIds : Array.isArray(raw.selected) ? raw.selected : []);
+    const rawPresentation = raw.catalog?.presentation && typeof raw.catalog.presentation === 'object' ? raw.catalog.presentation : {};
+    const presentation = normalizePresentation({
+      ...rawPresentation,
+      order: Array.isArray(rawPresentation.order) ? rawPresentation.order : selectedIds
+    });
     return {
       schemaVersion: SCHEMA_VERSION,
-      products: Array.isArray(raw.products) ? raw.products.map(normalizeProduct).filter(p => p.code && p.description) : [],
-      selectedIds: Array.isArray(raw.selectedIds) ? raw.selectedIds.map(String) : Array.isArray(raw.selected) ? raw.selected.map(String) : [],
+      products,
+      selectedIds,
       catalog: {
         title: String(raw.catalog?.title || raw.selectionName || base.catalog.title),
         templateId: ({ eletrica: 'technical', moveis: 'compact', promo: 'showcase' }[String(raw.catalog?.templateId || raw.currentTemplate || '')] || String(raw.catalog?.templateId || raw.currentTemplate || base.catalog.templateId)),
         showPrices: raw.catalog?.showPrices ?? raw.showPrices ?? true,
         createdAt: raw.catalog?.createdAt || base.catalog.createdAt,
-        presentation: normalizePresentation(raw.catalog?.presentation)
+        presentation
       }
     };
   }
@@ -225,6 +242,7 @@
       draft.catalog.title = 'Categoria';
       draft.catalog.presentation = normalizePresentation({
         ...draft.catalog.presentation,
+        order: [],
         itemStyles: {},
         blocks: []
       });
@@ -237,6 +255,7 @@
       if (mode === 'replace') {
         draft.products = normalized;
         draft.selectedIds = [];
+        draft.catalog.presentation.order = [];
         draft.catalog.presentation.itemStyles = {};
         draft.catalog.presentation.blocks = [];
         return;
@@ -283,6 +302,7 @@
     variantsToText,
     parseTableRowsText,
     tableRowsToText,
-    createInitialState
+    createInitialState,
+    migrate
   };
 })();
