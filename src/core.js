@@ -3,7 +3,7 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const STORAGE_KEY = 'catalogotop:state:v1';
-  const SCHEMA_VERSION = 2;
+  const SCHEMA_VERSION = 3;
 
   const APP_CONFIG = Object.freeze({
     brandName: 'Top Mobili',
@@ -17,6 +17,11 @@
     return `p-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 
+  function normalizePresentation(value) {
+    if (NS.Composition?.normalizePresentation) return NS.Composition.normalizePresentation(value);
+    return { distribution: 'balanced', typography: 'neutral', itemStyles: {} };
+  }
+
   function createInitialState() {
     return {
       schemaVersion: SCHEMA_VERSION,
@@ -26,7 +31,8 @@
         title: 'Categoria',
         templateId: 'technical',
         showPrices: true,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        presentation: normalizePresentation(null)
       }
     };
   }
@@ -149,7 +155,8 @@
         title: String(raw.catalog?.title || raw.selectionName || base.catalog.title),
         templateId: ({ eletrica: 'technical', moveis: 'compact', promo: 'showcase' }[String(raw.catalog?.templateId || raw.currentTemplate || '')] || String(raw.catalog?.templateId || raw.currentTemplate || base.catalog.templateId)),
         showPrices: raw.catalog?.showPrices ?? raw.showPrices ?? true,
-        createdAt: raw.catalog?.createdAt || base.catalog.createdAt
+        createdAt: raw.catalog?.createdAt || base.catalog.createdAt,
+        presentation: normalizePresentation(raw.catalog?.presentation)
       }
     };
   }
@@ -202,6 +209,10 @@
       draft.selectedIds = [];
       draft.catalog.createdAt = new Date().toISOString();
       draft.catalog.title = 'Categoria';
+      draft.catalog.presentation = normalizePresentation({
+        ...draft.catalog.presentation,
+        itemStyles: {}
+      });
     });
   }
 
@@ -211,6 +222,7 @@
       if (mode === 'replace') {
         draft.products = normalized;
         draft.selectedIds = [];
+        draft.catalog.presentation.itemStyles = {};
         return;
       }
       const byCode = new Map(draft.products.map((p, index) => [p.code.trim().toLowerCase(), index]));

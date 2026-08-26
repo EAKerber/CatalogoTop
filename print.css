@@ -1,0 +1,55 @@
+/* v0.8.1 — contrato exclusivo do documento imprimível. */
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body.catalog-print-document {
+    overflow: visible !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body.catalog-print-document > :not(.catalog-page) {
+    display: none !important;
+  }
+
+  body.catalog-print-document .catalog-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  body.catalog-print-document .catalog-page + .catalog-page {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  body.catalog-print-document .catalog-category-divider,
+  body.catalog-print-document .app-shell-header,
+  body.catalog-print-document .selection-panel,
+  body.catalog-print-document .preview-toolbar,
+  body.catalog-print-document .catalog-controls {
+    display: none !important;
+  }
+}

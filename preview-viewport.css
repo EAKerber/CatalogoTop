@@ -1,0 +1,118 @@
+/* v0.8.2 — preview A4 com fit real e zoom sem alterar a geometria do documento. */
+
+.preview-toolbar {
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.preview-toolbar-meta,
+.preview-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.preview-zoom-controls {
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .92);
+}
+
+.preview-zoom-controls button {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.preview-zoom-controls button:hover,
+.preview-zoom-controls button.active {
+  background: #f0f1f3;
+  color: var(--ink);
+}
+
+.preview-zoom-controls .preview-fit-button {
+  min-width: 58px;
+}
+
+.preview-zoom-value {
+  min-width: 42px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.catalog-preview-viewport {
+  width: 100%;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 2px 12px;
+}
+
+.catalog-preview {
+  --preview-scale: 1;
+  width: max-content;
+  min-width: 100%;
+  justify-items: center;
+}
+
+/* `zoom` muda apenas a superfície de preview e também o espaço ocupado no fluxo.
+ * A folha continua sendo 210 × 297 mm no DOM/documento e no iframe de impressão. */
+.catalog-preview .catalog-page,
+.catalog-preview .catalog-category-divider {
+  zoom: var(--preview-scale);
+}
+
+@media (max-width: 959px) {
+  .preview-toolbar {
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+
+  .preview-toolbar-meta {
+    gap: 5px;
+  }
+
+  .preview-toolbar span {
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+
+  .preview-zoom-controls {
+    margin-left: auto;
+  }
+
+  .catalog-preview-viewport {
+    width: 100%;
+    max-width: 100%;
+    padding-inline: 0;
+  }
+
+  .catalog-preview {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .preview-toolbar-meta {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .preview-zoom-controls {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}

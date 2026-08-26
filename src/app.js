@@ -2,7 +2,7 @@
   'use strict';
 
   const NS = window.CatalogoTop;
-  const { Core, Importer, Templates, Render, AssetClient, ProductStore } = NS;
+  const { Core, Importer, Templates, Render, AssetClient, ProductStore, Composition } = NS;
   const $ = selector => document.querySelector(selector);
   const $$ = selector => Array.from(document.querySelectorAll(selector));
   let pendingImport = null;
@@ -83,26 +83,40 @@
     return { query: $('#searchSelection').value.trim(), category: $('#selectionCategory').value };
   }
 
+  function optionMarkup(items, selected) {
+    return items.map(item => `<option value="${item.id}" ${item.id === selected ? 'selected' : ''}>${Render.esc(item.name)}</option>`).join('');
+  }
+
   function renderSelection() {
     const current = state();
+    const presentation = Composition.normalizePresentation(current.catalog.presentation);
     const { query, category } = selectionFilters();
     const available = current.products.filter(product => product.status === 'Ativo' && productMatches(product, query, category));
     $('#selectableProducts').innerHTML = available.length ? available.map(product => {
       const selected = current.selectedIds.includes(product.id);
       const order = selected ? current.selectedIds.indexOf(product.id) + 1 : null;
+      const style = Composition.styleFor(presentation, product.id);
+      const resolvedPreset = Composition.resolveContentPreset(product, style.contentPreset);
       return `<label class="select-product ${selected ? 'selected' : ''}">
         <input type="checkbox" data-select-product="${Render.esc(product.id)}" ${selected ? 'checked' : ''} />
         <img src="${Render.esc(imageValue(product))}" alt="" />
-        <span><strong>${Render.esc(product.code)} · ${Render.esc(product.description)}</strong><small>${Render.esc([product.category, product.subcategory].filter(Boolean).join(' / '))}</small></span>
+        <span><strong>${Render.esc(product.code)} · ${Render.esc(product.description)}</strong><small>${Render.esc([product.category, product.subcategory].filter(Boolean).join(' / '))}${style.contentPreset === 'auto' ? ` · auto: ${Render.esc(resolvedPreset)}` : ''}</small></span>
         ${order ? `<b class="selection-order">${order}</b>` : ''}
+        <div class="selection-presentation-controls">
+          <label>Conteúdo<select data-content-preset="${Render.esc(product.id)}">${optionMarkup(Composition.CONTENT_PRESETS, style.contentPreset)}</select></label>
+          <label>Ênfase<select data-emphasis="${Render.esc(product.id)}">${optionMarkup(Composition.EMPHASIS_PRESETS, style.emphasis)}</select></label>
+        </div>
       </label>`;
     }).join('') : '<div class="empty-state compact-empty"><strong>Nenhum produto disponível.</strong><span>Ajuste o filtro ou cadastre produtos ativos.</span></div>';
   }
 
   function renderCatalog() {
     const current = state();
+    const presentation = Composition.normalizePresentation(current.catalog.presentation);
     $('#catalogTitle').value = current.catalog.title;
     $('#catalogShowPrices').checked = current.catalog.showPrices;
+    $('#catalogDistribution').value = presentation.distribution;
+    $('#catalogTypography').value = presentation.typography;
     $('#catalogCreatedAt').textContent = Render.formatDate(current.catalog.createdAt);
     const summary = Render.renderCatalog($('#catalogPreview'), current);
     $('#selectedCount').textContent = `${summary.selectedCount} ${summary.selectedCount === 1 ? 'selecionado' : 'selecionados'}`;
@@ -211,6 +225,17 @@
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  function setItemPresentation(productId, patch) {
+    save(draft => {
+      const presentation = Composition.normalizePresentation(draft.catalog.presentation);
+      presentation.itemStyles[productId] = {
+        ...Composition.styleFor(presentation, productId),
+        ...patch
+      };
+      draft.catalog.presentation = presentation;
+    });
+  }
+
   function bindEvents() {
     $$('.tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
     $('#btnNewProduct').addEventListener('click', clearProductForm);
@@ -277,6 +302,7 @@
       save(draft => {
         draft.products = draft.products.filter(item => item.id !== id);
         draft.selectedIds = draft.selectedIds.filter(item => item !== id);
+        if (draft.catalog.presentation?.itemStyles) delete draft.catalog.presentation.itemStyles[id];
       });
       clearProductForm();
       await publishProducts();
@@ -295,6 +321,16 @@
     });
 
     $('#selectableProducts').addEventListener('change', event => {
+      const preset = event.target.closest('[data-content-preset]');
+      if (preset) {
+        setItemPresentation(preset.dataset.contentPreset, { contentPreset: preset.value });
+        return;
+      }
+      const emphasis = event.target.closest('[data-emphasis]');
+      if (emphasis) {
+        setItemPresentation(emphasis.dataset.emphasis, { emphasis: emphasis.value });
+        return;
+      }
       const checkbox = event.target.closest('[data-select-product]');
       if (!checkbox) return;
       const id = checkbox.dataset.selectProduct;
@@ -313,6 +349,12 @@
     $('#catalogTitle').addEventListener('input', event => save(draft => { draft.catalog.title = event.target.value; }));
     $('#catalogShowPrices').addEventListener('change', event => save(draft => { draft.catalog.showPrices = event.target.checked; }));
     $('#catalogTemplate').addEventListener('change', event => save(draft => { draft.catalog.templateId = event.target.value; }));
+    $('#catalogDistribution').addEventListener('change', event => save(draft => {
+      draft.catalog.presentation = Composition.normalizePresentation({ ...draft.catalog.presentation, distribution: event.target.value });
+    }));
+    $('#catalogTypography').addEventListener('change', event => save(draft => {
+      draft.catalog.presentation = Composition.normalizePresentation({ ...draft.catalog.presentation, typography: event.target.value });
+    }));
     $('#btnNewCatalog').addEventListener('click', () => {
       if (!confirm('Iniciar um novo catálogo? A base de produtos será preservada e apenas a seleção/configuração do catálogo será reiniciada.')) return;
       Core.resetCatalog();

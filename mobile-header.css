@@ -1,55 +1,63 @@
-/* v0.5 mobile header refinement: keep primary tabs fixed on the bottom row. */
-@media (max-width: 639px) {
+/* v0.8 mobile header: duas linhas lógicas, utilidades no topo e tabs isoladas abaixo. */
+@media (max-width: 959px) {
   .app-shell-header {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
     align-items: center;
     gap: 6px 7px;
-    padding: 6px 7px 5px;
+    padding: 6px 8px 5px;
   }
 
   .app-brand {
-    order: 1;
-    flex: 0 0 auto;
+    grid-column: 1;
+    grid-row: 1;
     min-width: 0;
+    align-self: center;
   }
 
-  /* Let the children of app-primary-tools participate directly in the mobile shell. */
+  /* Os dois filhos precisam participar diretamente do grid do header. */
   .app-primary-tools { display: contents; }
 
   .header-product-import {
-    order: 2;
-    flex: 1 1 118px;
+    grid-column: 2;
+    grid-row: 1;
     min-width: 0;
-    max-width: 46vw;
+    max-width: none;
     padding-left: 0;
     border-left: 0;
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
+    flex-wrap: nowrap;
   }
   .header-product-import::-webkit-scrollbar { display: none; }
   .header-product-import > * { flex: 0 0 auto; }
 
   .app-header-actions {
-    order: 2;
-    flex: 0 1 auto;
+    grid-column: 3;
+    grid-row: 1;
     min-width: 0;
-    max-width: 43vw;
-    justify-self: auto;
+    max-width: none;
+    margin: 0;
+    justify-self: stretch;
+    justify-content: flex-start;
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
+    flex-wrap: nowrap;
   }
   .app-header-actions::-webkit-scrollbar { display: none; }
   .app-header-actions .button { flex: 0 0 auto; }
 
   .app-shell-header .app-tabs {
     order: 3;
-    flex: 0 0 100%;
+    grid-column: 1 / -1;
+    grid-row: 2;
     width: 100%;
+    min-width: 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
@@ -60,5 +68,69 @@
   .app-shell-header .app-tabs .tab {
     width: 100%;
     min-width: 0;
+  }
+}
+
+@media (max-width: 639px) {
+  .app-shell-header {
+    grid-template-columns: auto minmax(0, 1.08fr) minmax(0, .92fr);
+    gap: 5px 6px;
+    padding: 5px 6px 4px;
+  }
+
+  .app-brand {
+    gap: 5px;
+  }
+  .app-brand img {
+    width: 38px;
+    height: 28px;
+  }
+  .app-brand h1 {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .app-brand p { display: none; }
+
+  .header-product-import,
+  .app-header-actions {
+    scroll-snap-type: x proximity;
+    gap: 4px;
+  }
+  .header-product-import > *,
+  .app-header-actions .button {
+    scroll-snap-align: start;
+  }
+
+  .header-import-button,
+  .header-product-import select,
+  .app-header-actions .button {
+    min-height: 30px;
+    font-size: 9px;
+  }
+  .header-import-button { padding: 5px 7px; }
+  .header-product-import select {
+    width: 116px;
+    max-width: none;
+    padding-left: 7px;
+  }
+  .header-model-link { display: none; }
+  .app-header-actions .button { padding: 4px 7px; }
+
+  .app-shell-header .app-tabs {
+    gap: 3px;
+    padding-top: 2px;
+  }
+  .app-shell-header .app-tabs .tab {
+    min-height: 33px;
+    font-size: 10.5px;
+    padding: 6px 7px;
+  }
+}
+
+@media (max-width: 420px) {
+  .app-brand h1 { display: none; }
+  .app-brand img { width: 34px; }
+  .app-shell-header {
+    grid-template-columns: 38px minmax(0, 1.05fr) minmax(0, .95fr);
   }
 }
