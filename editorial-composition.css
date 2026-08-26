@@ -235,10 +235,8 @@
 }
 
 /*
- * Chromium pode promover uma folha com exatamente 297 mm + break-after para
- * uma página física extra por arredondamento. A reserva de 1 mm é deliberada:
- * preserva a geometria A4 percebida e impede o overflow fantasma observado no
- * PDF de regressão de 26/08/2026.
+ * Compatibilidade do caminho legado Ctrl+P. O caminho suportado usa print.css
+ * em um iframe isolado e sobrescreve estas regras com A4 físico 210 × 297 mm.
  */
 @media print {
   html, body {
@@ -254,20 +252,48 @@
     overflow: visible !important;
   }
   .catalog-category-divider { display: none !important; }
-  .catalog-page {
-    width: 210mm !important;
-    height: 296mm !important;
-    min-height: 296mm !important;
-    max-height: 296mm !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    break-inside: avoid-page;
-    page-break-inside: avoid;
-    break-after: page;
-    page-break-after: always;
-  }
-  .catalog-page:last-child {
-    break-after: auto;
-    page-break-after: auto;
-  }
+}
+
+/* Hero deve parecer deliberadamente focal mesmo quando uma linha balanceada
+ * também produz um card full-width. No preset Visual ele deixa de ser apenas
+ * um card normal esticado e passa a ter imagem dominante + bloco editorial. */
+.catalog-card.emphasis-hero {
+  border-color: rgba(239, 23, 27, .42);
+  box-shadow: 0 1.2mm 3.6mm rgba(22, 25, 31, .08);
+}
+
+.catalog-card.emphasis-hero::before {
+  height: 1.15mm;
+  background: var(--brand);
+}
+
+.catalog-card.emphasis-hero.content-visual,
+.template-compact .catalog-card.emphasis-hero.content-visual {
+  grid-template-columns: minmax(0, 58%) minmax(0, 42%);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.catalog-card.emphasis-hero.content-visual .catalog-card-visuals {
+  padding: 3mm 2.4mm 3mm 3.2mm;
+}
+
+.catalog-card.emphasis-hero.content-visual .catalog-card-content {
+  display: grid;
+  align-content: center;
+  padding: 4.8mm 4.8mm 4.2mm 2.8mm;
+}
+
+.catalog-card.emphasis-hero.content-visual h3 {
+  font-size: 5.15mm;
+  line-height: 1.02;
+  -webkit-line-clamp: 4;
+}
+
+.catalog-card.emphasis-hero.content-visual .catalog-card-code {
+  font-size: 3.05mm;
+}
+
+.catalog-card.emphasis-hero.content-visual .catalog-card-price {
+  margin-top: 2.4mm;
+  font-size: 6.4mm;
 }
