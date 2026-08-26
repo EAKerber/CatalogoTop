@@ -56,7 +56,7 @@ const checks = [
   ['navegador de categorias carrega depois do app', html.indexOf('src/app.js') < html.indexOf('src/category-browser.js')],
   ['categoria usa seletor sobrescrevível', html.includes('id="category" list="categoryOptions" required') && html.includes('id="categoryOptions"')],
   ['biblioteca possui pastas de categoria', html.includes('id="categoryFolders"') && categoryBrowser.includes('data-category-folder')],
-  ['produtos sem categoria recebem pasta explícita', core.includes("|| 'Sem categoria'"))],
+  ['produtos sem categoria recebem pasta explícita', core.includes("|| 'Sem categoria'")],
   ['impressão declara A4', css.includes('@page { size: A4 portrait;')],
   ['página contém rodapé', css.includes('.catalog-page-footer')],
   ['template técnico registrado', templates.includes("id: 'technical'")],
