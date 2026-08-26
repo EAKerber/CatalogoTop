@@ -59,8 +59,13 @@
 
       <div id="importReport" class="import-report shell-import-report hidden" aria-live="polite"></div>
 
+      <div class="mobile-workspace-switch" role="tablist" aria-label="Área de produtos">
+        <button class="active" type="button" role="tab" aria-selected="true" aria-controls="productForm" data-mobile-workspace-target="form">Cadastro</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="productLibraryPanel" data-mobile-workspace-target="library" tabindex="-1">Produtos</button>
+      </div>
+
       <div class="product-workspace">
-        <form class="card product-form" id="productForm">
+        <form class="card product-form mobile-workspace-active" id="productForm" data-mobile-workspace-panel="form" role="tabpanel">
           <div class="form-head">
             <div>
               <p class="eyebrow">EDIÇÃO</p>
@@ -133,7 +138,7 @@
           </div>
         </form>
 
-        <div class="card product-list-card">
+        <div class="card product-list-card" id="productLibraryPanel" data-mobile-workspace-panel="library" role="tabpanel">
           <div class="list-toolbar">
             <input id="searchProducts" type="search" placeholder="Buscar código, descrição, categoria..." />
             <select id="filterCategory"><option value="">Todas as categorias</option></select>
@@ -229,6 +234,7 @@
   <script defer src="src/icons.js"></script>
   <script defer src="src/render.js"></script>
   <script defer src="src/form-steps.js"></script>
+  <script defer src="src/mobile-workspace.js"></script>
   <script defer src="src/app.js"></script>
   <script defer src="src/product-details.js"></script>
   <script defer src="src/category-browser.js"></script>
