@@ -3,7 +3,7 @@
 
   const NS = window.CatalogoTop;
   const root = document.getElementById('cardCases');
-  if (!NS?.Render || !NS?.Core || !root) return;
+  if (!NS?.Render || !NS?.Core || !NS?.Templates || !root) return;
 
   function art(label, background = '#f3f4f5', ink = '#2d3137') {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="520" viewBox="0 0 720 520">
@@ -18,16 +18,16 @@
   const cases = [
     {
       name: 'Produto simples',
-      note: 'Uma imagem, título, poucas especificações e sem tabela.',
+      note: 'Uma imagem, título, poucas especificações e preço-base.',
       templateId: 'technical',
       product: {
         id: 'case-simple', code: 'TEST-01', description: 'Produto simples', category: 'Teste visual', subcategory: 'Card básico', status: 'Ativo', image: art('Principal'),
-        specs: [{ label: 'Medida', value: '000 mm' }, { label: 'Aplicação', value: 'Exemplo' }], variants: [], tableRows: [], notes: '', price: ''
+        specs: [{ label: 'Medida', value: '000 mm' }, { label: 'Aplicação', value: 'Exemplo' }], variants: [], tableRows: [], notes: '', price: 'R$ 00,00'
       }
     },
     {
       name: 'Família de cores',
-      note: 'Quatro imagens de acabamento e tabela comercial curta.',
+      note: 'Seis acabamentos: o card mostra o limite visual e sinaliza o restante sem crescer.',
       templateId: 'showcase',
       product: {
         id: 'case-colors', code: 'TEST-02', description: 'Família com múltiplas cores', category: 'Teste visual', subcategory: 'Variações', status: 'Ativo', image: art('Principal'),
@@ -36,20 +36,24 @@
           { id: 'v1', label: 'Branco', image: art('Branco', '#f8f8f8') },
           { id: 'v2', label: 'Preto', image: art('Preto', '#dedfe1', '#15171a') },
           { id: 'v3', label: 'Cinza', image: art('Cinza', '#e7e8ea', '#5b6067') },
-          { id: 'v4', label: 'Natural', image: art('Natural', '#f1eadf', '#725f45') }
+          { id: 'v4', label: 'Natural', image: art('Natural', '#f1eadf', '#725f45') },
+          { id: 'v5', label: 'Grafite', image: art('Grafite', '#d6d8db', '#373b40') },
+          { id: 'v6', label: 'Champagne', image: art('Champagne', '#efe7d7', '#8a7047') }
         ],
         tableRows: [
           { variant: 'Branco', code: 'TEST-02-BR', package: 'CX 00', price: 'R$ 00,00' },
           { variant: 'Preto', code: 'TEST-02-PT', package: 'CX 00', price: 'R$ 00,00' },
           { variant: 'Cinza', code: 'TEST-02-CZ', package: 'CX 00', price: 'R$ 00,00' },
-          { variant: 'Natural', code: 'TEST-02-NT', package: 'CX 00', price: 'R$ 00,00' }
+          { variant: 'Natural', code: 'TEST-02-NT', package: 'CX 00', price: 'R$ 00,00' },
+          { variant: 'Grafite', code: 'TEST-02-GF', package: 'CX 00', price: 'R$ 00,00' },
+          { variant: 'Champagne', code: 'TEST-02-CH', package: 'CX 00', price: 'R$ 00,00' }
         ],
         notes: '', price: ''
       }
     },
     {
       name: 'Várias referências',
-      note: 'Uma imagem principal com muitas referências comerciais e sem variação visual.',
+      note: 'Uma imagem principal com seis referências comerciais; o card abre largura para a tabela.',
       templateId: 'technical',
       product: {
         id: 'case-table', code: 'TEST-03', description: 'Produto com tabela de referências', category: 'Teste visual', subcategory: 'Tabela', status: 'Ativo', image: art('Principal'),
@@ -60,7 +64,7 @@
     },
     {
       name: 'Card denso',
-      note: 'Combina especificações, nomes de acabamento e tabela para observar o limite do card.',
+      note: 'Combina especificações, acabamentos sem foto e tabela para observar o limite sem auto-layout.',
       templateId: 'showcase',
       product: {
         id: 'case-dense', code: 'TEST-04', description: 'Produto denso para teste de limite', category: 'Teste visual', subcategory: 'Denso', status: 'Ativo', image: art('Principal'),
@@ -84,15 +88,22 @@
 
   cases.forEach((entry, index) => {
     const product = NS.Core.normalizeProduct(entry.product);
-    const article = document.createElement('article');
-    article.className = 'case';
-    article.innerHTML = `<div class="case-copy"><span>Caso ${index + 1}</span><h2>${NS.Render.esc(entry.name)}</h2><p>${NS.Render.esc(entry.note)}</p></div><div class="case-stage"><div class="catalog-preview"></div></div>`;
-    root.append(article);
-    NS.Render.renderCatalog(article.querySelector('.catalog-preview'), {
+    const template = NS.Templates.getTemplate(entry.templateId);
+    const state = {
       schemaVersion: NS.Core.SCHEMA_VERSION,
       products: [product],
       selectedIds: [product.id],
       catalog: { title: entry.name, templateId: entry.templateId, showPrices: true, createdAt: '2026-08-25T00:00:00.000Z' }
-    });
+    };
+
+    const scratch = document.createElement('div');
+    NS.Render.renderCatalog(scratch, state);
+    const renderedCard = scratch.querySelector('.catalog-card');
+
+    const article = document.createElement('article');
+    article.className = 'case';
+    article.innerHTML = `<div class="case-copy"><span>Caso ${index + 1}</span><h2>${NS.Render.esc(entry.name)}</h2><p>${NS.Render.esc(entry.note)}</p></div><div class="case-stage"><div class="case-focus ${template.className}"></div></div>`;
+    root.append(article);
+    if (renderedCard) article.querySelector('.case-focus').append(renderedCard);
   });
 })();

@@ -38,48 +38,81 @@
 
   function renderSpecs(specs, limit) {
     const normalized = Array.isArray(specs) ? specs.filter(item => item && item.value) : [];
-    return normalized.slice(0, limit).map(item => `<li>${item.label ? `<span>${esc(item.label)}</span>` : ''}<strong>${esc(item.value)}</strong></li>`).join('');
+    return normalized.slice(0, Math.max(0, limit)).map(item => `<li>${item.label ? `<span>${esc(item.label)}</span>` : ''}<strong>${esc(item.value)}</strong></li>`).join('');
   }
 
   function limitsFor(template, hasTable) {
-    if (template.id === 'compact') return { variants: 3, rows: 3, specs: hasTable ? 1 : 2 };
-    if (template.id === 'showcase') return { variants: 5, rows: 6, specs: hasTable ? 3 : 5 };
-    return { variants: 4, rows: 4, specs: hasTable ? 2 : 3 };
+    if (template.id === 'compact') return { variants: 3, rows: 3, specs: hasTable ? 0 : 2 };
+    if (template.id === 'showcase') return { variants: 5, rows: 8, specs: hasTable ? 2 : 5 };
+    return { variants: 4, rows: 6, specs: hasTable ? 1 : 3 };
+  }
+
+  function renderVariantLabels(items) {
+    if (!items.length) return '';
+    return `<div class="catalog-variant-labels">${items.map(item => `<span>${esc(item.label)}</span>`).join('')}</div>`;
   }
 
   function renderVisuals(product, limit) {
-    const variants = Array.isArray(product.variants) ? product.variants : [];
-    const withImage = variants.filter(item => item && item.image).slice(0, limit);
-    const labelOnly = variants.filter(item => item && item.label && !item.image).slice(0, limit);
+    const variants = Array.isArray(product.variants) ? product.variants.filter(item => item && (item.label || item.image)) : [];
+    const imageVariants = variants.filter(item => item.image);
+    const labelOnlyVariants = variants.filter(item => item.label && !item.image);
 
-    if (!withImage.length) {
-      const labels = labelOnly.length
-        ? `<div class="catalog-variant-labels">${labelOnly.map(item => `<span>${esc(item.label)}</span>`).join('')}</div>`
-        : '';
-      return `<div class="catalog-card-visuals single"><img src="${esc(product.image || PLACEHOLDER)}" alt="${esc(product.description)}" />${labels}</div>`;
+    if (!imageVariants.length) {
+      const visibleLabels = labelOnlyVariants.slice(0, limit);
+      const omitted = Math.max(0, variants.length - visibleLabels.length);
+      return `<div class="catalog-card-visuals single">
+        <img src="${esc(product.image || PLACEHOLDER)}" alt="${esc(product.description)}" />
+        ${renderVariantLabels(visibleLabels)}
+        ${omitted ? `<span class="catalog-variant-more">+${omitted}</span>` : ''}
+      </div>`;
     }
 
-    const omitted = Math.max(0, variants.length - withImage.length);
-    return `<div class="catalog-card-visuals multi variants-${Math.min(withImage.length, 5)}">
-      ${withImage.map(item => `<figure><img src="${esc(item.image)}" alt="${esc(`${product.description} — ${item.label}`)}" /><figcaption>${esc(item.label || 'Variação')}</figcaption></figure>`).join('')}
+    const visibleImages = imageVariants.slice(0, limit);
+    const remainingSlots = Math.max(0, limit - visibleImages.length);
+    const visibleLabels = labelOnlyVariants.slice(0, remainingSlots);
+    const shownCount = visibleImages.length + visibleLabels.length;
+    const omitted = Math.max(0, variants.length - shownCount);
+
+    return `<div class="catalog-card-visuals multi variants-${Math.min(visibleImages.length, 5)}">
+      <div class="catalog-variant-image-grid">
+        ${visibleImages.map(item => `<figure><img src="${esc(item.image)}" alt="${esc(`${product.description} — ${item.label}`)}" /><figcaption>${esc(item.label || 'Variação')}</figcaption></figure>`).join('')}
+      </div>
+      ${renderVariantLabels(visibleLabels)}
       ${omitted ? `<span class="catalog-variant-more">+${omitted}</span>` : ''}
     </div>`;
+  }
+
+  function weightedColumns(columns) {
+    const weights = { variant: 1.2, code: 1.7, package: 1.05, price: 1.25 };
+    const total = columns.reduce((sum, column) => sum + (weights[column.key] || 1), 0);
+    return columns.map(column => ({
+      ...column,
+      width: (((weights[column.key] || 1) / total) * 100).toFixed(2)
+    }));
   }
 
   function renderCommercialTable(rows, showPrices, limit) {
     const normalized = Array.isArray(rows) ? rows.filter(Boolean) : [];
     if (!normalized.length) return '';
     const visible = normalized.slice(0, limit);
-    const columns = [
+    const columns = weightedColumns([
       { key: 'variant', label: 'Cor', enabled: normalized.some(row => row.variant) },
       { key: 'code', label: 'Código', enabled: normalized.some(row => row.code) },
       { key: 'package', label: 'Embalagem', enabled: normalized.some(row => row.package) },
       { key: 'price', label: 'Preço', enabled: showPrices && normalized.some(row => row.price) }
-    ].filter(column => column.enabled);
+    ].filter(column => column.enabled));
     if (!columns.length) return '';
 
+    const tableClasses = [
+      'catalog-card-table',
+      `columns-${columns.length}`,
+      columns.some(column => column.key === 'price') ? 'has-price-column' : '',
+      columns.some(column => column.key === 'variant') ? 'has-variant-column' : ''
+    ].filter(Boolean).join(' ');
+
     return `<div class="catalog-card-table-wrap">
-      <table class="catalog-card-table">
+      <table class="${tableClasses}">
+        <colgroup>${columns.map(column => `<col style="width:${column.width}%" />`).join('')}</colgroup>
         <thead><tr>${columns.map(column => `<th>${esc(column.label)}</th>`).join('')}</tr></thead>
         <tbody>${visible.map(row => `<tr>${columns.map(column => `<td>${esc(row[column.key] || '—')}</td>`).join('')}</tr>`).join('')}</tbody>
       </table>
@@ -89,10 +122,17 @@
 
   function cardMarkup(product, template, showPrices) {
     const hasTable = Array.isArray(product.tableRows) && product.tableRows.length > 0;
+    const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
+    const hasVariantImages = hasVariants && product.variants.some(item => item && item.image);
     const limits = limitsFor(template, hasTable);
     const specs = renderSpecs(product.specs, limits.specs);
     const table = renderCommercialTable(product.tableRows, showPrices, limits.rows);
-    const classes = [hasTable ? 'has-table' : '', product.variants?.length ? 'has-variants' : ''].filter(Boolean).join(' ');
+    const classes = [
+      hasTable ? 'has-table' : '',
+      hasVariants ? 'has-variants' : '',
+      hasVariantImages ? 'has-variant-images' : ''
+    ].filter(Boolean).join(' ');
+
     return `<article class="catalog-card ${classes}">
       ${renderVisuals(product, limits.variants)}
       <div class="catalog-card-content">

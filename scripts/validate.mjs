@@ -36,7 +36,8 @@ for (const file of requiredFiles.filter(file => file.endsWith('.js'))) {
 }
 
 const html = await readFile('index.html', 'utf8');
-const css = `${await readFile('styles.css', 'utf8')}\n${await readFile('cards.css', 'utf8')}\n${await readFile('category-browser.css', 'utf8')}`;
+const cardsCss = await readFile('cards.css', 'utf8');
+const css = `${await readFile('styles.css', 'utf8')}\n${cardsCss}\n${await readFile('category-browser.css', 'utf8')}`;
 const templates = await readFile('src/templates.js', 'utf8');
 const importer = await readFile('src/importer.js', 'utf8');
 const icons = await readFile('src/icons.js', 'utf8');
@@ -70,9 +71,12 @@ const checks = [
   ['modelo preserva linhas comerciais', core.includes('tableRows: normalizeTableRows(product.tableRows)')],
   ['formulário possui entrada simples de variações', html.includes('id="variants"') && detailEditor.includes('parseVariantsText')],
   ['formulário possui entrada simples de tabela', html.includes('id="commercialRows"') && detailEditor.includes('parseTableRowsText')],
-  ['renderer dispõe múltiplas imagens no card', render.includes('catalog-card-visuals multi')],
+  ['renderer dispõe múltiplas imagens no card', render.includes('catalog-variant-image-grid')],
   ['renderer materializa tabela comercial', render.includes('catalog-card-table')],
-  ['harness cobre quatro formatos de card', (cardCases.match(/name: '/g) || []).length === 4]
+  ['tabela usa pesos fixos de coluna', render.includes('function weightedColumns') && render.includes('<colgroup>')],
+  ['cards com tabela cedem largura a referências', cardsCss.includes('.catalog-card.has-table:not(.has-variant-images)')],
+  ['harness cobre quatro formatos de card', (cardCases.match(/name: '/g) || []).length === 4],
+  ['harness amplia o card do renderer real', cardCases.includes("scratch.querySelector('.catalog-card')")]
 ];
 
 const failed = checks.filter(([, ok]) => !ok);
