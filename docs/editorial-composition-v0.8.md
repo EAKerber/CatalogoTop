@@ -30,7 +30,7 @@ Esse guard deve ser validado novamente em PDF real. O teste estrutural evita reg
   "typography": "neutral",
   "itemStyles": {
     "product-id": {
-      "contentPreset": "auto",
+      "contentPreset": "visual",
       "emphasis": "normal"
     }
   }
@@ -41,24 +41,33 @@ Esse objeto fica no estado editorial local e no backup do catálogo. Não é env
 
 ## Presets de conteúdo
 
-- `auto`: decide por regras determinísticas de conteúdo;
-- `standard`: imagem, identificação, specs e preço em equilíbrio;
-- `visual`: aumenta prioridade de imagem/variações e reduz texto;
-- `technical`: aumenta prioridade de specs e tabela comercial;
-- `commercial`: aumenta prioridade de preço/tabela e reduz specs secundárias.
+`Visual` passa a ser o padrão de cards sem override. A escala de densidade explícita é:
+
+- `visual`: imagem/variações dominantes, sem specs, notas ou tabela;
+- `essential`: identificação + imagem + preço, removendo detalhes secundários;
+- `standard`: equilíbrio anterior entre imagem, identificação, specs e preço;
+- `detailed`: amplia specs, variações e linhas comerciais;
+- `technical`: prioriza specs e tabela comercial;
+- `commercial`: prioriza preço/tabela e reduz specs secundárias;
+- `auto`: decide entre presets por regras determinísticas.
 
 O modo `auto` não usa IA. Regras atuais:
 
 - tabela com 3+ linhas ou 5+ specs → `technical`;
-- produto com preço, sem tabela e até 2 specs → `commercial`;
+- tabela presente ou 3–4 specs → `detailed`;
+- produto com preço, sem tabela e até 1 spec → `commercial`;
 - 4+ variações ou 2+ imagens de variação, sem tabela → `visual`;
-- demais casos → `standard`.
+- conteúdo simples → `visual`.
 
-## Ênfase
+## Ênfase e prioridade automática
 
 - `normal`: largura base do template;
 - `feature`: ocupa 4 de 6 colunas;
-- `hero`: ocupa 6 de 6 colunas e começa linha própria.
+- `hero`: ocupa 6 de 6 colunas.
+
+A composição automática prioriza destaques no topo de cada categoria antes do packing: `hero` primeiro, depois `feature`, depois cards normais. A ordem original continua estável dentro de cada grupo de prioridade.
+
+Isso é uma regra do catálogo, não do produto remoto. Um produto só sobe quando recebeu ênfase naquele catálogo.
 
 A micrograde interna possui seis colunas. Os templates continuam definindo densidade vertical e largura normal:
 
@@ -92,18 +101,18 @@ Redistribui apenas linhas de cards normais para consumir as seis colunas. Exempl
 
 ### Editorial
 
-Usa o mesmo preenchimento determinístico da distribuição balanceada, mas respeita `feature`/`hero` e aplica ritmo visual mais amplo. Um `feature` com um card normal seguinte pode usar `4 + 2` para fechar a linha sem reordenar a seleção.
+Usa o mesmo preenchimento determinístico da distribuição balanceada, respeita `feature`/`hero` e aplica ritmo visual mais amplo. Após priorizar destaques no topo, um `feature` pode usar `4 + 2` com um card normal para fechar a linha.
 
 ## Paginação
 
-A paginação deixa de ser apenas `chunk(perPage)`. Para templates reais, o planner adiciona produtos em ordem e calcula quantas linhas físicas a composição exige. Quando a próxima adição ultrapassa `template.rows`, abre nova página da mesma categoria.
+A paginação deixa de ser apenas `chunk(perPage)`. Para templates reais, o planner ordena os destaques dentro da categoria, adiciona produtos e calcula quantas linhas físicas a composição exige. Quando a próxima adição ultrapassa `template.rows`, abre nova página da mesma categoria.
 
 As garantias anteriores permanecem:
 
 - uma página nunca mistura categorias;
 - categoria nova sempre começa em nova página;
 - ordem das categorias segue a primeira aparição na seleção;
-- ordem dos produtos dentro da categoria é preservada;
+- dentro da categoria, `hero` e `feature` sobem de forma estável antes dos normais;
 - numeração de páginas permanece global.
 
 Para compatibilidade de fixtures antigas, `buildCategoryPages(state, number)` preserva o contrato legado de `perPage` numérico.
@@ -131,10 +140,21 @@ Na barra de composição do catálogo:
 
 Cada produto selecionado ganha dois controles pequenos:
 
-- conteúdo (`Auto`, `Padrão`, `Visual`, `Técnico`, `Comercial`);
+- conteúdo (`Visual`, `Essencial`, `Padrão`, `Detalhado`, `Técnico`, `Comercial`, `Auto`);
 - ênfase (`Normal`, `Destaque`, `Hero`).
 
 Produtos não selecionados não exibem esses controles.
+
+Também existe uma faixa `Aplicar a todos os selecionados` com dois comandos independentes: aplicar um preset de conteúdo em lote e aplicar uma ênfase em lote. Os comandos não alteram o `ProductStore` remoto.
+
+## Header responsivo
+
+Em tablet/mobile o header mantém duas linhas lógicas:
+
+1. marca + dois grupos de utilidades com scroll horizontal próprio;
+2. `Produtos / Catálogo / Templates` isolados em três colunas iguais.
+
+O objetivo é impedir overlap dos botões sem empurrar as tabs para uma terceira linha ou misturá-las às ações de importação/backup.
 
 ## Fora do recorte
 
@@ -146,7 +166,7 @@ Produtos não selecionados não exibem esses controles.
 - page builder manual;
 - sincronização remota do layout editorial.
 
-A primeira sequência multi-produto foi deliberadamente adiada até os presets e o planner de seis colunas passarem por gate visual real.
+A primeira sequência multi-produto continua deliberadamente adiada até os presets e o planner de seis colunas passarem por gate visual real.
 
 ## Gates
 
@@ -154,8 +174,11 @@ Automáticos:
 
 - sintaxe JS;
 - planner preenche linhas balanceadas sem `grid-auto-flow: dense`;
+- `hero` e `feature` são priorizados no topo mantendo estabilidade por prioridade;
 - `feature + normal` pode formar `4 + 2`;
 - `hero` ocupa linha inteira;
+- `Visual` é o padrão de cards sem override;
+- `Essencial` e `Detalhado` existem como limites explícitos de densidade;
 - `Auto` é determinístico;
 - paginação considera linhas, não apenas `perPage` nominal;
 - print guard de 296 mm permanece presente.
@@ -164,6 +187,8 @@ Manuais:
 
 - gerar PDF com 1, 2, 3, 5, 7 e 10 produtos;
 - confirmar que N páginas lógicas geram N páginas físicas;
-- verificar cards `Visual`, `Técnico`, `Comercial`, `Destaque` e `Hero`;
+- verificar cards `Visual`, `Essencial`, `Detalhado`, `Técnico`, `Comercial`, `Destaque` e `Hero`;
+- testar aplicar conteúdo/ênfase em lote;
+- validar header em 360–639 px sem overlap;
 - confirmar ausência de colisões e cortes;
 - avaliar se o preenchimento vertical reduz espaço morto sem transformar cards simples em blocos exageradamente grandes.
