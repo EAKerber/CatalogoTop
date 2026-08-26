@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="collection-block.css" />
   <link rel="stylesheet" href="table-block.css" />
   <link rel="stylesheet" href="product-actions.css" />
+  <link rel="stylesheet" href="contextual-inspector.css" />
   <link rel="stylesheet" href="print.css" media="print" />
 </head>
 <body>
@@ -110,7 +111,7 @@
     </section>
 
     <section class="panel" id="catalog">
-      <div class="section-heading catalog-heading"><div><p class="eyebrow">COMPOSIÇÃO</p><h2>Selecione os produtos e ajuste a composição.</h2><p class="muted">Presets discretos de conteúdo, destaque e tipografia preservam paginação determinística sem editor livre.</p></div><div class="heading-actions"><button class="button secondary" id="btnNewCatalog">Novo catálogo</button><button class="button primary" id="btnPrint">Gerar PDF / Imprimir</button></div></div>
+      <div class="section-heading catalog-heading"><div><p class="eyebrow">COMPOSIÇÃO</p><h2>Selecione os produtos e ajuste a composição.</h2><p class="muted">Clique no A4 para editar. Use a lista para incluir, navegar e ordenar produtos.</p></div><div class="heading-actions"><button class="button secondary" id="btnNewCatalog">Novo catálogo</button><button class="button primary" id="btnPrint">Gerar PDF / Imprimir</button></div></div>
       <div class="catalog-controls editorial-controls card">
         <label>Nome do catálogo<input id="catalogTitle" value="Categoria" /></label>
         <label>Template<select id="catalogTemplate"></select></label>
@@ -122,6 +123,7 @@
       <div class="selection-layout">
         <aside class="card selection-panel">
           <div class="selection-toolbar"><input id="searchSelection" type="search" placeholder="Filtrar produtos" /><select id="selectionCategory"><option value="">Todas as categorias</option></select></div>
+          <div id="contextualInspector" class="contextual-inspector" aria-live="polite"><div class="inspector-empty"><strong>Ajustes</strong><span>Clique em um item do A4 ou da lista.</span></div></div>
           <div class="selection-actions"><button class="button secondary compact" id="btnSelectVisible">Selecionar visíveis</button><button class="button secondary compact" id="btnClearSelection">Limpar</button></div>
           <div id="selectableProducts" class="selectable-products"></div>
         </aside>
@@ -142,6 +144,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script defer src="src/composition.js"></script>
   <script defer src="src/core.js"></script>
+  <script defer src="src/catalog-order.js"></script>
   <script defer src="src/indexed-cache.js"></script>
   <script defer src="src/asset-client.js"></script>
   <script defer src="src/product-store.js"></script>
@@ -163,11 +166,14 @@
   <script defer src="src/mobile-workspace.js"></script>
   <script defer src="src/preview-zoom.js"></script>
   <script defer src="src/product-actions.js"></script>
+  <script defer src="src/composer-selection.js"></script>
+  <script defer src="src/presentation-actions.js"></script>
   <script defer src="src/catalog-selection-order.js"></script>
   <script defer src="src/app.js"></script>
   <script defer src="src/header-data-menu.js"></script>
   <script defer src="src/collection-controls.js"></script>
   <script defer src="src/table-controls.js"></script>
+  <script defer src="src/contextual-inspector.js"></script>
   <script defer src="src/product-delete-ui.js"></script>
   <script defer src="src/block-overlap-guard.js"></script>
   <script defer src="src/product-details.js"></script>
