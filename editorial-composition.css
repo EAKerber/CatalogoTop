@@ -4,6 +4,54 @@
   grid-template-columns: minmax(180px, 1fr) 200px 170px 170px auto auto;
 }
 
+.selection-panel {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
+.bulk-presentation-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px auto 88px auto;
+  gap: 6px;
+  align-items: end;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+.bulk-presentation-controls > strong {
+  align-self: center;
+  color: var(--ink-2);
+  font-size: 10px;
+  line-height: 1.15;
+}
+.bulk-presentation-controls label {
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.bulk-presentation-controls select {
+  min-width: 0;
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid #e1e4e7;
+  border-radius: 7px;
+  background: #fff;
+  padding: 4px 22px 4px 6px;
+  color: var(--ink);
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.bulk-presentation-controls .button {
+  min-height: 30px;
+  padding: 5px 7px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
 .selection-presentation-controls {
   grid-column: 2 / -1;
   display: grid;
@@ -35,18 +83,14 @@
 .select-product:not(.selected) .selection-presentation-controls { display: none; }
 
 /*
- * O renderer passa a usar uma micrograde de seis colunas. Cada card recebe
- * posição explícita calculada pelo planner; CSS não reordena produtos.
+ * O renderer usa uma micrograde de seis colunas. A ordem vem do planner e
+ * cards destacados são priorizados no topo de cada categoria antes do packing.
  */
 .catalog-products.editorial-grid {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   grid-template-rows: repeat(var(--catalog-planned-rows, 1), minmax(0, 1fr));
   grid-auto-flow: row;
   align-content: stretch;
-}
-.catalog-page.distribution-compact .catalog-products.editorial-grid {
-  grid-template-rows: repeat(var(--catalog-max-rows, var(--catalog-planned-rows, 1)), minmax(0, 1fr));
-  align-content: start;
 }
 
 .catalog-card.emphasis-feature {
@@ -56,7 +100,6 @@
 .catalog-card.emphasis-feature .catalog-card-price { font-size: 4.6mm; }
 .catalog-card.emphasis-hero {
   grid-template-columns: 46% minmax(0, 1fr);
-  grid-template-rows: 1fr;
   border-color: #cfd2d6;
 }
 .catalog-card.emphasis-hero h3 {
@@ -82,23 +125,32 @@
 .catalog-card.content-visual .catalog-card-content { padding: 1.6mm 2.4mm 2mm; }
 .catalog-card.content-visual .catalog-card-specs,
 .catalog-card.content-visual .catalog-card-table-wrap,
-.catalog-card.content-visual .catalog-card-notes { display: none; }
+.catalog-card.content-visual .catalog-card-notes,
+.catalog-card.content-visual .catalog-card-subcategory { display: none; }
 .catalog-card.content-visual h3 { -webkit-line-clamp: 2; }
 
-.catalog-card.content-technical {
-  grid-template-columns: 30% minmax(0, 1fr);
-  grid-template-rows: 1fr;
+.catalog-card.content-essential {
+  grid-template-columns: 45% minmax(0, 1fr);
 }
+.catalog-card.content-essential .catalog-card-subcategory,
+.catalog-card.content-essential .catalog-card-specs,
+.catalog-card.content-essential .catalog-card-table-wrap,
+.catalog-card.content-essential .catalog-card-notes { display: none; }
+.catalog-card.content-essential h3 { -webkit-line-clamp: 3; }
+.catalog-card.content-essential .catalog-card-price { font-size: 4.25mm; }
+
+.catalog-card.content-detailed {
+  grid-template-columns: 33% minmax(0, 1fr);
+}
+.catalog-card.content-detailed .catalog-card-content { padding-top: 2.2mm; }
+.catalog-card.content-detailed h3 { font-size: 2.95mm; -webkit-line-clamp: 2; }
+.catalog-card.content-detailed .catalog-card-specs { margin-top: .75mm; }
+.catalog-card.content-detailed .catalog-card-table-wrap { margin-top: .8mm; }
+
+.catalog-card.content-technical { grid-template-columns: 30% minmax(0, 1fr); }
 .catalog-card.content-technical .catalog-card-content { padding-top: 2.2mm; }
 .catalog-card.content-technical .catalog-card-specs { margin-top: .8mm; }
 .catalog-card.content-technical h3 { font-size: 2.85mm; -webkit-line-clamp: 2; }
-
-.template-compact .catalog-card.content-technical,
-.template-compact .catalog-card.emphasis-hero {
-  grid-template-rows: 1fr;
-}
-.template-compact .catalog-card.content-technical { grid-template-columns: 30% minmax(0, 1fr); }
-.template-compact .catalog-card.emphasis-hero:not(.content-visual):not(.content-technical) { grid-template-columns: 46% minmax(0, 1fr); }
 
 .catalog-card.content-commercial .catalog-card-specs { margin-top: .7mm; }
 .catalog-card.content-commercial .catalog-card-price {
@@ -134,10 +186,28 @@
 }
 
 .catalog-page.distribution-editorial .catalog-products { gap: 4mm; }
+.catalog-page.distribution-compact .catalog-products { align-content: start; }
 .catalog-page.distribution-compact .catalog-card { min-height: 0; }
+
+/* O template compacto continua vertical mesmo quando um preset editorial muda conteúdo. */
+.template-compact .catalog-card.content-essential,
+.template-compact .catalog-card.content-detailed,
+.template-compact .catalog-card.content-technical {
+  grid-template-columns: 1fr;
+  grid-template-rows: 38% minmax(0, 1fr);
+}
+.template-compact .catalog-card.content-visual {
+  grid-template-columns: 1fr;
+  grid-template-rows: 58% minmax(0, 42%);
+}
 
 @media (max-width: 1180px) {
   .catalog-controls.editorial-controls { grid-template-columns: 1fr 1fr 1fr; }
+  .bulk-presentation-controls {
+    grid-template-columns: 1fr 92px auto;
+  }
+  .bulk-presentation-controls > strong { grid-column: 1 / -1; }
+  .bulk-presentation-controls label:nth-of-type(2) { grid-column: 1; }
 }
 
 @media (max-width: 860px) {
@@ -145,8 +215,23 @@
 }
 
 @media (max-width: 639px) {
-  .catalog-controls.editorial-controls { grid-template-columns: 1fr; }
+  .catalog-controls.editorial-controls {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+  .catalog-controls.editorial-controls > label:first-child,
+  .catalog-controls.editorial-controls .catalog-meta { grid-column: 1 / -1; }
+  .catalog-controls.editorial-controls .checkbox-label { min-height: 36px; }
   .selection-presentation-controls { grid-template-columns: 1fr 1fr; }
+  .bulk-presentation-controls {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 5px;
+    padding: 7px 8px;
+  }
+  .bulk-presentation-controls > strong { grid-column: 1 / -1; }
+  .bulk-presentation-controls label { min-width: 0; }
+  .bulk-presentation-controls .button { min-width: 92px; }
 }
 
 /*
