@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="category-browser.css" />
   <link rel="stylesheet" href="shell-responsive.css" />
   <link rel="stylesheet" href="mobile-header.css" />
+  <link rel="stylesheet" href="editorial-composition.css" />
 </head>
 <body>
   <header class="app-shell-header">
@@ -172,8 +173,8 @@
       <div class="section-heading catalog-heading">
         <div>
           <p class="eyebrow">COMPOSIÇÃO</p>
-          <h2>Selecione os produtos e o template faz o resto.</h2>
-          <p class="muted">Sem editor livre: a paginação é determinística e o cabeçalho/rodapé são compartilhados por todas as páginas.</p>
+          <h2>Selecione os produtos e ajuste a composição.</h2>
+          <p class="muted">Presets discretos de conteúdo, destaque e tipografia preservam paginação determinística sem editor livre.</p>
         </div>
         <div class="heading-actions">
           <button class="button secondary" id="btnNewCatalog">Novo catálogo</button>
@@ -181,9 +182,23 @@
         </div>
       </div>
 
-      <div class="catalog-controls card">
-        <label>Título / categoria<input id="catalogTitle" value="Categoria" /></label>
+      <div class="catalog-controls editorial-controls card">
+        <label>Nome do catálogo<input id="catalogTitle" value="Categoria" /></label>
         <label>Template<select id="catalogTemplate"></select></label>
+        <label>Distribuição
+          <select id="catalogDistribution">
+            <option value="compact">Compacta</option>
+            <option value="balanced">Balanceada</option>
+            <option value="editorial">Editorial</option>
+          </select>
+        </label>
+        <label>Tipografia
+          <select id="catalogTypography">
+            <option value="neutral">Neutra</option>
+            <option value="technical">Técnica</option>
+            <option value="editorial">Editorial</option>
+          </select>
+        </label>
         <label class="checkbox-label"><input id="catalogShowPrices" type="checkbox" checked /> Mostrar preços</label>
         <div class="catalog-meta">
           <span>Criado em</span>
@@ -230,6 +245,7 @@
   </main>
 
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="src/composition.js"></script>
   <script defer src="src/core.js"></script>
   <script defer src="src/indexed-cache.js"></script>
   <script defer src="src/asset-client.js"></script>
