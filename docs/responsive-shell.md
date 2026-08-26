@@ -4,16 +4,30 @@ Este recorte reduz o chrome do aplicativo sem transformar o CatalogoTop em um ed
 
 ## Header único
 
-A marca, as abas **Produtos / Catálogo / Templates** e as ações de **Exportar backup / Importar backup** passam a compartilhar uma única barra sticky. Isso substitui o cabeçalho alto + barra de abas separados.
+A marca, as abas **Produtos / Catálogo / Templates**, a importação de produtos e as ações de **Exportar backup / Importar backup** compartilham uma única barra sticky.
 
-A importação de produtos continua contextual à aba Produtos, porque ela depende de modo de merge/substituição e de relatório de leitura. Ela foi compactada, mas não foi escondida dentro de menu ou modal.
+A importação de produtos fica imediatamente ao lado das abas, porque é uma ação primária da biblioteca e não precisa ocupar uma faixa permanente dentro da página. O conjunto contém apenas:
+
+- **Importar produtos** — abre CSV/XLS/XLSX/XLSM;
+- modo **Mesclar por código / Substituir base**;
+- link pequeno para **CSV modelo**.
+
+O relatório de leitura continua contextual à aba Produtos, mas é materializado apenas quando existe uma importação em andamento ou aguardando confirmação. Portanto ele não reserva altura quando está oculto.
+
+Backup continua separado à direita por ser uma ação global do acervo local, não uma operação exclusiva da aba Produtos.
+
+## Área inicial da aba Produtos
+
+O antigo título promocional alto foi reduzido a um heading utilitário curto: **Biblioteca de produtos**. O botão **Novo produto** também deixa esse cabeçalho; ele fica junto do próprio formulário de edição, onde sua função de limpar/iniciar um cadastro tem contexto.
+
+A intenção é que, ao abrir Produtos, a maior parte da primeira viewport já pertença ao formulário e ao filesystem de categorias/produtos.
 
 ## Produtos sem scroll externo no desktop
 
 Em viewports a partir de 1200 px de largura e 720 px de altura, a página Produtos ocupa a altura útil inteira da viewport. O documento não rola; o espaço é dividido entre:
 
-- identificação e ação de novo produto;
-- faixa compacta de importação;
+- heading curto da biblioteca;
+- relatório de importação somente quando necessário;
 - cadastro à esquerda;
 - biblioteca de produtos à direita.
 
@@ -34,35 +48,39 @@ Não existe wizard persistente nem estado novo no schema. A etapa atual é apena
 ### Desktop amplo — `>= 1200 px` e altura `>= 720 px`
 
 - shell em uma linha;
+- abas e importação de produtos permanecem lado a lado;
 - Produtos sem scroll externo;
 - cadastro + biblioteca em duas colunas;
 - categorias e tabela têm scroll interno independente.
 
 ### Notebook / desktop estreito — `960–1199 px`
 
-- shell permanece em uma linha mais compacta;
-- subtítulo da marca é removido;
+- shell permanece em uma linha compacta;
+- subtítulo da marca e link para CSV modelo podem desaparecer para preservar espaço;
+- importação continua ao lado das abas;
 - cadastro + biblioteca ainda podem permanecer lado a lado;
 - scroll normal do documento volta a ser permitido.
 
 ### Tablet — `640–959 px`
 
-- shell vira duas linhas: marca/utilidades acima e abas abaixo;
+- shell vira duas linhas: marca/backup acima e **abas + importação** juntas abaixo;
+- essa segunda linha pode rolar horizontalmente em vez de criar menu ou drawer;
 - cadastro e biblioteca ficam empilhados;
-- importação compacta vira uma coluna;
 - preview A4 pode usar overflow horizontal em vez de reescalar o documento editorial.
 
 ### Mobile — `< 640 px`
 
+- tabs e importação continuam na mesma faixa horizontal rolável;
 - controles de duas colunas passam a uma coluna;
 - pastas de categoria viram uma faixa horizontal rolável;
 - tabela de produtos reduz colunas de baixa prioridade e mantém código, produto e ação de edição;
 - ações do formulário podem quebrar em duas linhas;
-- abas continuam acessíveis horizontalmente sem menu hambúrguer neste recorte.
+- o botão local **+ Novo** pode ser ocultado porque o `×` já limpa o formulário em telas muito estreitas.
 
 ## Guardrails
 
 - não criar sidebar global, drawer, command palette ou navegação duplicada;
+- não reintroduzir faixa permanente de importação dentro da aba Produtos;
 - não introduzir estado persistente para a etapa do formulário;
 - não escalar ou reconstruir o A4 para mobile: o documento continua com geometria física e pode rolar horizontalmente;
 - priorizar scroll interno apenas quando há viewport suficiente; em telas pequenas, preferir fluxo vertical natural;
