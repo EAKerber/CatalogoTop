@@ -91,17 +91,37 @@
   }
 
   function emphasisRank(style) {
-    if (style.emphasis === 'hero') return 0;
-    if (style.emphasis === 'feature') return 1;
+    if (style.emphasis === 'feature') return 0;
+    if (style.emphasis === 'normal') return 1;
     return 2;
   }
 
-  function orderProductsForLayout(products, presentation) {
+  /*
+   * Destaque é prioridade de fluxo; Hero é âncora de página.
+   * Separá-los evita tratar Hero como apenas um "Destaque mais forte".
+   */
+  function partitionForLayout(products, presentation) {
     const normalizedPresentation = normalizePresentation(presentation);
-    return (Array.isArray(products) ? products : [])
-      .map((product, index) => ({ product, index, style: styleFor(normalizedPresentation, product?.id) }))
-      .sort((left, right) => emphasisRank(left.style) - emphasisRank(right.style) || left.index - right.index)
-      .map(entry => entry.product);
+    const entries = (Array.isArray(products) ? products : [])
+      .map((product, index) => ({ product, index, style: styleFor(normalizedPresentation, product?.id) }));
+
+    const heroes = entries
+      .filter(entry => entry.style.emphasis === 'hero')
+      .sort((left, right) => left.index - right.index);
+
+    const flow = entries
+      .filter(entry => entry.style.emphasis !== 'hero')
+      .sort((left, right) => emphasisRank(left.style) - emphasisRank(right.style) || left.index - right.index);
+
+    return {
+      flow: flow.map(entry => entry.product),
+      heroes: heroes.map(entry => entry.product)
+    };
+  }
+
+  function orderProductsForLayout(products, presentation) {
+    const { flow, heroes } = partitionForLayout(products, presentation);
+    return [...flow, ...heroes];
   }
 
   function distributeSix(count) {
@@ -203,13 +223,11 @@
     };
   }
 
-  function paginateProducts(products, template, presentation) {
-    const maxRows = Math.max(1, Number(template?.rows) || 3);
-    const orderedProducts = orderProductsForLayout(products, presentation);
+  function paginateFlowProducts(products, template, presentation, maxRows) {
     const pages = [];
     let current = [];
 
-    for (const product of orderedProducts) {
+    for (const product of products) {
       const candidate = current.concat(product);
       const candidatePlan = planProducts(candidate, template, presentation);
       if (current.length && candidatePlan.rowCount > maxRows) {
@@ -221,6 +239,50 @@
     }
 
     if (current.length) pages.push({ products: current, layout: planProducts(current, template, presentation) });
+    return pages;
+  }
+
+  function takeFlowForHeroPage(flow, startIndex, template, presentation, maxFlowRows) {
+    if (maxFlowRows <= 0) return { products: [], nextIndex: startIndex };
+    let current = [];
+    let index = startIndex;
+
+    while (index < flow.length) {
+      const candidate = current.concat(flow[index]);
+      const plan = planProducts(candidate, template, presentation);
+      if (plan.rowCount > maxFlowRows) break;
+      current = candidate;
+      index += 1;
+    }
+
+    return { products: current, nextIndex: index };
+  }
+
+  function paginateProducts(products, template, presentation) {
+    const maxRows = Math.max(1, Number(template?.rows) || 3);
+    const { flow, heroes } = partitionForLayout(products, presentation);
+
+    if (!heroes.length) return paginateFlowProducts(flow, template, presentation, maxRows);
+
+    const pages = [];
+    let flowIndex = 0;
+
+    /*
+     * Cada Hero ancora a última linha usada de uma página própria. A área antes
+     * dele é preenchida com Destaques primeiro e depois Normais. Com isso a
+     * linha residual/sobra fica imediatamente acima do Hero, nunca abaixo.
+     */
+    for (const hero of heroes) {
+      const pageFlow = takeFlowForHeroPage(flow, flowIndex, template, presentation, Math.max(0, maxRows - 1));
+      flowIndex = pageFlow.nextIndex;
+      const pageProducts = [...pageFlow.products, hero];
+      pages.push({ products: pageProducts, layout: planProducts(pageProducts, template, presentation) });
+    }
+
+    if (flowIndex < flow.length) {
+      pages.push(...paginateFlowProducts(flow.slice(flowIndex), template, presentation, maxRows));
+    }
+
     return pages;
   }
 
@@ -287,6 +349,7 @@
     normalizePresentation,
     styleFor,
     resolveContentPreset,
+    partitionForLayout,
     orderProductsForLayout,
     packRows,
     planProducts,
