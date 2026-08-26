@@ -1,0 +1,26 @@
+name: CatalogoTop Browser Print Gate
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+  pull_request:
+
+jobs:
+  browser-print:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install browser gate dependencies
+        run: npm install --no-save playwright@1.55.0 pdf-lib@1.17.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run physical PDF regression gate
+        run: node scripts/browser-print-gate.mjs
