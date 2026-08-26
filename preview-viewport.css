@@ -1,4 +1,4 @@
-/* v0.8.2 — preview A4 com fit real e zoom sem alterar a geometria do documento. */
+/* v0.8.3 — preview A4 com fit real, zoom e scroll touch encadeável. */
 
 .preview-toolbar {
   justify-content: space-between;
@@ -56,6 +56,9 @@
   min-width: 0;
   overflow: auto;
   overscroll-behavior: contain;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-x pan-y pinch-zoom;
   -webkit-overflow-scrolling: touch;
   padding: 2px 2px 12px;
 }
