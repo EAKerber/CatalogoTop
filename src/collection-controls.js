@@ -4,9 +4,7 @@
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const { Core, Collection, Composition, Render } = NS;
   if (!Core || !Collection || !Composition || !Render) return;
-
   const $ = selector => document.querySelector(selector);
-  let patchingSelection = false;
 
   function state() { return Core.getState(); }
   function currentBlocks() { return Collection.normalizeBlocks(state().catalog?.presentation?.blocks); }
@@ -21,43 +19,30 @@
     const emitted = new Set();
     const merged = [];
     (Array.isArray(allBlocks) ? allBlocks : []).forEach(block => {
-      if (block?.type !== 'collection') {
-        merged.push(block);
-        return;
-      }
+      if (block?.type !== 'collection') { merged.push(block); return; }
       const next = byId.get(String(block.id));
       if (!next) return;
       emitted.add(next.id);
       merged.push(next);
     });
-    collections.forEach(block => {
-      if (!emitted.has(block.id)) merged.push(block);
-    });
+    collections.forEach(block => { if (!emitted.has(block.id)) merged.push(block); });
     return merged;
   }
 
   function mutateBlocks(mutator) {
     Core.mutate(draft => {
       const presentation = Composition.normalizePresentation(draft.catalog.presentation);
-      const allBlocks = Array.isArray(presentation.blocks) ? presentation.blocks.slice() : [];
+      const allBlocks = presentation.blocks.slice();
       const collections = Collection.normalizeBlocks(allBlocks);
       mutator(collections, draft);
-      const blocks = mergeCollections(allBlocks, collections);
-      draft.catalog.presentation = Composition.normalizePresentation({ ...presentation, blocks });
+      draft.catalog.presentation = Composition.normalizePresentation({ ...presentation, blocks: mergeCollections(allBlocks, collections) });
     });
     notify();
   }
 
-  function memberMap(blocks = currentBlocks()) {
-    const map = new Map();
-    blocks.forEach(block => block.memberIds.forEach(id => map.set(String(id), block)));
-    return map;
-  }
-
   function allBlockMemberIds() {
     const ids = new Set();
-    const blocks = state().catalog?.presentation?.blocks;
-    (Array.isArray(blocks) ? blocks : []).forEach(block => {
+    (state().catalog?.presentation?.blocks || []).forEach(block => {
       (Array.isArray(block?.memberIds) ? block.memberIds : []).forEach(id => ids.add(String(id)));
     });
     return ids;
@@ -70,29 +55,23 @@
   }
 
   function visibleSelectedIds() {
-    return Array.from(document.querySelectorAll('#selectableProducts [data-select-product]:checked'))
-      .map(input => String(input.dataset.selectProduct || ''))
-      .filter(Boolean);
+    return Array.from(document.querySelectorAll('#selectableProducts > .select-product [data-select-product]:checked'))
+      .map(input => String(input.dataset.selectProduct || '')).filter(Boolean);
   }
 
   function candidateIds() {
     const membership = allBlockMemberIds();
     const visible = new Set(visibleSelectedIds().filter(id => !membership.has(id)));
     if (visible.size < 2) return [];
-
     const selected = selectedProducts();
     const candidates = selected.filter(product => visible.has(String(product.id)));
     if (candidates.length < 2) return [];
-
     const category = String(candidates[0].category || 'Sem categoria');
     if (candidates.some(product => String(product.category || 'Sem categoria') !== category)) return [];
-
     const categoryProducts = selected.filter(product => String(product.category || 'Sem categoria') === category);
     const positions = new Map(categoryProducts.map((product, index) => [String(product.id), index]));
     const candidatePositions = candidates.map(product => positions.get(String(product.id)));
-    const contiguous = candidatePositions.every((position, index) => index === 0 || position === candidatePositions[index - 1] + 1);
-    if (!contiguous) return [];
-
+    if (!candidatePositions.every((position, index) => index === 0 || position === candidatePositions[index - 1] + 1)) return [];
     return candidates.map(product => String(product.id));
   }
 
@@ -121,28 +100,25 @@
   function createCollection() {
     const ids = candidateIds();
     if (ids.length < 2) {
-      alert('Para criar uma coleção, deixe visíveis ao menos dois produtos selecionados, ainda não agrupados, contíguos e da mesma categoria. Use busca/categoria para refinar o trecho.');
+      alert('Para criar uma coleção, deixe visíveis ao menos dois produtos selecionados, ainda não agrupados, contíguos e da mesma categoria.');
       return;
     }
     if (ids.length > Collection.MAX_MEMBERS) {
-      alert(`O primeiro recorte aceita até ${Collection.MAX_MEMBERS} produtos por coleção. Refine a busca antes de agrupar.`);
+      alert(`O primeiro recorte aceita até ${Collection.MAX_MEMBERS} produtos por coleção.`);
       return;
     }
-    const current = state();
-    const byId = new Map(current.products.map(product => [String(product.id), product]));
+    const byId = new Map(state().products.map(product => [String(product.id), product]));
     const category = byId.get(ids[0])?.category || 'Coleção';
-    mutateBlocks(blocks => {
-      blocks.push(Collection.normalizeBlock({
-        id: `collection-${Date.now()}`,
-        memberIds: ids,
-        title: category,
-        subtitle: '',
-        theme: 'light',
-        columns: 4,
-        itemPreset: 'visual',
-        itemStyles: {}
-      }, blocks.length));
-    });
+    mutateBlocks(blocks => blocks.push(Collection.normalizeBlock({
+      id: `collection-${Date.now()}`,
+      memberIds: ids,
+      title: category,
+      subtitle: '',
+      theme: 'light',
+      columns: 4,
+      itemPreset: 'visual',
+      itemStyles: {}
+    }, blocks.length)));
   }
 
   function collectionMarkup(block) {
@@ -176,8 +152,7 @@
       ? 'Deixe visível um trecho contíguo de 2 a 12 produtos selecionados da mesma categoria e ainda não usado em outro bloco.'
       : `Agrupar ${ids.length} produtos visíveis`;
     manager.innerHTML = blocks.length
-      ? `<div class="collection-manager-title"><strong>Coleções</strong><span>${blocks.length}</span></div>${blocks.map(collectionMarkup).join('')}`
-      : '';
+      ? `<div class="collection-manager-title"><strong>Coleções</strong><span>${blocks.length}</span></div>${blocks.map(collectionMarkup).join('')}` : '';
   }
 
   function bindManager(manager) {
@@ -189,12 +164,10 @@
         if (index >= 0) blocks.splice(index, 1);
       });
     });
-
     manager.addEventListener('change', event => {
       const field = event.target.closest('[data-collection-field]');
-      if (!field) return;
-      const editor = field.closest('[data-collection-editor]');
-      if (!editor) return;
+      const editor = field?.closest('[data-collection-editor]');
+      if (!field || !editor) return;
       mutateBlocks(blocks => {
         const block = blocks.find(item => item.id === editor.dataset.collectionEditor);
         if (!block) return;
@@ -204,81 +177,11 @@
     });
   }
 
-  function patchSelection() {
-    if (patchingSelection) return;
-    const root = $('#selectableProducts');
-    if (!root) return;
-    patchingSelection = true;
-    try {
-      const blocks = currentBlocks();
-      const membership = memberMap(blocks);
-      root.querySelectorAll('.select-product').forEach(label => {
-        const checkbox = label.querySelector('[data-select-product]');
-        if (!checkbox) return;
-        const id = String(checkbox.dataset.selectProduct);
-        const block = membership.get(id);
-        const active = Boolean(block && checkbox.checked);
-        label.classList.toggle('in-collection', Boolean(block));
-
-        let badge = label.querySelector('.collection-member-badge');
-        let controls = label.querySelector('.collection-member-controls');
-        if (!active) {
-          badge?.remove();
-          controls?.remove();
-          return;
-        }
-
-        const badgeText = `Coleção · ${block.title || 'sem título'}`;
-        if (!badge) {
-          badge = document.createElement('span');
-          badge.className = 'collection-member-badge';
-          badge.textContent = badgeText;
-          label.querySelector(':scope > span')?.appendChild(badge);
-        } else if (badge.textContent !== badgeText) {
-          badge.textContent = badgeText;
-        }
-
-        const style = Collection.memberStyleFor(block, id);
-        if (!controls) {
-          controls = document.createElement('div');
-          controls.className = 'collection-member-controls';
-          controls.innerHTML = `<label>Ênfase<select data-collection-member-emphasis="${esc(id)}" data-block-id="${esc(block.id)}">
-            <option value="normal"${style.emphasis === 'normal' ? ' selected' : ''}>Normal</option>
-            <option value="feature"${style.emphasis === 'feature' ? ' selected' : ''}>Destaque</option>
-          </select></label>
-          <label>Largura<select data-collection-member-width="${esc(id)}" data-block-id="${esc(block.id)}">
-            <option value="simple"${style.width === 'simple' ? ' selected' : ''}>Simples</option>
-            <option value="wide"${style.width === 'wide' ? ' selected' : ''}>Largo</option>
-            <option value="full"${style.width === 'full' ? ' selected' : ''}>Linha inteira</option>
-          </select></label>`;
-          label.appendChild(controls);
-          return;
-        }
-
-        const emphasis = controls.querySelector('[data-collection-member-emphasis]');
-        const width = controls.querySelector('[data-collection-member-width]');
-        if (emphasis) {
-          if (emphasis.dataset.blockId !== block.id) emphasis.dataset.blockId = block.id;
-          if (emphasis.value !== style.emphasis) emphasis.value = style.emphasis;
-        }
-        if (width) {
-          if (width.dataset.blockId !== block.id) width.dataset.blockId = block.id;
-          if (width.value !== style.width) width.value = style.width;
-        }
-      });
-    } finally {
-      patchingSelection = false;
-    }
-  }
-
   function updateMemberStyle(blockId, productId, patch) {
     mutateBlocks(blocks => {
       const block = blocks.find(item => item.id === blockId);
       if (!block || !block.memberIds.includes(String(productId))) return;
-      block.itemStyles[String(productId)] = {
-        ...Collection.memberStyleFor(block, productId),
-        ...patch
-      };
+      block.itemStyles[String(productId)] = { ...Collection.memberStyleFor(block, productId), ...patch };
     });
   }
 
@@ -292,9 +195,7 @@
         return;
       }
       const width = event.target.closest('[data-collection-member-width]');
-      if (width) {
-        updateMemberStyle(width.dataset.blockId, width.dataset.collectionMemberWidth, { width: width.value });
-      }
+      if (width) updateMemberStyle(width.dataset.blockId, width.dataset.collectionMemberWidth, { width: width.value });
     }, true);
 
     root.addEventListener('change', event => {
@@ -305,31 +206,22 @@
       if (!block) return;
       Core.mutate(draft => {
         const presentation = Composition.normalizePresentation(draft.catalog.presentation);
-        const allBlocks = Array.isArray(presentation.blocks) ? presentation.blocks.slice() : [];
+        const allBlocks = presentation.blocks.slice();
         const collections = Collection.normalizeBlocks(allBlocks);
         const target = collections.find(item => item.id === block.id);
         if (!target) return;
         target.memberIds = target.memberIds.filter(memberId => memberId !== id);
         const nextCollections = collections.filter(item => item.memberIds.length >= 2);
-        const blocks = mergeCollections(allBlocks, nextCollections);
-        draft.catalog.presentation = Composition.normalizePresentation({ ...presentation, blocks });
+        draft.catalog.presentation = Composition.normalizePresentation({ ...presentation, blocks: mergeCollections(allBlocks, nextCollections) });
       });
     }, true);
-
-    const observer = new MutationObserver(() => {
-      patchSelection();
-      renderManager();
-    });
-    observer.observe(root, { childList: true });
   }
 
   function init() {
     ensureShell();
     bindSelectionExtensions();
-    patchSelection();
     renderManager();
-    $('#selectionCategory')?.addEventListener('change', () => setTimeout(renderManager, 0));
-    $('#searchSelection')?.addEventListener('input', () => setTimeout(renderManager, 0));
+    window.addEventListener('catalogotop:selection-rendered', renderManager);
     window.addEventListener('catalogotop:products-updated', () => setTimeout(renderManager, 0));
   }
 

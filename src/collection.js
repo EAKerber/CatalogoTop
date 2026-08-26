@@ -8,13 +8,11 @@
     { id: 'light', name: 'Claro' },
     { id: 'dark', name: 'Escuro' }
   ]);
-
   const COLLECTION_PRESETS = Object.freeze([
     { id: 'visual', name: 'Visual' },
     { id: 'compact', name: 'Compacto' },
     { id: 'commercial', name: 'Comercial' }
   ]);
-
   const COLLECTION_COLUMNS = Object.freeze([2, 3, 4]);
   const MAX_MEMBERS = 12;
 
@@ -45,8 +43,7 @@
     const itemStyles = {};
     if (source.itemStyles && typeof source.itemStyles === 'object') {
       Object.entries(source.itemStyles).forEach(([id, style]) => {
-        if (!id) return;
-        itemStyles[String(id)] = normalizeMemberStyle(style);
+        if (id) itemStyles[String(id)] = normalizeMemberStyle(style);
       });
     }
     const members = uniqueIds(source.memberIds || source.members).slice(0, MAX_MEMBERS);
@@ -65,22 +62,9 @@
 
   function normalizeBlocks(raw) {
     return (Array.isArray(raw) ? raw : [])
-      .filter(block => !block?.type || block.type === 'collection')
+      .filter(block => block?.type === 'collection' || (!block?.type && block?.memberIds))
       .map(normalizeBlock)
       .filter(block => block.memberIds.length >= 2);
-  }
-
-  function preserveBlocksInPresentation() {
-    if (!Composition?.normalizePresentation || Composition.__collectionBlocksWrapped) return;
-    const original = Composition.normalizePresentation.bind(Composition);
-    Composition.normalizePresentation = function normalizePresentationWithCollections(raw) {
-      const normalized = original(raw);
-      return {
-        ...normalized,
-        blocks: normalizeBlocks(raw?.blocks)
-      };
-    };
-    Composition.__collectionBlocksWrapped = true;
   }
 
   function memberStyleFor(block, productId) {
@@ -101,37 +85,26 @@
     const rows = [];
     let current = [];
     let used = 0;
-
     const flush = () => {
       if (!current.length) return;
       rows.push(current);
       current = [];
       used = 0;
     };
-
     (Array.isArray(members) ? members : []).forEach(product => {
       const style = memberStyleFor(normalized, product.id);
       const slotSpan = localSpan(style, columns);
       if (current.length && slotSpan > columns - used) flush();
-      const start = used + 1;
-      current.push({ product, productId: String(product.id), style, slotSpan, start, row: rows.length + 1 });
+      current.push({ product, productId: String(product.id), style, slotSpan, start: used + 1, row: rows.length + 1 });
       used += slotSpan;
       if (used >= columns) flush();
     });
     flush();
-
     rows.forEach((row, rowIndex) => row.forEach(item => { item.row = rowIndex + 1; }));
     const localRowCount = Math.max(1, rows.length);
     const maxPageRows = Math.max(1, Number(template?.rows) || 4);
     const rowSpan = Math.min(localRowCount, maxPageRows);
-    return {
-      columns,
-      rows,
-      items: rows.flat(),
-      localRowCount,
-      rowSpan,
-      compressed: localRowCount > rowSpan
-    };
+    return { columns, rows, items: rows.flat(), localRowCount, rowSpan, compressed: localRowCount > rowSpan };
   }
 
   function contiguousMemberRun(block, products) {
@@ -148,7 +121,6 @@
     const category = String(list[0]?.category || '').trim();
     const consumed = new Set();
     const valid = [];
-
     for (const block of normalizeBlocks(blocks)) {
       const members = block.memberIds.map(id => byId.get(String(id))).filter(Boolean);
       const isValid = members.length === block.memberIds.length
@@ -170,15 +142,12 @@
     validBlocks.forEach(block => block.memberIds.forEach(id => blockByMember.set(String(id), block)));
     const emitted = new Set();
     const nodes = [];
-
     list.forEach(product => {
       const id = String(product.id);
       const block = blockByMember.get(id);
       if (block) {
         if (emitted.has(block.id)) return;
         emitted.add(block.id);
-        // A ordem factual vem sempre da lista de produtos selecionados, nunca da
-        // ordem arbitrária dos memberIds de um backup ou estado importado.
         const memberSet = new Set(block.memberIds.map(String));
         const members = list.filter(member => memberSet.has(String(member.id)));
         const collectionLayout = planCollection(block, members, template);
@@ -214,12 +183,10 @@
     const items = [];
     let row = 1;
     let used = 0;
-
     const nextRow = () => {
       if (used > 0) row += 1;
       used = 0;
     };
-
     (Array.isArray(nodes) ? nodes : []).forEach(node => {
       if (node.type === 'collection') {
         nextRow();
@@ -229,7 +196,6 @@
         used = 0;
         return;
       }
-
       const slotSpan = Math.max(1, Math.min(slotsPerRow, Number(node.slotSpan) || 1));
       if (used && slotSpan > slotsPerRow - used) nextRow();
       const startSlot = used + 1;
@@ -240,12 +206,11 @@
         start: Math.round((startSlot - 1) * microPerSlot) + 1,
         span: Math.round(slotSpan * microPerSlot),
         slotSpan,
-        rowSpan: 1
+        rowSpan: Math.max(1, Number(node.rowSpan) || 1)
       });
       used += slotSpan;
       if (used >= slotsPerRow) nextRow();
     });
-
     const rowCount = Math.max(0, items.reduce((max, item) => Math.max(max, item.row + Math.max(1, item.rowSpan || 1) - 1), 0));
     return { items, rowCount, slotsPerRow };
   }
@@ -254,17 +219,13 @@
     const maxRows = Math.max(1, Number(template?.rows) || 4);
     const pages = [];
     let current = [];
-
     for (const node of (Array.isArray(nodes) ? nodes : [])) {
       const candidate = current.concat(node);
       const plan = planFlowNodes(candidate, template);
       if (current.length && plan.rowCount > maxRows) {
-        const finalized = planFlowNodes(current, template);
-        pages.push({ nodes: current, layout: finalized });
+        pages.push({ nodes: current, layout: planFlowNodes(current, template) });
         current = [node];
-      } else {
-        current = candidate;
-      }
+      } else current = candidate;
     }
     if (current.length) pages.push({ nodes: current, layout: planFlowNodes(current, template) });
     return pages;
@@ -274,8 +235,6 @@
     const id = String(productId);
     return normalizeBlocks(blocks).find(block => block.memberIds.includes(id)) || null;
   }
-
-  preserveBlocksInPresentation();
 
   NS.Collection = {
     COLLECTION_THEMES,

@@ -14,128 +14,71 @@
   <link rel="stylesheet" href="catalog-page.css" />
   <link rel="stylesheet" href="composer-layout.css" />
   <link rel="stylesheet" href="preview-viewport.css" />
+  <link rel="stylesheet" href="collection-block.css" />
+  <link rel="stylesheet" href="table-block.css" />
+  <link rel="stylesheet" href="product-actions.css" />
   <link rel="stylesheet" href="print.css" media="print" />
 </head>
 <body>
   <header class="app-shell-header">
     <div class="app-brand">
       <img src="assets/logo-top-mobili.svg" alt="Top Mobili" />
-      <div>
-        <h1>CatalogoTop</h1>
-        <p>Produtos → seleção → cards → páginas A4.</p>
-      </div>
+      <div><h1>CatalogoTop</h1><p>Produtos → seleção → cards → páginas A4.</p></div>
     </div>
-
     <div class="app-primary-tools">
       <nav class="app-tabs" aria-label="Seções do aplicativo">
         <button class="tab active" data-tab="products">Produtos</button>
         <button class="tab" data-tab="catalog">Catálogo</button>
         <button class="tab" data-tab="templates">Templates</button>
       </nav>
-
       <div class="header-product-import" aria-label="Importação de produtos">
         <label class="header-import-button file-button" title="Importar produtos por CSV ou Excel">Importar produtos
           <input id="importProductsFile" type="file" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
         </label>
-        <select id="importMode" aria-label="Modo de importação">
-          <option value="merge">Mesclar por código</option>
-          <option value="replace">Substituir base</option>
-        </select>
+        <select id="importMode" aria-label="Modo de importação"><option value="merge">Mesclar por código</option><option value="replace">Substituir base</option></select>
         <a class="header-model-link" href="examples/produtos-modelo.csv" download>CSV modelo</a>
       </div>
     </div>
-
     <div class="app-header-actions" aria-label="Sincronização e backup">
       <button class="button secondary sync-status" id="productSyncStatus" type="button" data-sync-state="loading" title="Estado da base compartilhada">Conectando…</button>
       <button class="button secondary" id="btnExportBackup" title="Exportar backup JSON">Exportar backup</button>
-      <label class="button secondary file-button" title="Importar backup JSON">Importar backup
-        <input id="backupFile" type="file" accept="application/json,.json" />
-      </label>
+      <label class="button secondary file-button" title="Importar backup JSON">Importar backup<input id="backupFile" type="file" accept="application/json,.json" /></label>
     </div>
   </header>
 
   <main class="app-main">
     <section class="panel active" id="products">
-      <div class="section-heading product-section-heading">
-        <div>
-          <p class="eyebrow">BASE DE PRODUTOS</p>
-          <h2>Biblioteca de produtos</h2>
-          <p class="muted">Categorias como pastas · cadastro em três etapas · CSV/Excel disponível no topo.</p>
-        </div>
-      </div>
-
+      <div class="section-heading product-section-heading"><div><p class="eyebrow">BASE DE PRODUTOS</p><h2>Biblioteca de produtos</h2><p class="muted">Categorias como pastas · cadastro em três etapas · CSV/Excel disponível no topo.</p></div></div>
       <div id="importReport" class="import-report shell-import-report hidden" aria-live="polite"></div>
-
       <div class="mobile-workspace-switch" role="tablist" aria-label="Área de produtos">
         <button class="active" type="button" role="tab" aria-selected="true" aria-controls="productForm" data-mobile-workspace-target="form">Cadastro</button>
         <button type="button" role="tab" aria-selected="false" aria-controls="productLibraryPanel" data-mobile-workspace-target="library" tabindex="-1">Produtos</button>
       </div>
-
       <div class="product-workspace">
         <form class="card product-form mobile-workspace-active" id="productForm" data-mobile-workspace-panel="form" role="tabpanel">
-          <div class="form-head">
-            <div>
-              <p class="eyebrow">EDIÇÃO</p>
-              <h3 id="formTitle">Novo produto</h3>
-            </div>
-            <div class="form-head-actions">
-              <button class="button secondary compact" id="btnNewProduct" type="button">+ Novo</button>
-              <button class="icon-button" id="btnCancelEdit" type="button" title="Limpar formulário">×</button>
-            </div>
-          </div>
-
+          <div class="form-head"><div><p class="eyebrow">EDIÇÃO</p><h3 id="formTitle">Novo produto</h3></div><div class="form-head-actions"><button class="button secondary compact" id="btnNewProduct" type="button">+ Novo</button><button class="icon-button" id="btnCancelEdit" type="button" title="Limpar formulário">×</button></div></div>
           <div class="product-stepper" aria-label="Etapas do cadastro">
             <button type="button" data-form-step-target="1">1 · Identificação</button>
             <button type="button" data-form-step-target="2">2 · Apresentação</button>
             <button type="button" data-form-step-target="3">3 · Variações</button>
           </div>
-
           <input type="hidden" id="productId" />
-
           <section class="product-form-step active" data-form-step="1" aria-label="Identificação do produto">
-            <div class="field-grid two">
-              <label>Código *<input id="code" required autocomplete="off" placeholder="Ex.: 1268" /></label>
-              <label>Status<select id="status"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></label>
-            </div>
+            <div class="field-grid two"><label>Código *<input id="code" required autocomplete="off" placeholder="Ex.: 1268" /></label><label>Status<select id="status"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></label></div>
             <label>Descrição *<textarea id="description" rows="3" required placeholder="Nome comercial do produto"></textarea></label>
-            <label class="product-category-field">Categoria *
-              <input id="category" list="categoryOptions" required autocomplete="off" placeholder="Escolha ou crie uma categoria" />
-              <datalist id="categoryOptions"></datalist>
-              <small>Selecione uma pasta existente ou digite um nome novo para criá-la ao salvar.</small>
-            </label>
+            <label class="product-category-field">Categoria *<input id="category" list="categoryOptions" required autocomplete="off" placeholder="Escolha ou crie uma categoria" /><datalist id="categoryOptions"></datalist><small>Selecione uma pasta existente ou digite um nome novo para criá-la ao salvar.</small></label>
             <label>Subcategoria<input id="subcategory" placeholder="Ex.: Telescópicas" /></label>
           </section>
-
           <section class="product-form-step" data-form-step="2" aria-label="Apresentação do produto">
-            <div class="field-grid two">
-              <label>Preço<input id="price" placeholder="Ex.: R$ 17,64" /></label>
-              <label>Imagem por URL<input id="imageUrl" inputmode="url" placeholder="https://..." /></label>
-            </div>
-            <div class="image-picker" id="imageDropzone">
-              <input id="imageFile" type="file" accept="image/*" />
-              <img id="imagePreview" alt="Prévia do produto" />
-              <div class="image-picker-copy">
-                <strong>Imagem do produto</strong>
-                <span>Arraste, clique ou use uma URL.</span>
-              </div>
-            </div>
-            <label>Especificações
-              <textarea id="specs" rows="5" placeholder="Uma por linha. Ex.:&#10;Carga: 35 kg&#10;Ciclos: 40.000"></textarea>
-            </label>
+            <div class="field-grid two"><label>Preço<input id="price" placeholder="Ex.: R$ 17,64" /></label><label>Imagem por URL<input id="imageUrl" inputmode="url" placeholder="https://..." /></label></div>
+            <div class="image-picker" id="imageDropzone"><input id="imageFile" type="file" accept="image/*" /><img id="imagePreview" alt="Prévia do produto" /><div class="image-picker-copy"><strong>Imagem do produto</strong><span>Arraste, clique ou use uma URL.</span></div></div>
+            <label>Especificações<textarea id="specs" rows="5" placeholder="Uma por linha. Ex.:&#10;Carga: 35 kg&#10;Ciclos: 40.000"></textarea></label>
           </section>
-
           <section class="product-form-step" data-form-step="3" aria-label="Variações e tabela comercial">
-            <label>Cores / acabamentos
-              <textarea id="variants" rows="4" placeholder="Branco | https://...&#10;Preto | https://..."></textarea>
-              <small>Uma variação por linha: <strong>nome | URL da imagem</strong>. A URL é opcional.</small>
-            </label>
-            <label>Tabela comercial
-              <textarea id="commercialRows" rows="5" placeholder="Branco | 1268-BR | CX 10 | R$ 17,64&#10;Preto | 1268-PT | CX 10 | R$ 18,20"></textarea>
-              <small>Uma linha por combinação: <strong>cor | código | embalagem | preço</strong>.</small>
-            </label>
+            <label>Cores / acabamentos<textarea id="variants" rows="4" placeholder="Branco | https://...&#10;Preto | https://..."></textarea><small>Uma variação por linha: <strong>nome | URL da imagem</strong>. A URL é opcional.</small></label>
+            <label>Tabela comercial<textarea id="commercialRows" rows="5" placeholder="Branco | 1268-BR | CX 10 | R$ 17,64&#10;Preto | 1268-PT | CX 10 | R$ 18,20"></textarea><small>Uma linha por combinação: <strong>cor | código | embalagem | preço</strong>.</small></label>
             <label>Observações<textarea id="notes" rows="2" placeholder="Notas que precisam acompanhar o produto"></textarea></label>
           </section>
-
           <div class="form-actions form-step-actions">
             <span class="form-step-counter" id="formStepCounter">Etapa 1 de 3</span>
             <button class="button secondary hidden" id="btnPrevFormStep" type="button">Voltar</button>
@@ -146,115 +89,42 @@
         </form>
 
         <div class="card product-list-card" id="productLibraryPanel" data-mobile-workspace-panel="library" role="tabpanel">
-          <div class="list-toolbar">
-            <input id="searchProducts" type="search" placeholder="Buscar código, descrição, categoria..." />
-            <select id="filterCategory"><option value="">Todas as categorias</option></select>
-            <span id="productCount" class="counter">0 produtos</span>
-          </div>
+          <div class="list-toolbar"><input id="searchProducts" type="search" placeholder="Buscar código, descrição, categoria..." /><select id="filterCategory"><option value="">Todas as categorias</option></select><span id="productCount" class="counter">0 produtos</span></div>
           <div class="product-library">
-            <aside class="category-browser" aria-label="Pastas de categorias">
-              <div class="category-browser-head"><span>Pastas</span><span>Categorias</span></div>
-              <div class="category-folders" id="categoryFolders"></div>
-            </aside>
-            <div class="product-table-pane">
-              <div class="table-wrap">
-                <table class="product-table">
-                  <thead><tr><th>Imagem</th><th>Código</th><th>Produto</th><th>Categoria</th><th>Preço</th><th></th></tr></thead>
-                  <tbody id="productRows"></tbody>
-                </table>
-              </div>
-              <div id="productsEmpty" class="empty-state hidden">
-                <strong>Nenhum produto cadastrado.</strong>
-                <span>Comece manualmente ou importe uma planilha.</span>
-              </div>
-            </div>
+            <aside class="category-browser" aria-label="Pastas de categorias"><div class="category-browser-head"><span>Pastas</span><span>Categorias</span></div><div class="category-folders" id="categoryFolders"></div></aside>
+            <div class="product-table-pane"><div class="table-wrap"><table class="product-table"><thead><tr><th>Imagem</th><th>Código</th><th>Produto</th><th>Categoria</th><th>Preço</th><th></th></tr></thead><tbody id="productRows"></tbody></table></div><div id="productsEmpty" class="empty-state hidden"><strong>Nenhum produto cadastrado.</strong><span>Comece manualmente ou importe uma planilha.</span></div></div>
           </div>
         </div>
       </div>
     </section>
 
     <section class="panel" id="catalog">
-      <div class="section-heading catalog-heading">
-        <div>
-          <p class="eyebrow">COMPOSIÇÃO</p>
-          <h2>Selecione os produtos e ajuste a composição.</h2>
-          <p class="muted">Presets discretos de conteúdo, destaque e tipografia preservam paginação determinística sem editor livre.</p>
-        </div>
-        <div class="heading-actions">
-          <button class="button secondary" id="btnNewCatalog">Novo catálogo</button>
-          <button class="button primary" id="btnPrint">Gerar PDF / Imprimir</button>
-        </div>
-      </div>
-
+      <div class="section-heading catalog-heading"><div><p class="eyebrow">COMPOSIÇÃO</p><h2>Selecione os produtos e ajuste a composição.</h2><p class="muted">Presets discretos de conteúdo, destaque e tipografia preservam paginação determinística sem editor livre.</p></div><div class="heading-actions"><button class="button secondary" id="btnNewCatalog">Novo catálogo</button><button class="button primary" id="btnPrint">Gerar PDF / Imprimir</button></div></div>
       <div class="catalog-controls editorial-controls card">
         <label>Nome do catálogo<input id="catalogTitle" value="Categoria" /></label>
         <label>Template<select id="catalogTemplate"></select></label>
-        <label>Distribuição
-          <select id="catalogDistribution">
-            <option value="compact">Compacta</option>
-            <option value="balanced">Balanceada</option>
-            <option value="editorial">Editorial</option>
-          </select>
-        </label>
-        <label>Tipografia
-          <select id="catalogTypography">
-            <option value="neutral">Neutra</option>
-            <option value="technical">Técnica</option>
-            <option value="editorial">Editorial</option>
-          </select>
-        </label>
+        <label>Distribuição<select id="catalogDistribution"><option value="compact">Compacta</option><option value="balanced">Balanceada</option><option value="editorial">Editorial</option></select></label>
+        <label>Tipografia<select id="catalogTypography"><option value="neutral">Neutra</option><option value="technical">Técnica</option><option value="editorial">Editorial</option></select></label>
         <label class="checkbox-label"><input id="catalogShowPrices" type="checkbox" checked /> Mostrar preços</label>
-        <div class="catalog-meta">
-          <span>Criado em</span>
-          <strong id="catalogCreatedAt">—</strong>
-        </div>
+        <div class="catalog-meta"><span>Criado em</span><strong id="catalogCreatedAt">—</strong></div>
       </div>
-
       <div class="selection-layout">
         <aside class="card selection-panel">
-          <div class="selection-toolbar">
-            <input id="searchSelection" type="search" placeholder="Filtrar produtos" />
-            <select id="selectionCategory"><option value="">Todas as categorias</option></select>
-          </div>
-          <div class="selection-actions">
-            <button class="button secondary compact" id="btnSelectVisible">Selecionar visíveis</button>
-            <button class="button secondary compact" id="btnClearSelection">Limpar</button>
-          </div>
+          <div class="selection-toolbar"><input id="searchSelection" type="search" placeholder="Filtrar produtos" /><select id="selectionCategory"><option value="">Todas as categorias</option></select></div>
+          <div class="selection-actions"><button class="button secondary compact" id="btnSelectVisible">Selecionar visíveis</button><button class="button secondary compact" id="btnClearSelection">Limpar</button></div>
           <div id="selectableProducts" class="selectable-products"></div>
         </aside>
         <section class="preview-column">
-          <div class="preview-toolbar">
-            <div class="preview-toolbar-meta">
-              <span id="selectedCount">0 selecionados</span>
-              <span id="pageCount">1 página</span>
-            </div>
-            <div class="preview-zoom-controls" aria-label="Zoom da prévia do catálogo">
-              <button id="btnPreviewZoomOut" type="button" aria-label="Diminuir zoom">−</button>
-              <button class="preview-fit-button" id="btnPreviewFit" type="button" aria-pressed="false">Ajustar</button>
-              <output class="preview-zoom-value" id="previewZoomValue" aria-live="polite">100%</output>
-              <button id="btnPreviewZoomIn" type="button" aria-label="Aumentar zoom">+</button>
-            </div>
-          </div>
-          <div class="catalog-preview-viewport" id="catalogPreviewViewport">
-            <div id="catalogPreview" class="catalog-preview"></div>
-          </div>
+          <div class="preview-toolbar"><div class="preview-toolbar-meta"><span id="selectedCount">0 selecionados</span><span id="pageCount">1 página</span></div><div class="preview-zoom-controls" aria-label="Zoom da prévia do catálogo"><button id="btnPreviewZoomOut" type="button" aria-label="Diminuir zoom">−</button><button class="preview-fit-button" id="btnPreviewFit" type="button" aria-pressed="false">Ajustar</button><output class="preview-zoom-value" id="previewZoomValue" aria-live="polite">100%</output><button id="btnPreviewZoomIn" type="button" aria-label="Aumentar zoom">+</button></div></div>
+          <div class="catalog-preview-viewport" id="catalogPreviewViewport"><div id="catalogPreview" class="catalog-preview"></div></div>
         </section>
       </div>
     </section>
 
     <section class="panel" id="templates">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">TEMPLATES</p>
-          <h2>Varia o card e a densidade. A identidade da página permanece estável.</h2>
-          <p class="muted">O contrato do template é pequeno: quantidade de cards por página, grade e tratamento visual.</p>
-        </div>
-      </div>
+      <div class="section-heading"><div><p class="eyebrow">TEMPLATES</p><h2>Varia o card e a densidade. A identidade da página permanece estável.</h2><p class="muted">O contrato do template é pequeno: quantidade de cards por página, grade e tratamento visual.</p></div></div>
       <div id="templateCards" class="template-gallery"></div>
-      <div class="card template-contract">
-        <h3>Contrato visual comum</h3>
-        <p>Logo, título da categoria, linha técnica, rodapé institucional, número de página e data de criação são componentes compartilhados. Um novo template não deve duplicar esses blocos.</p>
-      </div>
+      <div class="card template-contract"><h3>Contrato visual comum</h3><p>Logo, título da categoria, linha técnica, rodapé institucional, número de página e data de criação são componentes compartilhados. Um novo template não deve duplicar esses blocos.</p></div>
     </section>
   </main>
 
@@ -267,15 +137,27 @@
   <script defer src="src/importer.js"></script>
   <script defer src="src/templates.js"></script>
   <script defer src="src/icons.js"></script>
+  <script defer src="src/collection.js"></script>
+  <script defer src="src/table-block.js"></script>
   <script defer src="src/catalog-document.js"></script>
+  <script defer src="src/collection-document.js"></script>
+  <script defer src="src/table-document.js"></script>
   <script defer src="src/render.js"></script>
+  <script defer src="src/collection-render.js"></script>
+  <script defer src="src/table-render.js"></script>
+  <script defer src="src/catalog-renderer.js"></script>
   <script defer src="src/render-document-adapter.js"></script>
   <script defer src="src/print.js"></script>
   <script defer src="src/form-steps.js"></script>
   <script defer src="src/mobile-workspace.js"></script>
   <script defer src="src/preview-zoom.js"></script>
-  <script defer src="src/app.js"></script>
+  <script defer src="src/product-actions.js"></script>
   <script defer src="src/catalog-selection-order.js"></script>
+  <script defer src="src/app.js"></script>
+  <script defer src="src/collection-controls.js"></script>
+  <script defer src="src/table-controls.js"></script>
+  <script defer src="src/product-delete-ui.js"></script>
+  <script defer src="src/block-overlap-guard.js"></script>
   <script defer src="src/product-details.js"></script>
   <script defer src="src/category-browser.js"></script>
 </body>
