@@ -6,11 +6,13 @@ const requiredFiles = [
   'styles.css',
   'cards.css',
   'category-browser.css',
+  'shell-responsive.css',
   'src/core.js',
   'src/importer.js',
   'src/templates.js',
   'src/icons.js',
   'src/render.js',
+  'src/form-steps.js',
   'src/app.js',
   'src/product-details.js',
   'src/category-browser.js',
@@ -22,7 +24,8 @@ const requiredFiles = [
   'docs/netlify.md',
   'docs/reuse-from-gerador-v1.md',
   'docs/card-model.md',
-  'docs/category-browser.md'
+  'docs/category-browser.md',
+  'docs/responsive-shell.md'
 ];
 
 for (const file of requiredFiles) await access(file);
@@ -37,27 +40,37 @@ for (const file of requiredFiles.filter(file => file.endsWith('.js'))) {
 
 const html = await readFile('index.html', 'utf8');
 const cardsCss = await readFile('cards.css', 'utf8');
-const css = `${await readFile('styles.css', 'utf8')}\n${cardsCss}\n${await readFile('category-browser.css', 'utf8')}`;
+const shellCss = await readFile('shell-responsive.css', 'utf8');
+const css = `${await readFile('styles.css', 'utf8')}\n${cardsCss}\n${await readFile('category-browser.css', 'utf8')}\n${shellCss}`;
 const templates = await readFile('src/templates.js', 'utf8');
 const importer = await readFile('src/importer.js', 'utf8');
 const icons = await readFile('src/icons.js', 'utf8');
 const core = await readFile('src/core.js', 'utf8');
 const render = await readFile('src/render.js', 'utf8');
+const formSteps = await readFile('src/form-steps.js', 'utf8');
 const detailEditor = await readFile('src/product-details.js', 'utf8');
 const categoryBrowser = await readFile('src/category-browser.js', 'utf8');
 const cardCases = await readFile('examples/card-cases.js', 'utf8');
 const netlify = await readFile('netlify.toml', 'utf8');
+const logo = await readFile('assets/logo-top-mobili.svg', 'utf8');
 
 const checks = [
   ['shell possui aba Produtos', html.includes('data-tab="products"')],
   ['shell possui aba Catálogo', html.includes('data-tab="catalog"')],
   ['shell possui aba Templates', html.includes('data-tab="templates"')],
+  ['tabs e backup compartilham o header sticky', html.indexOf('class="app-tabs"') > html.indexOf('class="app-shell-header"') && html.indexOf('id="backupFile"') > html.indexOf('class="app-tabs"') && shellCss.includes('position: sticky')],
   ['biblioteca de ícones carrega antes do renderer', html.indexOf('src/icons.js') < html.indexOf('src/render.js')],
+  ['etapas do formulário carregam antes do app', html.indexOf('src/form-steps.js') < html.indexOf('src/app.js')],
   ['editor leve de detalhes carrega depois do app', html.indexOf('src/app.js') < html.indexOf('src/product-details.js')],
   ['navegador de categorias carrega depois do app', html.indexOf('src/app.js') < html.indexOf('src/category-browser.js')],
+  ['cadastro de produto possui três etapas', (html.match(/data-form-step="/g) || []).length === 3 && formSteps.includes('Etapa ${current} de ${steps.length}')],
+  ['enter avança sem salvar antes da etapa final', formSteps.includes('stopImmediatePropagation') && formSteps.includes('current < steps.length')],
   ['categoria usa seletor sobrescrevível', html.includes('id="category" list="categoryOptions" required') && html.includes('id="categoryOptions"')],
   ['biblioteca possui pastas de categoria', html.includes('id="categoryFolders"') && categoryBrowser.includes('data-category-folder')],
   ['produtos sem categoria recebem pasta explícita', core.includes("|| 'Sem categoria'")],
+  ['workspace desktop usa scroll interno', shellCss.includes('body { overflow: hidden; }') && shellCss.includes('.category-browser { min-height: 0; overflow: auto; }') && shellCss.includes('.table-wrap { height: 100%; max-height: none; overflow: auto; }')],
+  ['breakpoints de tablet e mobile existem', shellCss.includes('@media (max-width: 959px)') && shellCss.includes('@media (max-width: 639px)')],
+  ['logo canônica substitui reconstrução', logo.includes('viewBox="0 0 481 270"') && !logo.includes('recriada a partir da referência')],
   ['impressão declara A4', css.includes('@page { size: A4 portrait;')],
   ['página contém rodapé', css.includes('.catalog-page-footer')],
   ['template técnico registrado', templates.includes("id: 'technical'")],
