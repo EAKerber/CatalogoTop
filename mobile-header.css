@@ -1,0 +1,64 @@
+/* v0.5 mobile header refinement: keep primary tabs fixed on the bottom row. */
+@media (max-width: 639px) {
+  .app-shell-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 7px;
+    padding: 6px 7px 5px;
+  }
+
+  .app-brand {
+    order: 1;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  /* Let the children of app-primary-tools participate directly in the mobile shell. */
+  .app-primary-tools { display: contents; }
+
+  .header-product-import {
+    order: 2;
+    flex: 1 1 118px;
+    min-width: 0;
+    max-width: 46vw;
+    padding-left: 0;
+    border-left: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .header-product-import::-webkit-scrollbar { display: none; }
+  .header-product-import > * { flex: 0 0 auto; }
+
+  .app-header-actions {
+    order: 2;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 43vw;
+    justify-self: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .app-header-actions::-webkit-scrollbar { display: none; }
+  .app-header-actions .button { flex: 0 0 auto; }
+
+  .app-shell-header .app-tabs {
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    margin: 0;
+    padding: 1px 0 0;
+    overflow: visible;
+  }
+  .app-shell-header .app-tabs .tab {
+    width: 100%;
+    min-width: 0;
+  }
+}
