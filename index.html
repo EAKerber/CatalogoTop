@@ -40,7 +40,8 @@
       </div>
     </div>
 
-    <div class="app-header-actions" aria-label="Backup do acervo local">
+    <div class="app-header-actions" aria-label="Sincronização e backup">
+      <button class="button secondary sync-status" id="productSyncStatus" type="button" data-sync-state="loading" title="Estado da base compartilhada">Conectando…</button>
       <button class="button secondary" id="btnExportBackup" title="Exportar backup JSON">Exportar backup</button>
       <label class="button secondary file-button" title="Importar backup JSON">Importar backup
         <input id="backupFile" type="file" accept="application/json,.json" />
@@ -230,6 +231,9 @@
 
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script defer src="src/core.js"></script>
+  <script defer src="src/indexed-cache.js"></script>
+  <script defer src="src/asset-client.js"></script>
+  <script defer src="src/product-store.js"></script>
   <script defer src="src/importer.js"></script>
   <script defer src="src/templates.js"></script>
   <script defer src="src/icons.js"></script>
