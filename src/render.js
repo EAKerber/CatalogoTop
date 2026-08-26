@@ -57,10 +57,41 @@
     return normalized.slice(0, Math.max(0, limit)).map(item => `<li>${item.label ? `<span>${esc(item.label)}</span>` : ''}<strong>${esc(item.value)}</strong></li>`).join('');
   }
 
-  function limitsFor(template, hasTable) {
+  function baseLimits(template, hasTable) {
     if (template.id === 'compact') return { variants: 3, rows: 3, specs: hasTable ? 0 : 2 };
     if (template.id === 'showcase') return { variants: 5, rows: 8, specs: hasTable ? 2 : 5 };
     return { variants: 4, rows: 6, specs: hasTable ? 1 : 3 };
+  }
+
+  function limitsFor(template, hasTable, contentPreset = 'standard', emphasis = 'normal') {
+    const base = baseLimits(template, hasTable);
+    let limits = { ...base };
+
+    if (contentPreset === 'visual') {
+      limits = { variants: Math.max(base.variants, 5), rows: 0, specs: 0 };
+    } else if (contentPreset === 'technical') {
+      limits = {
+        variants: Math.max(2, base.variants - 1),
+        rows: base.rows + 2,
+        specs: Math.max(base.specs + 2, hasTable ? 2 : 4)
+      };
+    } else if (contentPreset === 'commercial') {
+      limits = {
+        variants: Math.min(base.variants, 3),
+        rows: base.rows + 2,
+        specs: hasTable ? 0 : Math.min(2, Math.max(1, base.specs))
+      };
+    }
+
+    if (emphasis === 'feature') {
+      limits.rows += 1;
+      limits.specs += 1;
+    } else if (emphasis === 'hero') {
+      limits.variants += 1;
+      limits.rows += 2;
+      limits.specs += 2;
+    }
+    return limits;
   }
 
   function renderVariantLabels(items) {
@@ -109,7 +140,7 @@
 
   function renderCommercialTable(rows, showPrices, limit) {
     const normalized = Array.isArray(rows) ? rows.filter(Boolean) : [];
-    if (!normalized.length) return '';
+    if (!normalized.length || limit <= 0) return '';
     const visible = normalized.slice(0, limit);
     const columns = weightedColumns([
       { key: 'variant', label: 'Cor', enabled: normalized.some(row => row.variant) },
@@ -136,20 +167,38 @@
     </div>`;
   }
 
-  function cardMarkup(product, template, showPrices) {
+  function fallbackLayoutItem(product, template) {
+    const span = Math.max(2, Math.round(6 / Math.max(1, Number(template.columns) || 2)));
+    return {
+      product,
+      style: { contentPreset: 'auto', emphasis: 'normal' },
+      contentPreset: 'standard',
+      span,
+      row: 1,
+      start: 1
+    };
+  }
+
+  function cardMarkup(product, template, showPrices, layoutItem) {
+    const item = layoutItem || fallbackLayoutItem(product, template);
+    const contentPreset = item.contentPreset || NS.Composition?.resolveContentPreset(product, item.style?.contentPreset) || 'standard';
+    const emphasis = item.style?.emphasis || 'normal';
     const hasTable = Array.isArray(product.tableRows) && product.tableRows.length > 0;
     const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
-    const hasVariantImages = hasVariants && product.variants.some(item => item && item.image);
-    const limits = limitsFor(template, hasTable);
+    const hasVariantImages = hasVariants && product.variants.some(entry => entry && entry.image);
+    const limits = limitsFor(template, hasTable, contentPreset, emphasis);
     const specs = renderSpecs(product.specs, limits.specs);
     const table = renderCommercialTable(product.tableRows, showPrices, limits.rows);
     const classes = [
       hasTable ? 'has-table' : '',
       hasVariants ? 'has-variants' : '',
-      hasVariantImages ? 'has-variant-images' : ''
+      hasVariantImages ? 'has-variant-images' : '',
+      `content-${contentPreset}`,
+      `emphasis-${emphasis}`
     ].filter(Boolean).join(' ');
+    const placement = `grid-column:${Number(item.start) || 1} / span ${Number(item.span) || 3};grid-row:${Number(item.row) || 1};`;
 
-    return `<article class="catalog-card ${classes}">
+    return `<article class="catalog-card ${classes}" data-product-id="${esc(product.id)}" data-content-preset="${esc(contentPreset)}" data-emphasis="${esc(emphasis)}" style="${placement}">
       ${renderVisuals(product, limits.variants)}
       <div class="catalog-card-content">
         <div class="catalog-card-code">${esc(product.code)}</div>
@@ -157,7 +206,7 @@
         ${product.subcategory ? `<p class="catalog-card-subcategory">${esc(product.subcategory)}</p>` : ''}
         ${specs ? `<ul class="catalog-card-specs">${specs}</ul>` : ''}
         ${table}
-        ${product.notes && !hasTable ? `<p class="catalog-card-notes">${esc(product.notes)}</p>` : ''}
+        ${product.notes && !hasTable && contentPreset !== 'visual' ? `<p class="catalog-card-notes">${esc(product.notes)}</p>` : ''}
         ${showPrices && product.price && !hasTable ? `<div class="catalog-card-price">${esc(product.price)}</div>` : ''}
       </div>
     </article>`;
@@ -201,11 +250,22 @@
   }
 
   function pageMarkup(page, pageIndex, pageTotal, state, template) {
-    return `<article class="catalog-page ${template.className}" data-category="${esc(page.category)}" data-category-page="${page.categoryPageIndex + 1}" style="--catalog-cols:${template.columns};--catalog-rows:${template.rows}">
+    const presentation = NS.Composition?.normalizePresentation(state.catalog?.presentation) || { distribution: 'balanced', typography: 'neutral', itemStyles: {} };
+    const layout = page.layout || NS.Composition?.planProducts(page.products, template, presentation) || { rowCount: template.rows, items: [] };
+    const byId = new Map((layout.items || []).map(item => [item.product.id, item]));
+    const rowCount = Math.max(1, Number(layout.rowCount) || 1);
+    const pageClasses = [
+      'catalog-page',
+      template.className,
+      `distribution-${presentation.distribution}`,
+      `type-${presentation.typography}`
+    ].join(' ');
+
+    return `<article class="${pageClasses}" data-category="${esc(page.category)}" data-category-page="${page.categoryPageIndex + 1}" style="--catalog-cols:6;--catalog-rows:${rowCount};--catalog-planned-rows:${rowCount}">
       ${headerMarkup(page.category, page.categoryProductCount)}
       <section class="catalog-page-body">
         <div class="catalog-decoration-circle" aria-hidden="true"></div>
-        <div class="catalog-products">${page.products.map(product => cardMarkup(product, template, state.catalog.showPrices)).join('')}</div>
+        <div class="catalog-products editorial-grid">${page.products.map(product => cardMarkup(product, template, state.catalog.showPrices, byId.get(product.id))).join('')}</div>
         ${page.products.length ? '' : '<div class="catalog-empty"><strong>Nenhum produto selecionado.</strong><span>Marque produtos na coluna à esquerda.</span></div>'}
       </section>
       ${footerMarkup(pageIndex, pageTotal, state.catalog.createdAt)}
@@ -217,11 +277,9 @@
     return state.selectedIds.map(id => byId.get(id)).filter(product => product && product.status === 'Ativo');
   }
 
-  function buildCategoryPages(state, perPage) {
-    const selected = getRenderableProducts(state);
+  function groupSelectedByCategory(selected) {
     const groups = [];
     const byCategory = new Map();
-
     selected.forEach(product => {
       const category = String(product.category || '').trim() || 'Sem categoria';
       let group = byCategory.get(category);
@@ -232,26 +290,53 @@
       }
       group.products.push(product);
     });
+    return groups;
+  }
 
+  function buildCategoryPages(state, templateOrPerPage) {
+    const selected = getRenderableProducts(state);
+    const groups = groupSelectedByCategory(selected);
     const pages = [];
-    groups.forEach((group, categoryIndex) => {
-      const categoryPages = chunk(group.products, perPage);
-      categoryPages.forEach((products, categoryPageIndex) => {
-        pages.push({
-          category: group.category,
-          products,
-          categoryIndex,
-          categoryPageIndex,
-          categoryPageTotal: categoryPages.length,
-          categoryProductCount: group.products.length
+
+    if (typeof templateOrPerPage === 'number') {
+      const perPage = Math.max(1, templateOrPerPage);
+      groups.forEach((group, categoryIndex) => {
+        const categoryPages = chunk(group.products, perPage);
+        categoryPages.forEach((products, categoryPageIndex) => {
+          pages.push({
+            category: group.category,
+            products,
+            categoryIndex,
+            categoryPageIndex,
+            categoryPageTotal: categoryPages.length,
+            categoryProductCount: group.products.length
+          });
         });
       });
-    });
+    } else {
+      const template = templateOrPerPage || { columns: 2, rows: 4, perPage: 8 };
+      const presentation = NS.Composition?.normalizePresentation(state.catalog?.presentation) || { distribution: 'balanced', typography: 'neutral', itemStyles: {} };
+      groups.forEach((group, categoryIndex) => {
+        const categoryPages = NS.Composition?.paginateProducts(group.products, template, presentation) || chunk(group.products, template.perPage).map(products => ({ products, layout: null }));
+        categoryPages.forEach((entry, categoryPageIndex) => {
+          pages.push({
+            category: group.category,
+            products: entry.products,
+            layout: entry.layout,
+            categoryIndex,
+            categoryPageIndex,
+            categoryPageTotal: categoryPages.length,
+            categoryProductCount: group.products.length
+          });
+        });
+      });
+    }
 
     if (!pages.length) {
       pages.push({
         category: String(state.catalog?.title || '').trim() || 'Catálogo',
         products: [],
+        layout: { rows: [], rowCount: 0, items: [] },
         categoryIndex: 0,
         categoryPageIndex: 0,
         categoryPageTotal: 1,
@@ -273,7 +358,7 @@
   function renderCatalog(root, state) {
     ensureCategoryStyles();
     const template = NS.Templates.getTemplate(state.catalog.templateId);
-    const { selected, groups, pages } = buildCategoryPages(state, template.perPage);
+    const { selected, groups, pages } = buildCategoryPages(state, template);
     root.innerHTML = pages.map((page, index) => `${page.categoryPageIndex === 0 && selected.length ? categoryDividerMarkup(page) : ''}${pageMarkup(page, index, pages.length, state, template)}`).join('');
     return {
       selectedCount: selected.length,
@@ -293,5 +378,15 @@
     </div>`;
   }
 
-  NS.Render = { PLACEHOLDER, esc, formatDate, renderCatalog, renderTemplatePreview, getRenderableProducts, buildCategoryPages };
+  NS.Render = {
+    PLACEHOLDER,
+    esc,
+    formatDate,
+    renderCatalog,
+    renderTemplatePreview,
+    getRenderableProducts,
+    buildCategoryPages,
+    limitsFor,
+    cardMarkup
+  };
 })();
