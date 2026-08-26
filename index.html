@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="cards.css" />
   <link rel="stylesheet" href="category-browser.css" />
+  <link rel="stylesheet" href="shell-responsive.css" />
+  <link rel="stylesheet" href="mobile-header.css" />
 </head>
 <body>
   <header class="app-shell-header">
@@ -18,109 +20,126 @@
         <p>Produtos → seleção → cards → páginas A4.</p>
       </div>
     </div>
-    <div class="app-header-actions">
-      <button class="button secondary" id="btnExportBackup">Exportar backup</button>
-      <label class="button secondary file-button">Importar backup
+
+    <div class="app-primary-tools">
+      <nav class="app-tabs" aria-label="Seções do aplicativo">
+        <button class="tab active" data-tab="products">Produtos</button>
+        <button class="tab" data-tab="catalog">Catálogo</button>
+        <button class="tab" data-tab="templates">Templates</button>
+      </nav>
+
+      <div class="header-product-import" aria-label="Importação de produtos">
+        <label class="header-import-button file-button" title="Importar produtos por CSV ou Excel">Importar produtos
+          <input id="importProductsFile" type="file" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
+        </label>
+        <select id="importMode" aria-label="Modo de importação">
+          <option value="merge">Mesclar por código</option>
+          <option value="replace">Substituir base</option>
+        </select>
+        <a class="header-model-link" href="examples/produtos-modelo.csv" download>CSV modelo</a>
+      </div>
+    </div>
+
+    <div class="app-header-actions" aria-label="Backup do acervo local">
+      <button class="button secondary" id="btnExportBackup" title="Exportar backup JSON">Exportar backup</button>
+      <label class="button secondary file-button" title="Importar backup JSON">Importar backup
         <input id="backupFile" type="file" accept="application/json,.json" />
       </label>
     </div>
   </header>
 
-  <nav class="app-tabs" aria-label="Seções do aplicativo">
-    <button class="tab active" data-tab="products">Produtos</button>
-    <button class="tab" data-tab="catalog">Catálogo</button>
-    <button class="tab" data-tab="templates">Templates</button>
-  </nav>
-
   <main class="app-main">
     <section class="panel active" id="products">
-      <div class="section-heading">
+      <div class="section-heading product-section-heading">
         <div>
           <p class="eyebrow">BASE DE PRODUTOS</p>
-          <h2>Cadastre uma vez. Reutilize em vários catálogos.</h2>
-          <p class="muted">Importe planilhas, corrija dados quando necessário e associe uma imagem a cada produto.</p>
+          <h2>Biblioteca de produtos</h2>
+          <p class="muted">Categorias como pastas · cadastro em três etapas · CSV/Excel disponível no topo.</p>
         </div>
-        <button class="button primary" id="btnNewProduct">+ Novo produto</button>
       </div>
 
-      <div class="import-panel card">
-        <div>
-          <p class="eyebrow">IMPORTAÇÃO</p>
-          <h3>CSV ou Excel</h3>
-          <p class="muted">Aceita .csv, .xlsx, .xls e .xlsm. Código e descrição são obrigatórios; colunas extras viram especificações do card.</p>
-        </div>
-        <div class="import-controls">
-          <label class="button secondary file-button">Escolher arquivo
-            <input id="importProductsFile" type="file" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
-          </label>
-          <select id="importMode" aria-label="Modo de importação">
-            <option value="merge">Mesclar por código</option>
-            <option value="replace">Substituir base atual</option>
-          </select>
-          <a class="text-link" href="examples/produtos-modelo.csv" download>Baixar CSV modelo</a>
-        </div>
-        <div id="importReport" class="import-report hidden" aria-live="polite"></div>
+      <div id="importReport" class="import-report shell-import-report hidden" aria-live="polite"></div>
+
+      <div class="mobile-workspace-switch" role="tablist" aria-label="Área de produtos">
+        <button class="active" type="button" role="tab" aria-selected="true" aria-controls="productForm" data-mobile-workspace-target="form">Cadastro</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="productLibraryPanel" data-mobile-workspace-target="library" tabindex="-1">Produtos</button>
       </div>
 
       <div class="product-workspace">
-        <form class="card product-form" id="productForm">
+        <form class="card product-form mobile-workspace-active" id="productForm" data-mobile-workspace-panel="form" role="tabpanel">
           <div class="form-head">
             <div>
               <p class="eyebrow">EDIÇÃO</p>
               <h3 id="formTitle">Novo produto</h3>
             </div>
-            <button class="icon-button" id="btnCancelEdit" type="button" title="Limpar formulário">×</button>
+            <div class="form-head-actions">
+              <button class="button secondary compact" id="btnNewProduct" type="button">+ Novo</button>
+              <button class="icon-button" id="btnCancelEdit" type="button" title="Limpar formulário">×</button>
+            </div>
           </div>
+
+          <div class="product-stepper" aria-label="Etapas do cadastro">
+            <button type="button" data-form-step-target="1">1 · Identificação</button>
+            <button type="button" data-form-step-target="2">2 · Apresentação</button>
+            <button type="button" data-form-step-target="3">3 · Variações</button>
+          </div>
+
           <input type="hidden" id="productId" />
-          <div class="field-grid two">
-            <label>Código *<input id="code" required autocomplete="off" placeholder="Ex.: 1268" /></label>
-            <label>Status<select id="status"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></label>
-          </div>
-          <label>Descrição *<textarea id="description" rows="3" required placeholder="Nome comercial do produto"></textarea></label>
-          <div class="field-grid two">
+
+          <section class="product-form-step active" data-form-step="1" aria-label="Identificação do produto">
+            <div class="field-grid two">
+              <label>Código *<input id="code" required autocomplete="off" placeholder="Ex.: 1268" /></label>
+              <label>Status<select id="status"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></label>
+            </div>
+            <label>Descrição *<textarea id="description" rows="3" required placeholder="Nome comercial do produto"></textarea></label>
             <label class="product-category-field">Categoria *
               <input id="category" list="categoryOptions" required autocomplete="off" placeholder="Escolha ou crie uma categoria" />
               <datalist id="categoryOptions"></datalist>
               <small>Selecione uma pasta existente ou digite um nome novo para criá-la ao salvar.</small>
             </label>
             <label>Subcategoria<input id="subcategory" placeholder="Ex.: Telescópicas" /></label>
-          </div>
-          <div class="field-grid two">
-            <label>Preço<input id="price" placeholder="Ex.: R$ 17,64" /></label>
-            <label>Imagem por URL<input id="imageUrl" inputmode="url" placeholder="https://..." /></label>
-          </div>
-          <label>Especificações
-            <textarea id="specs" rows="5" placeholder="Uma por linha. Ex.:&#10;Carga: 35 kg&#10;Ciclos: 40.000"></textarea>
-          </label>
-          <details class="product-detail-group">
-            <summary>Variações e tabela <span>opcional · entrada simples</span></summary>
-            <div class="product-detail-fields">
-              <label>Cores / acabamentos
-                <textarea id="variants" rows="4" placeholder="Branco | https://...&#10;Preto | https://..."></textarea>
-                <small>Uma variação por linha: <strong>nome | URL da imagem</strong>. A URL é opcional; sem imagem, a variação aparece como legenda.</small>
-              </label>
-              <label>Tabela comercial
-                <textarea id="commercialRows" rows="5" placeholder="Branco | 1268-BR | CX 10 | R$ 17,64&#10;Preto | 1268-PT | CX 10 | R$ 18,20"></textarea>
-                <small>Uma linha por combinação: <strong>cor | código | embalagem | preço</strong>. Campos vazios podem ser mantidos entre os separadores.</small>
-              </label>
+          </section>
+
+          <section class="product-form-step" data-form-step="2" aria-label="Apresentação do produto">
+            <div class="field-grid two">
+              <label>Preço<input id="price" placeholder="Ex.: R$ 17,64" /></label>
+              <label>Imagem por URL<input id="imageUrl" inputmode="url" placeholder="https://..." /></label>
             </div>
-          </details>
-          <label>Observações<textarea id="notes" rows="2" placeholder="Notas que precisam acompanhar o produto"></textarea></label>
-          <div class="image-picker" id="imageDropzone">
-            <input id="imageFile" type="file" accept="image/*" />
-            <img id="imagePreview" alt="Prévia do produto" />
-            <div class="image-picker-copy">
-              <strong>Imagem do produto</strong>
-              <span>Arraste, clique ou use uma URL.</span>
+            <div class="image-picker" id="imageDropzone">
+              <input id="imageFile" type="file" accept="image/*" />
+              <img id="imagePreview" alt="Prévia do produto" />
+              <div class="image-picker-copy">
+                <strong>Imagem do produto</strong>
+                <span>Arraste, clique ou use uma URL.</span>
+              </div>
             </div>
-          </div>
-          <div class="form-actions">
-            <button class="button primary" type="submit">Salvar produto</button>
+            <label>Especificações
+              <textarea id="specs" rows="5" placeholder="Uma por linha. Ex.:&#10;Carga: 35 kg&#10;Ciclos: 40.000"></textarea>
+            </label>
+          </section>
+
+          <section class="product-form-step" data-form-step="3" aria-label="Variações e tabela comercial">
+            <label>Cores / acabamentos
+              <textarea id="variants" rows="4" placeholder="Branco | https://...&#10;Preto | https://..."></textarea>
+              <small>Uma variação por linha: <strong>nome | URL da imagem</strong>. A URL é opcional.</small>
+            </label>
+            <label>Tabela comercial
+              <textarea id="commercialRows" rows="5" placeholder="Branco | 1268-BR | CX 10 | R$ 17,64&#10;Preto | 1268-PT | CX 10 | R$ 18,20"></textarea>
+              <small>Uma linha por combinação: <strong>cor | código | embalagem | preço</strong>.</small>
+            </label>
+            <label>Observações<textarea id="notes" rows="2" placeholder="Notas que precisam acompanhar o produto"></textarea></label>
+          </section>
+
+          <div class="form-actions form-step-actions">
+            <span class="form-step-counter" id="formStepCounter">Etapa 1 de 3</span>
+            <button class="button secondary hidden" id="btnPrevFormStep" type="button">Voltar</button>
+            <button class="button primary step-grow" id="btnNextFormStep" type="button">Continuar</button>
+            <button class="button primary step-grow hidden" id="btnSaveProduct" type="submit">Salvar produto</button>
             <button class="button secondary" id="btnDeleteProduct" type="button" disabled>Excluir</button>
           </div>
         </form>
 
-        <div class="card product-list-card">
+        <div class="card product-list-card" id="productLibraryPanel" data-mobile-workspace-panel="library" role="tabpanel">
           <div class="list-toolbar">
             <input id="searchProducts" type="search" placeholder="Buscar código, descrição, categoria..." />
             <select id="filterCategory"><option value="">Todas as categorias</option></select>
@@ -215,6 +234,8 @@
   <script defer src="src/templates.js"></script>
   <script defer src="src/icons.js"></script>
   <script defer src="src/render.js"></script>
+  <script defer src="src/form-steps.js"></script>
+  <script defer src="src/mobile-workspace.js"></script>
   <script defer src="src/app.js"></script>
   <script defer src="src/product-details.js"></script>
   <script defer src="src/category-browser.js"></script>
