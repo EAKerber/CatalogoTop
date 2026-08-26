@@ -4,7 +4,7 @@
   "private": true,
   "description": "Gerador simplificado de catálogos A4 da Top Mobili",
   "scripts": {
-    "test": "node scripts/validate.mjs && node scripts/category-pages-fixture.mjs && node scripts/editorial-composition-fixture.mjs && node scripts/catalog-document-fixture.mjs && node scripts/collection-block-fixture.mjs && node scripts/collection-runtime-fixture.mjs && node scripts/document-boundary-fixture.mjs && node scripts/storage-contract-fixture.mjs"
+    "test": "node scripts/validate.mjs && node scripts/category-pages-fixture.mjs && node scripts/editorial-composition-fixture.mjs && node scripts/catalog-document-fixture.mjs && node scripts/collection-block-fixture.mjs && node scripts/table-block-fixture.mjs && node scripts/collection-runtime-fixture.mjs && node scripts/table-runtime-fixture.mjs && node scripts/document-boundary-fixture.mjs && node scripts/storage-contract-fixture.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^11.0.1",
