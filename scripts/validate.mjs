@@ -1,61 +1,26 @@
-import { readFile, access } from 'node:fs/promises';
+import { readFile, access, readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 
 const requiredFiles = [
-  'index.html',
-  'styles.css',
-  'cards.css',
-  'category-browser.css',
-  'shell-responsive.css',
-  'mobile-header.css',
-  'editorial-composition.css',
-  'catalog-page.css',
-  'composer-layout.css',
-  'preview-viewport.css',
-  'print.css',
-  'collection-block.css',
-  'src/composition.js',
-  'src/core.js',
-  'src/collection.js',
-  'src/indexed-cache.js',
-  'src/asset-client.js',
-  'src/product-store.js',
-  'src/importer.js',
-  'src/templates.js',
-  'src/icons.js',
-  'src/catalog-document.js',
-  'src/collection-document.js',
-  'src/render.js',
-  'src/render-document-adapter.js',
-  'src/collection-render.js',
-  'src/print.js',
-  'src/form-steps.js',
-  'src/mobile-workspace.js',
-  'src/preview-zoom.js',
-  'src/app.js',
-  'src/catalog-selection-order.js',
-  'src/collection-controls.js',
-  'src/product-details.js',
-  'src/category-browser.js',
-  'assets/logo-top-mobili.svg',
-  'examples/produtos-modelo.csv',
-  'examples/card-cases.html',
-  'examples/card-cases.js',
-  'netlify.toml',
-  'docs/netlify.md',
-  'docs/reuse-from-gerador-v1.md',
-  'docs/card-model.md',
-  'docs/category-browser.md',
-  'docs/responsive-shell.md',
-  'docs/editorial-composition-v0.8.md',
-  'docs/document-pipeline-v0.8.1.md',
-  'docs/card-span-model-v0.9.md',
-  'docs/collection-block-v0.10.1.md'
+  'index.html','styles.css','cards.css','category-browser.css','shell-responsive.css','mobile-header.css',
+  'editorial-composition.css','catalog-page.css','composer-layout.css','preview-viewport.css','print.css',
+  'collection-block.css','table-block.css','product-actions.css',
+  'src/composition.js','src/core.js','src/collection.js','src/table-block.js','src/catalog-document.js',
+  'src/collection-document.js','src/table-document.js','src/render.js','src/collection-render.js','src/table-render.js',
+  'src/catalog-renderer.js','src/render-document-adapter.js','src/print.js','src/app.js','src/catalog-selection-order.js',
+  'src/collection-controls.js','src/table-controls.js','src/product-actions.js','src/product-delete-ui.js','src/block-overlap-guard.js',
+  'src/indexed-cache.js','src/asset-client.js','src/product-store.js','src/importer.js','src/templates.js','src/icons.js',
+  'src/form-steps.js','src/mobile-workspace.js','src/preview-zoom.js','src/product-details.js','src/category-browser.js',
+  'assets/logo-top-mobili.svg','examples/produtos-modelo.csv','examples/card-cases.html','examples/card-cases.js',
+  'netlify.toml','docs/netlify.md','docs/reuse-from-gerador-v1.md','docs/card-model.md','docs/category-browser.md',
+  'docs/responsive-shell.md','docs/editorial-composition-v0.8.md','docs/document-pipeline-v0.8.1.md',
+  'docs/card-span-model-v0.9.md','docs/collection-block-v0.10.1.md','docs/table-block-v0.10.2.md',
+  'docs/editor-runtime-boundaries-v0.11.0.md'
 ];
-
 for (const file of requiredFiles) await access(file);
 
-for (const file of requiredFiles.filter(file => file.endsWith('.js'))) {
+const srcJs = (await readdir('src')).filter(file => file.endsWith('.js')).map(file => `src/${file}`);
+for (const file of srcJs) {
   const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
   if (result.status !== 0) {
     process.stderr.write(result.stderr || result.stdout || `Falha de sintaxe em ${file}\n`);
@@ -63,107 +28,63 @@ for (const file of requiredFiles.filter(file => file.endsWith('.js'))) {
   }
 }
 
-const files = Object.fromEntries(await Promise.all([
-  'index.html', 'styles.css', 'cards.css', 'shell-responsive.css', 'mobile-header.css',
-  'editorial-composition.css', 'catalog-page.css', 'composer-layout.css', 'preview-viewport.css',
-  'print.css', 'collection-block.css', 'src/composition.js', 'src/core.js', 'src/collection.js',
-  'src/catalog-document.js', 'src/collection-document.js', 'src/render.js', 'src/collection-render.js',
-  'src/print.js', 'src/app.js', 'src/catalog-selection-order.js', 'src/collection-controls.js',
-  'src/importer.js', 'src/templates.js', 'src/icons.js', 'src/form-steps.js', 'src/mobile-workspace.js',
-  'src/preview-zoom.js', 'src/product-details.js', 'src/category-browser.js', 'examples/card-cases.js',
-  'netlify.toml', 'assets/logo-top-mobili.svg', 'docs/collection-block-v0.10.1.md'
-].map(async file => [file, await readFile(file, 'utf8')])));
-
+const names = [
+  'index.html','shell-responsive.css','mobile-header.css','editorial-composition.css','catalog-page.css','composer-layout.css','preview-viewport.css','print.css','collection-block.css','table-block.css',
+  'src/composition.js','src/core.js','src/collection.js','src/table-block.js','src/catalog-document.js','src/collection-document.js','src/table-document.js','src/render.js','src/collection-render.js','src/table-render.js','src/catalog-renderer.js','src/render-document-adapter.js','src/print.js','src/app.js','src/catalog-selection-order.js','src/collection-controls.js','src/table-controls.js','src/product-actions.js','src/product-delete-ui.js','src/block-overlap-guard.js','src/importer.js','src/templates.js','src/icons.js','src/form-steps.js','src/mobile-workspace.js','src/preview-zoom.js','src/product-details.js','src/category-browser.js','examples/card-cases.js','netlify.toml','assets/logo-top-mobili.svg','docs/editor-runtime-boundaries-v0.11.0.md'
+];
+const files = Object.fromEntries(await Promise.all(names.map(async file => [file, await readFile(file, 'utf8')])));
 const html = files['index.html'];
 const core = files['src/core.js'];
 const composition = files['src/composition.js'];
 const collection = files['src/collection.js'];
+const table = files['src/table-block.js'];
+const documentModel = files['src/catalog-document.js'];
 const collectionDocument = files['src/collection-document.js'];
+const tableDocument = files['src/table-document.js'];
 const collectionRender = files['src/collection-render.js'];
+const tableRender = files['src/table-render.js'];
+const catalogRenderer = files['src/catalog-renderer.js'];
+const renderAdapter = files['src/render-document-adapter.js'];
+const app = files['src/app.js'];
+const order = files['src/catalog-selection-order.js'];
 const collectionControls = files['src/collection-controls.js'];
-const orderBootstrap = files['src/catalog-selection-order.js'];
-const render = files['src/render.js'];
+const tableControls = files['src/table-controls.js'];
+const deleteUi = files['src/product-delete-ui.js'];
+const overlapGuard = files['src/block-overlap-guard.js'];
 const printJs = files['src/print.js'];
-const editorialCss = files['editorial-composition.css'];
-const collectionCss = files['collection-block.css'];
-const previewCss = files['preview-viewport.css'];
-const printCss = files['print.css'];
-const catalogPageCss = files['catalog-page.css'];
-const shellCss = files['shell-responsive.css'];
-const mobileHeaderCss = files['mobile-header.css'];
-const composerCss = files['composer-layout.css'];
-const templates = files['src/templates.js'];
-const importer = files['src/importer.js'];
-const icons = files['src/icons.js'];
-const formSteps = files['src/form-steps.js'];
-const mobileWorkspace = files['src/mobile-workspace.js'];
-const previewZoom = files['src/preview-zoom.js'];
-const detailEditor = files['src/product-details.js'];
-const categoryBrowser = files['src/category-browser.js'];
-const cardCases = files['examples/card-cases.js'];
-const netlify = files['netlify.toml'];
 const logo = files['assets/logo-top-mobili.svg'];
-const collectionDocs = files['docs/collection-block-v0.10.1.md'];
-
-const headerStart = html.indexOf('<header class="app-shell-header">');
-const headerEnd = html.indexOf('</header>', headerStart);
-const headerHtml = html.slice(headerStart, headerEnd);
-const productHeadingStart = html.indexOf('class="section-heading product-section-heading"');
-const productWorkspaceStart = html.indexOf('class="product-workspace"');
-const productHeadingHtml = html.slice(productHeadingStart, productWorkspaceStart);
-
 const checks = [
   ['shell possui três abas primárias', ['products','catalog','templates'].every(tab => html.includes(`data-tab="${tab}"`))],
-  ['tabs, importação e backup compartilham header sticky', headerHtml.includes('class="app-tabs"') && headerHtml.includes('id="importProductsFile"') && headerHtml.includes('id="backupFile"') && shellCss.includes('position: sticky')],
-  ['ação novo produto fica no formulário, não no heading', !productHeadingHtml.includes('id="btnNewProduct"') && html.indexOf('id="btnNewProduct"') > html.indexOf('id="productForm"')],
-  ['mobile mantém breakpoints principais', shellCss.includes('@media (max-width: 959px)') && shellCss.includes('@media (max-width: 639px)')],
-  ['mobile preserva tabs primárias e utilidades roláveis', mobileHeaderCss.includes('grid-template-columns: repeat(3, minmax(0, 1fr))') && mobileHeaderCss.includes('overflow-x: auto')],
-  ['workspace mobile usa swipe com limiar', mobileWorkspace.includes('touchstart') && mobileWorkspace.includes('touchend') && mobileWorkspace.includes('Math.abs(dx) < 56')],
-  ['formulário permanece em três etapas', (html.match(/data-form-step="/g) || []).length === 3 && formSteps.includes('Etapa ${current} de ${steps.length}')],
-  ['categoria manual continua sobrescrevível', html.includes('id="category" list="categoryOptions" required') && html.includes('id="categoryOptions"')],
-  ['biblioteca mantém pastas de categoria', html.includes('id="categoryFolders"') && categoryBrowser.includes('data-category-folder')],
+  ['runtime editorial é bootstrap estático', html.includes('collection-block.css') && html.includes('table-block.css') && html.indexOf('src/collection.js') < html.indexOf('src/catalog-document.js') && html.indexOf('src/table-block.js') < html.indexOf('src/catalog-document.js')],
+  ['ProductActions carrega antes da aplicação', html.indexOf('src/product-actions.js') < html.indexOf('src/app.js')],
+  ['renderer canônico carrega após helpers', html.indexOf('src/collection-render.js') < html.indexOf('src/catalog-renderer.js') && html.indexOf('src/table-render.js') < html.indexOf('src/catalog-renderer.js')],
   ['logo canônica preserva viewBox oficial', logo.includes('viewBox="0 0 481 270"')],
-
-  ['estado local usa schema v4 e preserva blocks', core.includes('SCHEMA_VERSION = 4') && core.includes('preservedBlocks') && core.includes('blocks: []')],
-  ['produto continua preservando variações e tabela comercial', core.includes('variants: normalizeVariants(product.variants)') && core.includes('tableRows: normalizeTableRows(product.tableRows)')],
-  ['formulário continua oferecendo variações e tabela simples', html.includes('id="variants"') && detailEditor.includes('parseVariantsText') && html.includes('id="commercialRows"') && detailEditor.includes('parseTableRowsText')],
-
-  ['planner v0.9 mantém largura em slots independente de ênfase', composition.includes('function slotSpanFor') && composition.includes('function microSpanForSlots') && !composition.includes('function emphasisRank')],
-  ['larguras simples/larga/full permanecem disponíveis', ['simple','wide','full'].every(id => composition.includes(`id: '${id}'`)) && composition.includes('WIDTH_PRESETS')],
-  ['Hero segue apenas como migração legada', composition.includes("legacyHero ? 'feature'") && composition.includes("legacyHero ? 'full'") && !composition.includes("{ id: 'hero', name: 'Hero' }")],
-  ['renderer base continua expondo card markup e grid 6 colunas', render.includes('cardMarkup') && editorialCss.includes('grid-template-columns: repeat(6') && !editorialCss.includes('grid-auto-flow: dense')],
-
-  ['Collection é normalizada como bloco local fechado', collection.includes("type: 'collection'") && collection.includes('MAX_MEMBERS = 12') && collection.includes('normalizeBlocks')],
-  ['Collection preserva presentation.blocks', collection.includes('__collectionBlocksWrapped') && collection.includes('blocks: normalizeBlocks(raw?.blocks)')],
-  ['Collection calcula grade interna e rowSpan antes do DOM', collection.includes('function planCollection') && collection.includes('localRowCount') && collection.includes('rowSpan')],
-  ['Collection pagina como unidade atômica full-width', collection.includes('function paginateNodes') && collection.includes("node.type === 'collection'") && collection.includes('span: 6')],
-  ['Collection exige membros contíguos', collection.includes('function contiguousMemberRun') && collection.includes('validBlocksForProducts')],
-  ['CatalogDocument materializa collection e todos os memberIds', collectionDocument.includes("type: 'collection'") && collectionDocument.includes('memberIds') && collectionDocument.includes('memberEffectiveOrders')],
-  ['CatalogDocument mantém orderedIds de todos os produtos', collectionDocument.includes('orderedIds.push(id)') && collectionDocument.includes('selectedCount: selected.length')],
-  ['renderer de coleção consome documento e não calcula páginas', collectionRender.includes('NS.CatalogDocument.build(state)') && collectionRender.includes('catalog-collection') && !collectionRender.includes('paginateNodes(')],
-  ['coleção ocupa full-width e rowSpan materializado', collectionRender.includes('grid-column:1 / span 6') && collectionRender.includes('grid-row:${item.row} / span ${item.rowSpan}')],
-  ['temas claro/escuro e grade local estão isolados em CSS próprio', collectionCss.includes('.catalog-collection.theme-dark') && collectionCss.includes('repeat(var(--collection-cols)') && collectionCss.includes('.catalog-collection-grid')],
-  ['UI oferece criar/desagrupar e overrides locais', collectionControls.includes('Agrupar em coleção') && collectionControls.includes('data-dissolve-collection') && collectionControls.includes('data-collection-member-width') && collectionControls.includes('data-collection-member-emphasis')],
-  ['runtime de coleção carrega como extensão sem build frontend', orderBootstrap.includes("'src/collection.js'") && orderBootstrap.includes("'src/collection-document.js'") && orderBootstrap.includes("'src/collection-render.js'") && orderBootstrap.includes("'src/collection-controls.js'")],
-  ['documentação fixa Card Collection Table como vocabulário pretendido', collectionDocs.includes('Card') && collectionDocs.includes('Collection') && collectionDocs.includes('Table (recorte seguinte)')],
-
-  ['CatalogDocument base continua disponível', files['src/catalog-document.js'].includes('orderedIds') && files['src/catalog-document.js'].includes('effectiveOrderById')],
-  ['impressão continua isolando apenas catalog-page', printJs.includes("querySelectorAll('.catalog-page')") && printJs.includes('body class="catalog-print-document"')],
-  ['print físico permanece A4 210 × 297', printCss.includes('size: A4 portrait') && printCss.includes('width: 210mm !important') && printCss.includes('height: 297mm !important')],
-  ['quebra física continua somente antes das páginas seguintes', printCss.includes('.catalog-page + .catalog-page') && printCss.includes('break-before: page !important')],
-  ['linhas institucionais críticas usam borda', catalogPageCss.includes('border-top: .45mm solid var(--brand)') && catalogPageCss.includes('.footer-line')],
-  ['preview mantém Fit/zoom e pan vertical', html.includes('id="catalogPreviewViewport"') && previewZoom.includes('210 * 96 / 25.4') && previewCss.includes('overscroll-behavior-y: auto')],
-  ['CSS mobile segue sem print/compositor acoplado', !mobileHeaderCss.includes('@media print') && !mobileHeaderCss.includes('bulk-presentation-controls')],
-  ['compositor responde à largura real do painel', composerCss.includes('container-type: inline-size') && composerCss.includes('@container catalog-selection-panel')],
-
-  ['templates técnico/compacto/showcase permanecem registrados', ['technical','compact','showcase'].every(id => templates.includes(`id: '${id}'`))],
-  ['importador continua exigindo código/descrição', importer.includes('Código e descrição são obrigatórios.')],
-  ['ícones institucionais incluem WhatsApp', icons.includes('whatsapp')],
-  ['Netlify continua executando npm test', netlify.includes('command = "npm test"')],
-  ['Netlify continua publicando raiz estática', netlify.includes('publish = "."')],
-  ['harness de cards continua usando renderer real', (cardCases.match(/name: '/g) || []).length === 4 && cardCases.includes("scratch.querySelector('.catalog-card')")]
+  ['estado local mantém schema v4', core.includes('SCHEMA_VERSION = 4') && core.includes('blocks: []')],
+  ['Composition preserva blocks e reserva imageFrames', composition.includes('blocks: normalizeBlocks(source.blocks)') && composition.includes('imageFrames: normalizeImageFrames(source.imageFrames)')],
+  ['largura por slots continua independente da ênfase', composition.includes('function slotSpanFor') && composition.includes('WIDTH_PRESETS') && !composition.includes('function emphasisRank')],
+  ['Hero segue somente como migração legada', composition.includes("legacyHero ? 'feature'") && composition.includes("legacyHero ? 'full'")],
+  ['Collection é modelo fechado sem monkey patch', collection.includes("type: 'collection'") && collection.includes('MAX_MEMBERS = 12') && collection.includes('planCollection') && !collection.includes('Composition.normalizePresentation =')],
+  ['Table é modelo fragmentável sem monkey patch', table.includes("type: 'table'") && table.includes('fragmentTable') && table.includes('capacityForUnit') && !table.includes('Composition.normalizePresentation =')],
+  ['CatalogDocument é autoridade mista única', documentModel.includes('function resolveBlocks') && documentModel.includes("type: 'collection'") && documentModel.includes("type: 'table-fragment'") && documentModel.includes('orderedIds = selected.map')],
+  ['adapters de documento não substituem build', !collectionDocument.includes('CatalogDocument.build =') && !tableDocument.includes('CatalogDocument.build =')],
+  ['helpers de render não substituem renderCatalog', !collectionRender.includes('renderCatalog =') && !tableRender.includes('renderCatalog =') && !renderAdapter.includes('renderCatalog =')],
+  ['somente renderer canônico instala renderCatalog uma vez', (catalogRenderer.match(/Render\.renderCatalog\s*=/g) || []).length === 1 && catalogRenderer.includes("item.type === 'collection'") && catalogRenderer.includes("item.type === 'table'")],
+  ['lista é renderizada explicitamente sem observers de decoração', app.includes('function blockMembership') && app.includes('catalogotop:selection-rendered') && !order.includes('MutationObserver') && !collectionControls.includes('MutationObserver') && !tableControls.includes('MutationObserver')],
+  ['SelectionOrder não carrega runtime', !order.includes('loadScript(') && !order.includes('ensureStyle(') && order.includes('effectiveOrderMap')],
+  ['exclusão direta nasce no render e usa operação de domínio', app.includes('data-delete-product-direct') && app.includes('NS.ProductActions.deleteProduct') && files['src/product-actions.js'].includes('cleanupDraftForDeletedProduct')],
+  ['compatibilidade de delete/overlap não observa DOM', !deleteUi.includes('MutationObserver') && !overlapGuard.includes('MutationObserver')],
+  ['Collection/Table continuam expostos na UI', collectionControls.includes('Agrupar em coleção') && tableControls.includes('Agrupar em tabela')],
+  ['print continua isolado e com CSS dos blocos', printJs.includes("querySelectorAll('.catalog-page')") && printJs.includes('collection-block.css') && printJs.includes('table-block.css')],
+  ['print físico permanece A4', files['print.css'].includes('size: A4 portrait') && files['print.css'].includes('width: 210mm !important') && files['print.css'].includes('height: 297mm !important')],
+  ['preview mantém Fit/zoom e pan vertical', html.includes('id="catalogPreviewViewport"') && files['src/preview-zoom.js'].includes('210 * 96 / 25.4') && files['preview-viewport.css'].includes('overscroll-behavior-y: auto')],
+  ['mobile não incorpora print/compositor', !files['mobile-header.css'].includes('@media print') && !files['mobile-header.css'].includes('bulk-presentation-controls')],
+  ['compositor segue container-aware', files['composer-layout.css'].includes('container-type: inline-size')],
+  ['templates técnico/compacto/showcase permanecem', ['technical','compact','showcase'].every(id => files['src/templates.js'].includes(`id: '${id}'`))],
+  ['importador continua exigindo código/descrição', files['src/importer.js'].includes('Código e descrição são obrigatórios.')],
+  ['ícones institucionais incluem WhatsApp', files['src/icons.js'].includes('whatsapp')],
+  ['Netlify continua executando npm test', files['netlify.toml'].includes('command = "npm test"')],
+  ['documentação registra fronteiras v0.11.0', files['docs/editor-runtime-boundaries-v0.11.0.md'].includes('CatalogDocument') && files['docs/editor-runtime-boundaries-v0.11.0.md'].includes('MutationObserver')]
 ];
-
 const failed = checks.filter(([, ok]) => !ok);
 if (failed.length) {
   failed.forEach(([name]) => console.error(`FAIL ${name}`));

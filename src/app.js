@@ -50,7 +50,10 @@
       <td><button class="table-product-link" data-edit-product="${Render.esc(product.id)}">${Render.esc(product.description)}</button>${product.notes ? `<small>${Render.esc(product.notes)}</small>` : ''}</td>
       <td>${Render.esc(product.category || '—')}<small>${Render.esc(product.subcategory || '')}</small></td>
       <td><strong>${Render.esc(product.price || '—')}</strong></td>
-      <td><button class="icon-button" data-edit-product="${Render.esc(product.id)}" title="Editar">›</button></td>
+      <td><div class="product-row-actions">
+        <button class="icon-button" data-edit-product="${Render.esc(product.id)}" title="Editar" aria-label="Editar produto">›</button>
+        <button class="icon-button danger-action" data-delete-product-direct="${Render.esc(product.id)}" title="Excluir produto" aria-label="Excluir produto">×</button>
+      </div></td>
     </tr>`).join('');
     $('#productCount').textContent = `${current.products.length} ${current.products.length === 1 ? 'produto' : 'produtos'}`;
     $('#productsEmpty').classList.toggle('hidden', current.products.length !== 0);
@@ -87,28 +90,84 @@
     return items.map(item => `<option value="${item.id}" ${item.id === selected ? 'selected' : ''}>${Render.esc(item.name)}</option>`).join('');
   }
 
+  function blockMembership(presentation) {
+    const map = new Map();
+    (Array.isArray(presentation.blocks) ? presentation.blocks : []).forEach(block => {
+      (Array.isArray(block?.memberIds) ? block.memberIds : []).forEach(id => {
+        if (!map.has(String(id))) map.set(String(id), block);
+      });
+    });
+    return map;
+  }
+
+  function selectionControls(product, presentation, block) {
+    const id = String(product.id);
+    if (block?.type === 'collection' && NS.Collection) {
+      const normalized = NS.Collection.normalizeBlock(block);
+      const style = NS.Collection.memberStyleFor(normalized, id);
+      return `<div class="collection-member-controls">
+        <label>Ênfase<select data-collection-member-emphasis="${Render.esc(id)}" data-block-id="${Render.esc(normalized.id)}">
+          <option value="normal"${style.emphasis === 'normal' ? ' selected' : ''}>Normal</option>
+          <option value="feature"${style.emphasis === 'feature' ? ' selected' : ''}>Destaque</option>
+        </select></label>
+        <label>Largura<select data-collection-member-width="${Render.esc(id)}" data-block-id="${Render.esc(normalized.id)}">
+          <option value="simple"${style.width === 'simple' ? ' selected' : ''}>Simples</option>
+          <option value="wide"${style.width === 'wide' ? ' selected' : ''}>Largo</option>
+          <option value="full"${style.width === 'full' ? ' selected' : ''}>Linha inteira</option>
+        </select></label>
+      </div>`;
+    }
+    if (block?.type === 'table') return '';
+    const style = Composition.styleFor(presentation, id);
+    return `<div class="selection-presentation-controls">
+      <label>Conteúdo<select data-content-preset="${Render.esc(id)}">${optionMarkup(Composition.CONTENT_PRESETS, style.contentPreset)}</select></label>
+      <label>Ênfase<select data-emphasis="${Render.esc(id)}">${optionMarkup(Composition.EMPHASIS_PRESETS, style.emphasis)}</select></label>
+      <label>Largura<select data-card-width="${Render.esc(id)}">${optionMarkup(Composition.WIDTH_PRESETS, style.width)}</select></label>
+    </div>`;
+  }
+
   function renderSelection() {
     const current = state();
     const presentation = Composition.normalizePresentation(current.catalog.presentation);
+    const membership = blockMembership(presentation);
+    const orderMap = NS.SelectionOrder?.effectiveOrderMap(current) || new Map(current.selectedIds.map((id, index) => [String(id), index + 1]));
     const { query, category } = selectionFilters();
-    const available = current.products.filter(product => product.status === 'Ativo' && productMatches(product, query, category));
-    $('#selectableProducts').innerHTML = available.length ? available.map(product => {
-      const selected = current.selectedIds.includes(product.id);
-      const order = selected ? current.selectedIds.indexOf(product.id) + 1 : null;
-      const style = Composition.styleFor(presentation, product.id);
-      const resolvedPreset = Composition.resolveContentPreset(product, style.contentPreset);
-      return `<label class="select-product ${selected ? 'selected' : ''}">
+    const available = current.products
+      .filter(product => product.status === 'Ativo' && productMatches(product, query, category))
+      .map((product, domIndex) => ({
+        product,
+        domIndex,
+        selected: current.selectedIds.includes(product.id),
+        effectiveOrder: orderMap.get(String(product.id)) || Number.POSITIVE_INFINITY
+      }))
+      .sort((left, right) => {
+        if (left.selected !== right.selected) return left.selected ? -1 : 1;
+        if (left.selected && right.selected) return left.effectiveOrder - right.effectiveOrder || left.domIndex - right.domIndex;
+        return left.domIndex - right.domIndex;
+      });
+
+    $('#selectableProducts').innerHTML = available.length ? available.map(entry => {
+      const product = entry.product;
+      const selected = entry.selected;
+      const order = selected && Number.isFinite(entry.effectiveOrder) ? entry.effectiveOrder : null;
+      const block = membership.get(String(product.id));
+      const baseStyle = Composition.styleFor(presentation, product.id);
+      const resolvedPreset = Composition.resolveContentPreset(product, baseStyle.contentPreset);
+      const blockClass = block?.type === 'collection' ? ' in-collection' : block?.type === 'table' ? ' in-table' : '';
+      const badge = selected && block?.type === 'collection'
+        ? `<span class="collection-member-badge">Coleção · ${Render.esc(block.title || 'sem título')}</span>`
+        : selected && block?.type === 'table'
+          ? `<span class="table-member-badge">Tabela · ${Render.esc(block.title || 'sem título')}</span>` : '';
+      return `<label class="select-product ${selected ? 'selected' : ''}${blockClass}"${order ? ` data-effective-order="${order}"` : ''}>
         <input type="checkbox" data-select-product="${Render.esc(product.id)}" ${selected ? 'checked' : ''} />
         <img src="${Render.esc(imageValue(product))}" alt="" />
-        <span><strong>${Render.esc(product.code)} · ${Render.esc(product.description)}</strong><small>${Render.esc([product.category, product.subcategory].filter(Boolean).join(' / '))}${style.contentPreset === 'auto' ? ` · auto: ${Render.esc(resolvedPreset)}` : ''}</small></span>
-        ${order ? `<b class="selection-order">${order}</b>` : ''}
-        <div class="selection-presentation-controls">
-          <label>Conteúdo<select data-content-preset="${Render.esc(product.id)}">${optionMarkup(Composition.CONTENT_PRESETS, style.contentPreset)}</select></label>
-          <label>Ênfase<select data-emphasis="${Render.esc(product.id)}">${optionMarkup(Composition.EMPHASIS_PRESETS, style.emphasis)}</select></label>
-          <label>Largura<select data-card-width="${Render.esc(product.id)}">${optionMarkup(Composition.WIDTH_PRESETS, style.width)}</select></label>
-        </div>
+        <span><strong>${Render.esc(product.code)} · ${Render.esc(product.description)}</strong><small>${Render.esc([product.category, product.subcategory].filter(Boolean).join(' / '))}${baseStyle.contentPreset === 'auto' ? ` · auto: ${Render.esc(resolvedPreset)}` : ''}</small>${badge}</span>
+        ${order ? `<b class="selection-order" title="Ordem efetiva no catálogo">${order}</b>` : ''}
+        ${selected ? selectionControls(product, presentation, block) : ''}
       </label>`;
     }).join('') : '<div class="empty-state compact-empty"><strong>Nenhum produto disponível.</strong><span>Ajuste o filtro ou cadastre produtos ativos.</span></div>';
+
+    window.dispatchEvent(new CustomEvent('catalogotop:selection-rendered'));
   }
 
   function renderCatalog() {
@@ -229,12 +288,19 @@
   function setItemPresentation(productId, patch) {
     save(draft => {
       const presentation = Composition.normalizePresentation(draft.catalog.presentation);
-      presentation.itemStyles[productId] = {
-        ...Composition.styleFor(presentation, productId),
-        ...patch
-      };
+      presentation.itemStyles[productId] = { ...Composition.styleFor(presentation, productId), ...patch };
       draft.catalog.presentation = presentation;
     });
+  }
+
+  async function deleteProductFromUi(id) {
+    try {
+      if (!NS.ProductActions?.deleteProduct) throw new Error('Operação de exclusão indisponível.');
+      const deleted = await NS.ProductActions.deleteProduct(id);
+      if (deleted && String($('#productId').value || '') === String(id)) clearProductForm();
+    } catch (error) {
+      alert(error.message || 'Não foi possível excluir o produto.');
+    }
   }
 
   function bindEvents() {
@@ -248,8 +314,14 @@
     $('#importProductsFile').addEventListener('change', event => handleProductImport(event.target.files[0]));
 
     $('#productRows').addEventListener('click', event => {
-      const button = event.target.closest('[data-edit-product]');
-      if (button) editProduct(button.dataset.editProduct);
+      const deleteButton = event.target.closest('[data-delete-product-direct]');
+      if (deleteButton) {
+        event.preventDefault();
+        deleteProductFromUi(deleteButton.dataset.deleteProductDirect);
+        return;
+      }
+      const editButton = event.target.closest('[data-edit-product]');
+      if (editButton) editProduct(editButton.dataset.editProduct);
     });
 
     $('#productForm').addEventListener('submit', async event => {
@@ -267,9 +339,7 @@
           if (error.code === 'write_session_required' && await ProductStore.unlock()) image = await AssetClient.uploadBlob(pendingProductImageBlob);
           else { alert(error.message || 'Não foi possível enviar a imagem.'); return; }
         }
-      } else if (urlImage) {
-        image = urlImage;
-      }
+      } else if (urlImage) image = urlImage;
 
       const product = Core.normalizeProduct({
         ...existing,
@@ -295,18 +365,9 @@
       await publishProducts();
     });
 
-    $('#btnDeleteProduct').addEventListener('click', async () => {
+    $('#btnDeleteProduct').addEventListener('click', () => {
       const id = $('#productId').value;
-      if (!id) return;
-      const product = state().products.find(item => item.id === id);
-      if (!product || !confirm(`Excluir ${product.code} · ${product.description}?`)) return;
-      save(draft => {
-        draft.products = draft.products.filter(item => item.id !== id);
-        draft.selectedIds = draft.selectedIds.filter(item => item !== id);
-        if (draft.catalog.presentation?.itemStyles) delete draft.catalog.presentation.itemStyles[id];
-      });
-      clearProductForm();
-      await publishProducts();
+      if (id) deleteProductFromUi(id);
     });
 
     const dropzone = $('#imageDropzone');
@@ -323,20 +384,11 @@
 
     $('#selectableProducts').addEventListener('change', event => {
       const preset = event.target.closest('[data-content-preset]');
-      if (preset) {
-        setItemPresentation(preset.dataset.contentPreset, { contentPreset: preset.value });
-        return;
-      }
+      if (preset) { setItemPresentation(preset.dataset.contentPreset, { contentPreset: preset.value }); return; }
       const emphasis = event.target.closest('[data-emphasis]');
-      if (emphasis) {
-        setItemPresentation(emphasis.dataset.emphasis, { emphasis: emphasis.value });
-        return;
-      }
+      if (emphasis) { setItemPresentation(emphasis.dataset.emphasis, { emphasis: emphasis.value }); return; }
       const width = event.target.closest('[data-card-width]');
-      if (width) {
-        setItemPresentation(width.dataset.cardWidth, { width: width.value });
-        return;
-      }
+      if (width) { setItemPresentation(width.dataset.cardWidth, { width: width.value }); return; }
       const checkbox = event.target.closest('[data-select-product]');
       if (!checkbox) return;
       const id = checkbox.dataset.selectProduct;

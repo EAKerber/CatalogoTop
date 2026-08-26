@@ -60,6 +60,26 @@
     };
   }
 
+  function normalizeBlockShell(block) {
+    if (!block || typeof block !== 'object') return null;
+    return {
+      ...block,
+      id: String(block.id || ''),
+      type: String(block.type || ''),
+      memberIds: Array.isArray(block.memberIds) ? block.memberIds.map(String) : [],
+      itemStyles: block.itemStyles && typeof block.itemStyles === 'object' ? { ...block.itemStyles } : undefined
+    };
+  }
+
+  function normalizeBlocks(blocks) {
+    return (Array.isArray(blocks) ? blocks : []).map(normalizeBlockShell).filter(Boolean);
+  }
+
+  function normalizeImageFrames(frames) {
+    if (!frames || typeof frames !== 'object' || Array.isArray(frames)) return {};
+    return Object.fromEntries(Object.entries(frames).map(([id, value]) => [String(id), value && typeof value === 'object' ? { ...value } : {}]));
+  }
+
   function normalizePresentation(raw) {
     const source = raw && typeof raw === 'object' ? raw : {};
     const itemStyles = {};
@@ -72,7 +92,9 @@
     return {
       distribution: normalizeChoice(source.distribution, DISTRIBUTIONS, 'balanced'),
       typography: normalizeChoice(source.typography, TYPOGRAPHY_PRESETS, 'neutral'),
-      itemStyles
+      itemStyles,
+      blocks: normalizeBlocks(source.blocks),
+      imageFrames: normalizeImageFrames(source.imageFrames)
     };
   }
 
@@ -141,11 +163,9 @@
       const style = styleFor(normalizedPresentation, product.id);
       const slotSpan = slotSpanFor(style, template);
       const remainingSlots = slotsPerRow - usedSlots;
-
       if (current.length && slotSpan > remainingSlots) flush();
-
       const startSlot = usedSlots + 1;
-      const item = {
+      current.push({
         product,
         style,
         contentPreset: resolveContentPreset(product, style.contentPreset),
@@ -155,29 +175,18 @@
         span: microSpanForSlots(slotSpan, template),
         row: rows.length + 1,
         start: microStartForSlot(startSlot, template)
-      };
-
-      current.push(item);
+      });
       usedSlots += slotSpan;
       if (usedSlots >= slotsPerRow) flush();
     });
     flush();
-
-    rows.forEach((row, rowIndex) => {
-      row.forEach(item => { item.row = rowIndex + 1; });
-    });
-
+    rows.forEach((row, rowIndex) => row.forEach(item => { item.row = rowIndex + 1; }));
     return rows;
   }
 
   function planProducts(products, template, presentation) {
     const rows = packRows(products, template, presentation);
-    return {
-      rows,
-      rowCount: rows.length,
-      items: rows.flat(),
-      slotsPerRow: templateSlotCount(template)
-    };
+    return { rows, rowCount: rows.length, items: rows.flat(), slotsPerRow: templateSlotCount(template) };
   }
 
   function paginateProducts(products, template, presentation) {
@@ -185,7 +194,6 @@
     const ordered = orderProductsForLayout(products);
     const pages = [];
     let current = [];
-
     for (const product of ordered) {
       const candidate = current.concat(product);
       const candidatePlan = planProducts(candidate, template, presentation);
@@ -196,7 +204,6 @@
         current = candidate;
       }
     }
-
     if (current.length) pages.push({ products: current, layout: planProducts(current, template, presentation) });
     return pages;
   }
@@ -209,23 +216,16 @@
     if (typeof document === 'undefined' || document.getElementById('bulkPresentationControls')) return;
     const anchor = document.querySelector('.selection-actions');
     if (!anchor) return;
-
     const panel = document.createElement('div');
     panel.id = 'bulkPresentationControls';
     panel.className = 'bulk-presentation-controls';
     panel.innerHTML = `
       <strong>Aplicar a todos os selecionados</strong>
-      <label>Conteúdo
-        <select id="bulkContentPreset">${optionsMarkup(CONTENT_PRESETS, 'visual')}</select>
-      </label>
+      <label>Conteúdo<select id="bulkContentPreset">${optionsMarkup(CONTENT_PRESETS, 'visual')}</select></label>
       <button class="button secondary compact" id="btnApplyBulkContent" type="button">Aplicar conteúdo</button>
-      <label>Ênfase
-        <select id="bulkEmphasis">${optionsMarkup(EMPHASIS_PRESETS, 'normal')}</select>
-      </label>
+      <label>Ênfase<select id="bulkEmphasis">${optionsMarkup(EMPHASIS_PRESETS, 'normal')}</select></label>
       <button class="button secondary compact" id="btnApplyBulkEmphasis" type="button">Aplicar ênfase</button>
-      <label>Largura
-        <select id="bulkWidth">${optionsMarkup(WIDTH_PRESETS, 'simple')}</select>
-      </label>
+      <label>Largura<select id="bulkWidth">${optionsMarkup(WIDTH_PRESETS, 'simple')}</select></label>
       <button class="button secondary compact" id="btnApplyBulkWidth" type="button">Aplicar largura</button>`;
     anchor.insertAdjacentElement('afterend', panel);
 
@@ -241,25 +241,16 @@
       Core.mutate(draft => {
         const presentation = normalizePresentation(draft.catalog?.presentation);
         ids.forEach(id => {
-          presentation.itemStyles[id] = {
-            ...styleFor(presentation, id),
-            ...patch
-          };
+          presentation.itemStyles[id] = { ...styleFor(presentation, id), ...patch };
         });
         draft.catalog.presentation = presentation;
       });
       window.dispatchEvent(new Event('catalogotop:products-updated'));
     };
 
-    panel.querySelector('#btnApplyBulkContent')?.addEventListener('click', () => {
-      apply({ contentPreset: panel.querySelector('#bulkContentPreset').value });
-    });
-    panel.querySelector('#btnApplyBulkEmphasis')?.addEventListener('click', () => {
-      apply({ emphasis: panel.querySelector('#bulkEmphasis').value });
-    });
-    panel.querySelector('#btnApplyBulkWidth')?.addEventListener('click', () => {
-      apply({ width: panel.querySelector('#bulkWidth').value });
-    });
+    panel.querySelector('#btnApplyBulkContent')?.addEventListener('click', () => apply({ contentPreset: panel.querySelector('#bulkContentPreset').value }));
+    panel.querySelector('#btnApplyBulkEmphasis')?.addEventListener('click', () => apply({ emphasis: panel.querySelector('#bulkEmphasis').value }));
+    panel.querySelector('#btnApplyBulkWidth')?.addEventListener('click', () => apply({ width: panel.querySelector('#bulkWidth').value }));
   }
 
   NS.Composition = {
@@ -269,6 +260,7 @@
     DISTRIBUTIONS,
     TYPOGRAPHY_PRESETS,
     normalizeItemStyle,
+    normalizeBlocks,
     normalizePresentation,
     styleFor,
     resolveContentPreset,
@@ -282,7 +274,5 @@
     setupBulkControls
   };
 
-  if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', setupBulkControls, { once: true });
-  }
+  if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', setupBulkControls, { once: true });
 })();

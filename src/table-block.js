@@ -2,18 +2,15 @@
   'use strict';
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
-  const Composition = NS.Composition;
 
   const TABLE_SOURCES = Object.freeze([
     { id: 'products', name: 'Produtos' },
     { id: 'commercialRows', name: 'Linhas comerciais' }
   ]);
-
   const TABLE_DENSITIES = Object.freeze([
     { id: 'comfortable', name: 'Confortável' },
     { id: 'compact', name: 'Compacta' }
   ]);
-
   const TABLE_COLUMNS = Object.freeze([
     { id: 'image', name: 'Imagem', sources: ['products'] },
     { id: 'code', name: 'Código', sources: ['products', 'commercialRows'] },
@@ -23,7 +20,6 @@
     { id: 'package', name: 'Embalagem', sources: ['commercialRows'] },
     { id: 'price', name: 'Preço', sources: ['products', 'commercialRows'] }
   ]);
-
   const MAX_MEMBERS = 30;
 
   function uniqueIds(values) {
@@ -74,41 +70,6 @@
       .filter(block => block.memberIds.length >= 2);
   }
 
-  function preserveMixedBlocksInPresentation() {
-    if (!Composition?.normalizePresentation || Composition.__tableBlocksWrapped) return;
-    const original = Composition.normalizePresentation.bind(Composition);
-    Composition.normalizePresentation = function normalizePresentationWithTables(raw) {
-      const normalized = original(raw);
-      const rawBlocks = Array.isArray(raw?.blocks)
-        ? raw.blocks
-        : (Array.isArray(normalized.blocks) ? normalized.blocks : []);
-      const collections = NS.Collection?.normalizeBlocks ? NS.Collection.normalizeBlocks(rawBlocks) : [];
-      const tables = normalizeBlocks(rawBlocks);
-      const collectionsById = new Map(collections.map(block => [block.id, block]));
-      const tablesById = new Map(tables.map(block => [block.id, block]));
-      const mixed = [];
-      const emitted = new Set();
-
-      rawBlocks.forEach(rawBlock => {
-        const id = String(rawBlock?.id || '');
-        const block = rawBlock?.type === 'table' ? tablesById.get(id) : collectionsById.get(id);
-        if (!block || emitted.has(`${block.type}:${block.id}`)) return;
-        emitted.add(`${block.type}:${block.id}`);
-        mixed.push(block);
-      });
-      collections.forEach(block => {
-        const key = `collection:${block.id}`;
-        if (!emitted.has(key)) { emitted.add(key); mixed.push(block); }
-      });
-      tables.forEach(block => {
-        const key = `table:${block.id}`;
-        if (!emitted.has(key)) { emitted.add(key); mixed.push(block); }
-      });
-      return { ...normalized, blocks: mixed };
-    };
-    Composition.__tableBlocksWrapped = true;
-  }
-
   function contiguousMemberRun(block, products) {
     const indexById = new Map((Array.isArray(products) ? products : []).map((product, index) => [String(product.id), index]));
     const positions = block.memberIds.map(id => indexById.get(String(id)));
@@ -139,37 +100,23 @@
         const commercial = Array.isArray(product.tableRows) ? product.tableRows.filter(Boolean) : [];
         if (!commercial.length) {
           rows.push({
-            rowId: `${product.id}:fallback`,
-            productId: String(product.id),
-            code: String(product.code || ''),
-            description: String(product.description || ''),
-            variant: '',
-            package: '',
-            price: String(product.price || '')
+            rowId: `${product.id}:fallback`, productId: String(product.id), code: String(product.code || ''),
+            description: String(product.description || ''), variant: '', package: '', price: String(product.price || '')
           });
           return;
         }
         commercial.forEach((row, index) => rows.push({
-          rowId: `${product.id}:${row.id || index}`,
-          productId: String(product.id),
-          code: String(row.code || product.code || ''),
-          description: String(product.description || ''),
-          variant: String(row.variant || ''),
-          package: String(row.package || ''),
-          price: String(row.price || product.price || '')
+          rowId: `${product.id}:${row.id || index}`, productId: String(product.id),
+          code: String(row.code || product.code || ''), description: String(product.description || ''),
+          variant: String(row.variant || ''), package: String(row.package || ''), price: String(row.price || product.price || '')
         }));
       });
       return rows;
     }
-
     return list.map(product => ({
-      rowId: String(product.id),
-      productId: String(product.id),
-      image: String(product.image || ''),
-      code: String(product.code || ''),
-      description: String(product.description || ''),
-      subcategory: String(product.subcategory || ''),
-      price: String(product.price || '')
+      rowId: String(product.id), productId: String(product.id), image: String(product.image || ''),
+      code: String(product.code || ''), description: String(product.description || ''),
+      subcategory: String(product.subcategory || ''), price: String(product.price || '')
     }));
   }
 
@@ -189,11 +136,7 @@
     while (cursor < rows.length) {
       const capacity = Math.max(1, capacityForUnit(normalized, unitIndex));
       const slice = rows.slice(cursor, cursor + capacity);
-      fragments.push({
-        fragmentIndex: unitIndex,
-        rows: slice,
-        rowSpan: 1
-      });
+      fragments.push({ fragmentIndex: unitIndex, rows: slice, rowSpan: 1 });
       cursor += slice.length;
       unitIndex += 1;
     }
@@ -210,8 +153,6 @@
     const id = String(productId);
     return normalizeBlocks(blocks).find(block => block.memberIds.includes(id)) || null;
   }
-
-  preserveMixedBlocksInPresentation();
 
   NS.TableBlock = {
     TABLE_SOURCES,

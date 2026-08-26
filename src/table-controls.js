@@ -4,9 +4,7 @@
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const { Core, TableBlock, Composition, Render } = NS;
   if (!Core || !TableBlock || !Composition || !Render) return;
-
   const $ = selector => document.querySelector(selector);
-  let patchingSelection = false;
 
   function state() { return Core.getState(); }
   function esc(value) { return Render.esc(value); }
@@ -26,7 +24,7 @@
   function mutateTables(mutator) {
     Core.mutate(draft => {
       const presentation = Composition.normalizePresentation(draft.catalog.presentation);
-      const blocks = Array.isArray(presentation.blocks) ? presentation.blocks.slice() : [];
+      const blocks = presentation.blocks.slice();
       mutator(blocks, draft);
       draft.catalog.presentation = Composition.normalizePresentation({ ...presentation, blocks });
     });
@@ -50,9 +48,10 @@
     if (ids.length < 2 || ids.length > TableBlock.MAX_MEMBERS) return [];
     const categories = new Set(ids.map(id => String(byId.get(id)?.category || 'Sem categoria')));
     if (categories.size !== 1) return [];
-    const positions = ids.map(id => current.selectedIds.map(String).indexOf(id)).sort((a, b) => a - b);
+    const selectedIds = current.selectedIds.map(String);
+    const positions = ids.map(id => selectedIds.indexOf(id)).sort((a, b) => a - b);
     if (positions.some((value, index) => value < 0 || (index > 0 && value !== positions[index - 1] + 1))) return [];
-    return current.selectedIds.map(String).filter(id => ids.includes(id));
+    return selectedIds.filter(id => ids.includes(id));
   }
 
   function ensureShell() {
@@ -71,9 +70,7 @@
       const manager = document.createElement('div');
       manager.id = 'tableBlockManager';
       manager.className = 'table-block-manager';
-      const collectionManager = $('#collectionManager');
-      const bulk = $('.bulk-presentation-controls');
-      const anchor = collectionManager || bulk || actions;
+      const anchor = $('#collectionManager') || $('.bulk-presentation-controls') || actions;
       anchor.insertAdjacentElement('afterend', manager);
       bindManager(manager);
     }
@@ -85,8 +82,7 @@
       window.alert?.('Para criar uma tabela, deixe visível um trecho contíguo de 2 a 30 produtos selecionados, ainda não agrupados e de uma única categoria.');
       return;
     }
-    const current = state();
-    const byId = new Map(current.products.map(product => [String(product.id), product]));
+    const byId = new Map(state().products.map(product => [String(product.id), product]));
     const category = byId.get(ids[0])?.category || 'Tabela';
     mutateTables(blocks => {
       blocks.push(TableBlock.normalizeBlock({
@@ -133,8 +129,7 @@
     button.disabled = ids.length < 2;
     button.title = button.disabled ? 'Filtre um trecho contíguo de uma categoria com 2 a 30 produtos selecionados e ainda não agrupados.' : `Agrupar ${ids.length} produtos em tabela`;
     manager.innerHTML = blocks.length
-      ? `<div class="table-block-manager-title"><strong>Tabelas</strong><span>${blocks.length}</span></div>${blocks.map(tableEditorMarkup).join('')}`
-      : '';
+      ? `<div class="table-block-manager-title"><strong>Tabelas</strong><span>${blocks.length}</span></div>${blocks.map(tableEditorMarkup).join('')}` : '';
   }
 
   function bindManager(manager) {
@@ -171,43 +166,6 @@
     });
   }
 
-  function patchSelection() {
-    if (patchingSelection) return;
-    const root = $('#selectableProducts');
-    if (!root) return;
-    patchingSelection = true;
-    try {
-      const membership = new Map();
-      currentBlocks().forEach(block => block.memberIds.forEach(id => membership.set(String(id), block)));
-      root.querySelectorAll(':scope > .select-product').forEach(label => {
-        const checkbox = label.querySelector('[data-select-product]');
-        if (!checkbox) return;
-        const id = String(checkbox.dataset.selectProduct);
-        const block = membership.get(id);
-        const active = Boolean(block && checkbox.checked);
-        label.classList.toggle('in-table', Boolean(block));
-
-        let badge = label.querySelector('.table-member-badge');
-        if (!active) {
-          badge?.remove();
-          return;
-        }
-
-        const badgeText = `Tabela · ${block.title || 'sem título'}`;
-        if (!badge) {
-          badge = document.createElement('span');
-          badge.className = 'table-member-badge';
-          badge.textContent = badgeText;
-          label.querySelector(':scope > span')?.appendChild(badge);
-        } else if (badge.textContent !== badgeText) {
-          badge.textContent = badgeText;
-        }
-      });
-    } finally {
-      patchingSelection = false;
-    }
-  }
-
   function bindSelectionExtensions() {
     const root = $('#selectableProducts');
     if (!root) return;
@@ -219,7 +177,7 @@
       if (!block) return;
       Core.mutate(draft => {
         const presentation = Composition.normalizePresentation(draft.catalog.presentation);
-        const blocks = Array.isArray(presentation.blocks) ? presentation.blocks.slice() : [];
+        const blocks = presentation.blocks.slice();
         const index = blocks.findIndex(item => item.type === 'table' && item.id === block.id);
         if (index < 0) return;
         const target = TableBlock.normalizeBlock(blocks[index]);
@@ -229,21 +187,14 @@
         draft.catalog.presentation = Composition.normalizePresentation({ ...presentation, blocks });
       });
     }, true);
-
-    new MutationObserver(() => {
-      patchSelection();
-      renderManager();
-    }).observe(root, { childList: true });
   }
 
   function init() {
     ensureShell();
     bindSelectionExtensions();
-    patchSelection();
     renderManager();
-    $('#selectionCategory')?.addEventListener('change', () => setTimeout(renderManager, 0));
-    $('#searchSelection')?.addEventListener('input', () => setTimeout(renderManager, 0));
-    window.addEventListener('catalogotop:products-updated', () => setTimeout(() => { patchSelection(); renderManager(); }, 0));
+    window.addEventListener('catalogotop:selection-rendered', renderManager);
+    window.addEventListener('catalogotop:products-updated', () => setTimeout(renderManager, 0));
   }
 
   init();
