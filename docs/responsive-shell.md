@@ -86,6 +86,10 @@ Não existe wizard persistente nem estado novo no schema. A etapa atual é apena
 - priorizar scroll interno apenas quando há viewport suficiente; em telas pequenas, preferir fluxo vertical natural;
 - manter backup e importação como ações explícitas, sem automação invisível.
 
+## Estado após feedback visual
+
+Após a primeira inspeção do preview, o shell foi novamente comprimido: a importação saiu da faixa branca da aba Produtos e foi colocada junto de **Produtos / Catálogo / Templates**. O título alto e o botão **+ Novo produto** também deixaram de consumir a área inicial da biblioteca. Essa revisão é considerada parte do mesmo recorte v0.5, não um novo componente.
+
 ## Próximo passo relacionado
 
 Depois deste recorte, a estruturação do catálogo por categoria pode ser implementada sem competir por espaço com um shell alto. A categoria deverá organizar páginas e headers, mantendo um único contador global de páginas e a família de cores como um único card/produto.
