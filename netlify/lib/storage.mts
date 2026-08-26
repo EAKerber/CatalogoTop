@@ -34,22 +34,26 @@ function isProduction() {
   return Netlify.context?.deploy?.context === 'production';
 }
 
+function deployStore(name: string) {
+  return getDeployStore({ name, consistency: 'strong' });
+}
+
 export function productsStore() {
   return isProduction()
     ? getStore(PRODUCT_STORE, { consistency: 'strong' })
-    : getDeployStore(PRODUCT_STORE);
+    : deployStore(PRODUCT_STORE);
 }
 
 export function assetsStore() {
   return isProduction()
     ? getStore(ASSET_STORE, { consistency: 'strong' })
-    : getDeployStore(ASSET_STORE);
+    : deployStore(ASSET_STORE);
 }
 
 export function sessionsStore() {
   return isProduction()
     ? getStore(SESSION_STORE, { consistency: 'strong' })
-    : getDeployStore(SESSION_STORE);
+    : deployStore(SESSION_STORE);
 }
 
 export function json(data: unknown, status = 200, headers: HeadersInit = {}) {
