@@ -120,6 +120,15 @@ Se a rede falhar, o último snapshot IndexedDB permanece utilizável para seleç
 
 Origin não é considerado autenticação. A autoridade real de escrita é o token aleatório emitido após a validação da frase.
 
+## Regressão encontrada no primeiro Deploy Preview
+
+O primeiro teste manual revelou que a autorização estava quebrada funcionalmente: a frase era solicitada repetidamente e writes não chegavam ao ProductStore. A causa foi dupla:
+
+- a implementação inicial não possuía readback correto de sessão em `GET /api/write-session`;
+- o verifier/segredo de sessão haviam sido planejados como environment variables, mas o readback do projeto mostrou que as variáveis não estavam materializadas apesar do retorno de upsert da integração.
+
+A correção eliminou a dependência desse setup: o verifier scrypt passou a ser versionado, e a sessão passou a usar token aleatório persistido em Blob. O cliente continua sem conhecer o cookie por ser `HttpOnly`, mas consegue verificar sua validade pelo `GET` de sessão. O fixture passou a exigir explicitamente esse circuito.
+
 ## Fora do recorte
 
 - usuários individuais;
