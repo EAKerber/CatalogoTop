@@ -63,7 +63,7 @@
     return { variants: 4, rows: 6, specs: hasTable ? 1 : 3 };
   }
 
-  function limitsFor(template, hasTable, contentPreset = 'visual', emphasis = 'normal') {
+  function limitsFor(template, hasTable, contentPreset = 'visual', emphasis = 'normal', width = 'simple') {
     const base = baseLimits(template, hasTable);
     let limits = { ...base };
 
@@ -94,7 +94,12 @@
     if (emphasis === 'feature') {
       limits.rows += 1;
       limits.specs += 1;
-    } else if (emphasis === 'hero') {
+    }
+    if (width === 'wide') {
+      limits.variants += 1;
+      limits.rows += 1;
+      limits.specs += 1;
+    } else if (width === 'full') {
       limits.variants += 1;
       limits.rows += 2;
       limits.specs += 2;
@@ -179,8 +184,10 @@
     const span = Math.max(2, Math.round(6 / Math.max(1, Number(template.columns) || 2)));
     return {
       product,
-      style: { contentPreset: 'visual', emphasis: 'normal' },
+      style: { contentPreset: 'visual', emphasis: 'normal', width: 'simple' },
       contentPreset: 'visual',
+      width: 'simple',
+      slotSpan: 1,
       span,
       row: 1,
       start: 1
@@ -191,10 +198,11 @@
     const item = layoutItem || fallbackLayoutItem(product, template);
     const contentPreset = item.contentPreset || NS.Composition?.resolveContentPreset(product, item.style?.contentPreset) || 'visual';
     const emphasis = item.style?.emphasis || 'normal';
+    const width = item.width || item.style?.width || 'simple';
     const hasTable = Array.isArray(product.tableRows) && product.tableRows.length > 0;
     const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
     const hasVariantImages = hasVariants && product.variants.some(entry => entry && entry.image);
-    const limits = limitsFor(template, hasTable, contentPreset, emphasis);
+    const limits = limitsFor(template, hasTable, contentPreset, emphasis, width);
     const specs = renderSpecs(product.specs, limits.specs);
     const table = renderCommercialTable(product.tableRows, showPrices, limits.rows);
     const classes = [
@@ -202,11 +210,12 @@
       hasVariants ? 'has-variants' : '',
       hasVariantImages ? 'has-variant-images' : '',
       `content-${contentPreset}`,
-      `emphasis-${emphasis}`
+      `emphasis-${emphasis}`,
+      `width-${width}`
     ].filter(Boolean).join(' ');
     const placement = `grid-column:${Number(item.start) || 1} / span ${Number(item.span) || 3};grid-row:${Number(item.row) || 1};`;
 
-    return `<article class="catalog-card ${classes}" data-product-id="${esc(product.id)}" data-content-preset="${esc(contentPreset)}" data-emphasis="${esc(emphasis)}" style="${placement}">
+    return `<article class="catalog-card ${classes}" data-product-id="${esc(product.id)}" data-content-preset="${esc(contentPreset)}" data-emphasis="${esc(emphasis)}" data-card-width="${esc(width)}" data-slot-span="${Number(item.slotSpan) || 1}" style="${placement}">
       ${renderVisuals(product, limits.variants)}
       <div class="catalog-card-content">
         <div class="catalog-card-code">${esc(product.code)}</div>

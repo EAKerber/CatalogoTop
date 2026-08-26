@@ -15,8 +15,13 @@
 
   const EMPHASIS_PRESETS = Object.freeze([
     { id: 'normal', name: 'Normal' },
-    { id: 'feature', name: 'Destaque' },
-    { id: 'hero', name: 'Hero' }
+    { id: 'feature', name: 'Destaque visual' }
+  ]);
+
+  const WIDTH_PRESETS = Object.freeze([
+    { id: 'simple', name: 'Simples · 1 slot' },
+    { id: 'wide', name: 'Largo · 2 slots' },
+    { id: 'full', name: 'Linha inteira' }
   ]);
 
   const DISTRIBUTIONS = Object.freeze([
@@ -36,11 +41,22 @@
     return allowed.some(item => item.id === text) ? text : fallback;
   }
 
+  function widthFromLegacySlots(value) {
+    const slots = Number(value);
+    if (!Number.isFinite(slots) || slots <= 1) return 'simple';
+    if (slots === 2) return 'wide';
+    return 'full';
+  }
+
   function normalizeItemStyle(style) {
     const item = style && typeof style === 'object' ? style : {};
+    const legacyHero = String(item.emphasis || '') === 'hero';
+    const explicitWidth = item.width || item.layoutWidth || '';
+    const widthFallback = legacyHero ? 'full' : (item.spanSlots != null ? widthFromLegacySlots(item.spanSlots) : 'simple');
     return {
       contentPreset: normalizeChoice(item.contentPreset, CONTENT_PRESETS, 'visual'),
-      emphasis: normalizeChoice(item.emphasis, EMPHASIS_PRESETS, 'normal')
+      emphasis: normalizeChoice(legacyHero ? 'feature' : item.emphasis, EMPHASIS_PRESETS, 'normal'),
+      width: normalizeChoice(explicitWidth, WIDTH_PRESETS, widthFallback)
     };
   }
 
@@ -79,136 +95,76 @@
     return 'visual';
   }
 
-  function baseSpan(template) {
-    const columns = Math.max(1, Math.min(3, Number(template?.columns) || 2));
-    return Math.max(2, Math.round(6 / columns));
+  function templateSlotCount(template) {
+    return Math.max(1, Math.min(3, Number(template?.columns) || 2));
   }
 
-  function desiredSpan(style, template) {
-    if (style.emphasis === 'hero') return 6;
-    if (style.emphasis === 'feature') return 4;
-    return baseSpan(template);
+  function slotSpanFor(style, template) {
+    const slots = templateSlotCount(template);
+    if (style?.width === 'full') return slots;
+    if (style?.width === 'wide') return Math.min(2, slots);
+    return 1;
   }
 
-  function emphasisRank(style) {
-    if (style.emphasis === 'feature') return 0;
-    if (style.emphasis === 'normal') return 1;
-    return 2;
+  function microColumnsPerSlot(template) {
+    return 6 / templateSlotCount(template);
   }
 
-  /*
-   * Destaque é prioridade de fluxo; Hero é âncora de página.
-   * Separá-los evita tratar Hero como apenas um "Destaque mais forte".
-   */
-  function partitionForLayout(products, presentation) {
-    const normalizedPresentation = normalizePresentation(presentation);
-    const entries = (Array.isArray(products) ? products : [])
-      .map((product, index) => ({ product, index, style: styleFor(normalizedPresentation, product?.id) }));
-
-    const heroes = entries
-      .filter(entry => entry.style.emphasis === 'hero')
-      .sort((left, right) => left.index - right.index);
-
-    const flow = entries
-      .filter(entry => entry.style.emphasis !== 'hero')
-      .sort((left, right) => emphasisRank(left.style) - emphasisRank(right.style) || left.index - right.index);
-
-    return {
-      flow: flow.map(entry => entry.product),
-      heroes: heroes.map(entry => entry.product)
-    };
+  function microSpanForSlots(slotSpan, template) {
+    return Math.round(Math.max(1, Number(slotSpan) || 1) * microColumnsPerSlot(template));
   }
 
-  function orderProductsForLayout(products, presentation) {
-    const { flow, heroes } = partitionForLayout(products, presentation);
-    return [...flow, ...heroes];
+  function microStartForSlot(slotStart, template) {
+    return Math.round((Math.max(1, Number(slotStart) || 1) - 1) * microColumnsPerSlot(template)) + 1;
   }
 
-  function distributeSix(count) {
-    if (count <= 0) return [];
-    const base = Math.floor(6 / count);
-    let remainder = 6 - (base * count);
-    return Array.from({ length: count }, () => {
-      const value = base + (remainder > 0 ? 1 : 0);
-      remainder -= remainder > 0 ? 1 : 0;
-      return value;
-    });
-  }
-
-  function rebalanceRow(row, distribution) {
-    const total = row.reduce((sum, item) => sum + item.span, 0);
-    if (total >= 6 || distribution === 'compact') return row;
-
-    const allNormal = row.every(item => item.style.emphasis === 'normal');
-    if (allNormal) {
-      const spans = distributeSix(row.length);
-      row.forEach((item, index) => { item.span = spans[index]; });
-      return row;
-    }
-
-    let remainder = 6 - total;
-    const normals = row.filter(item => item.style.emphasis === 'normal');
-    for (let index = normals.length - 1; index >= 0 && remainder > 0; index -= 1) {
-      const item = normals[index];
-      const add = Math.min(remainder, 6 - item.span);
-      item.span += add;
-      remainder -= add;
-    }
-    return row;
+  function orderProductsForLayout(products) {
+    return Array.isArray(products) ? products.slice() : [];
   }
 
   function packRows(products, template, presentation) {
     const normalizedPresentation = normalizePresentation(presentation);
-    const orderedProducts = orderProductsForLayout(products, normalizedPresentation);
+    const orderedProducts = orderProductsForLayout(products);
+    const slotsPerRow = templateSlotCount(template);
     const rows = [];
     let current = [];
-    let used = 0;
+    let usedSlots = 0;
 
     const flush = () => {
       if (!current.length) return;
-      rows.push(rebalanceRow(current, normalizedPresentation.distribution));
+      rows.push(current);
       current = [];
-      used = 0;
+      usedSlots = 0;
     };
 
     orderedProducts.forEach(product => {
       const style = styleFor(normalizedPresentation, product.id);
+      const slotSpan = slotSpanFor(style, template);
+      const remainingSlots = slotsPerRow - usedSlots;
+
+      if (current.length && slotSpan > remainingSlots) flush();
+
+      const startSlot = usedSlots + 1;
       const item = {
         product,
         style,
         contentPreset: resolveContentPreset(product, style.contentPreset),
-        span: desiredSpan(style, template),
-        row: 0,
-        start: 1
+        width: style.width,
+        slotSpan,
+        startSlot,
+        span: microSpanForSlots(slotSpan, template),
+        row: rows.length + 1,
+        start: microStartForSlot(startSlot, template)
       };
 
-      if (item.span === 6) flush();
-
-      let remaining = 6 - used;
-      if (current.length && item.span > remaining) {
-        if (item.style.emphasis === 'normal' && remaining >= 2 && current.some(entry => entry.style.emphasis !== 'normal')) {
-          item.span = remaining;
-        } else {
-          flush();
-          remaining = 6;
-        }
-      }
-
-      item.start = used + 1;
       current.push(item);
-      used += item.span;
-
-      if (used >= 6 || item.span === 6) flush();
+      usedSlots += slotSpan;
+      if (usedSlots >= slotsPerRow) flush();
     });
     flush();
 
     rows.forEach((row, rowIndex) => {
-      let cursor = 1;
-      row.forEach(item => {
-        item.row = rowIndex + 1;
-        item.start = cursor;
-        cursor += item.span;
-      });
+      row.forEach(item => { item.row = rowIndex + 1; });
     });
 
     return rows;
@@ -219,15 +175,18 @@
     return {
       rows,
       rowCount: rows.length,
-      items: rows.flat()
+      items: rows.flat(),
+      slotsPerRow: templateSlotCount(template)
     };
   }
 
-  function paginateFlowProducts(products, template, presentation, maxRows) {
+  function paginateProducts(products, template, presentation) {
+    const maxRows = Math.max(1, Number(template?.rows) || 3);
+    const ordered = orderProductsForLayout(products);
     const pages = [];
     let current = [];
 
-    for (const product of products) {
+    for (const product of ordered) {
       const candidate = current.concat(product);
       const candidatePlan = planProducts(candidate, template, presentation);
       if (current.length && candidatePlan.rowCount > maxRows) {
@@ -239,50 +198,6 @@
     }
 
     if (current.length) pages.push({ products: current, layout: planProducts(current, template, presentation) });
-    return pages;
-  }
-
-  function takeFlowForHeroPage(flow, startIndex, template, presentation, maxFlowRows) {
-    if (maxFlowRows <= 0) return { products: [], nextIndex: startIndex };
-    let current = [];
-    let index = startIndex;
-
-    while (index < flow.length) {
-      const candidate = current.concat(flow[index]);
-      const plan = planProducts(candidate, template, presentation);
-      if (plan.rowCount > maxFlowRows) break;
-      current = candidate;
-      index += 1;
-    }
-
-    return { products: current, nextIndex: index };
-  }
-
-  function paginateProducts(products, template, presentation) {
-    const maxRows = Math.max(1, Number(template?.rows) || 3);
-    const { flow, heroes } = partitionForLayout(products, presentation);
-
-    if (!heroes.length) return paginateFlowProducts(flow, template, presentation, maxRows);
-
-    const pages = [];
-    let flowIndex = 0;
-
-    /*
-     * Cada Hero ancora a última linha usada de uma página própria. A área antes
-     * dele é preenchida com Destaques primeiro e depois Normais. Com isso a
-     * linha residual/sobra fica imediatamente acima do Hero, nunca abaixo.
-     */
-    for (const hero of heroes) {
-      const pageFlow = takeFlowForHeroPage(flow, flowIndex, template, presentation, Math.max(0, maxRows - 1));
-      flowIndex = pageFlow.nextIndex;
-      const pageProducts = [...pageFlow.products, hero];
-      pages.push({ products: pageProducts, layout: planProducts(pageProducts, template, presentation) });
-    }
-
-    if (flowIndex < flow.length) {
-      pages.push(...paginateFlowProducts(flow.slice(flowIndex), template, presentation, maxRows));
-    }
-
     return pages;
   }
 
@@ -307,7 +222,11 @@
       <label>Ênfase
         <select id="bulkEmphasis">${optionsMarkup(EMPHASIS_PRESETS, 'normal')}</select>
       </label>
-      <button class="button secondary compact" id="btnApplyBulkEmphasis" type="button">Aplicar ênfase</button>`;
+      <button class="button secondary compact" id="btnApplyBulkEmphasis" type="button">Aplicar ênfase</button>
+      <label>Largura
+        <select id="bulkWidth">${optionsMarkup(WIDTH_PRESETS, 'simple')}</select>
+      </label>
+      <button class="button secondary compact" id="btnApplyBulkWidth" type="button">Aplicar largura</button>`;
     anchor.insertAdjacentElement('afterend', panel);
 
     const apply = patch => {
@@ -338,18 +257,24 @@
     panel.querySelector('#btnApplyBulkEmphasis')?.addEventListener('click', () => {
       apply({ emphasis: panel.querySelector('#bulkEmphasis').value });
     });
+    panel.querySelector('#btnApplyBulkWidth')?.addEventListener('click', () => {
+      apply({ width: panel.querySelector('#bulkWidth').value });
+    });
   }
 
   NS.Composition = {
     CONTENT_PRESETS,
     EMPHASIS_PRESETS,
+    WIDTH_PRESETS,
     DISTRIBUTIONS,
     TYPOGRAPHY_PRESETS,
     normalizeItemStyle,
     normalizePresentation,
     styleFor,
     resolveContentPreset,
-    partitionForLayout,
+    templateSlotCount,
+    slotSpanFor,
+    microSpanForSlots,
     orderProductsForLayout,
     packRows,
     planProducts,

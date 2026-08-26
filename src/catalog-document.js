@@ -83,6 +83,8 @@
             effectiveOrder,
             contentPreset: layout?.contentPreset || NS.Composition?.resolveContentPreset?.(product, layout?.style?.contentPreset) || 'visual',
             emphasis: layout?.style?.emphasis || 'normal',
+            width: layout?.width || layout?.style?.width || 'simple',
+            slotSpan: Number(layout?.slotSpan) || 1,
             row: Number(layout?.row) || null,
             start: Number(layout?.start) || null,
             span: Number(layout?.span) || null
@@ -104,7 +106,7 @@
     });
 
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       createdAt: state?.catalog?.createdAt || null,
       title: state?.catalog?.title || '',
       showPrices: state?.catalog?.showPrices !== false,
