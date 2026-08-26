@@ -1,16 +1,21 @@
-import { createHmac, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { getDeployStore, getStore } from '@netlify/blobs';
 
 declare const Netlify: {
-  env: { get(name: string): string | undefined };
   context?: { deploy?: { context?: string } };
 };
 
 export const SESSION_COOKIE = 'catalogotop_write';
 export const PRODUCT_STORE = 'catalogotop-products';
 export const ASSET_STORE = 'catalogotop-assets';
+export const SESSION_STORE = 'catalogotop-sessions';
 export const MAX_PRODUCTS_BYTES = 3_000_000;
 export const MAX_ASSET_BYTES = 6_000_000;
+
+// Verificador público da frase compartilhada. A frase em si nunca entra no código.
+// Como a frase gerada tem alta entropia, manter apenas o scrypt verifier no repo
+// evita depender de secrets/env vars para o bootstrap do pequeno app interno.
+const ACCESS_PHRASE_SCRYPT = 'scrypt$16384$8$1$cA6iGPNH7ZJb8kK_TfSHxQ$NLnD8tXtJTr67OvFoj0_m7c79bekQg2XTaXp37cI-O10Y8E1qYWeuzR5-8u_KW_GSAh-GGn9w7yt691A6s_JuA';
 
 export type ProductSnapshot = {
   schemaVersion: number;
@@ -20,9 +25,10 @@ export type ProductSnapshot = {
   products: unknown[];
 };
 
-function env(name: string) {
-  return Netlify.env.get(name) || '';
-}
+type WriteSession = {
+  exp: number;
+  createdAt: string;
+};
 
 function isProduction() {
   return Netlify.context?.deploy?.context === 'production';
@@ -38,6 +44,12 @@ export function assetsStore() {
   return isProduction()
     ? getStore(ASSET_STORE, { consistency: 'strong' })
     : getDeployStore(ASSET_STORE);
+}
+
+export function sessionsStore() {
+  return isProduction()
+    ? getStore(SESSION_STORE, { consistency: 'strong' })
+    : getDeployStore(SESSION_STORE);
 }
 
 export function json(data: unknown, status = 200, headers: HeadersInit = {}) {
@@ -68,42 +80,40 @@ export function parseCookies(request: Request) {
   return result;
 }
 
-function base64url(input: Buffer | string) {
-  return Buffer.from(input).toString('base64url');
+function sessionKey(token: string) {
+  return `sha256/${createHash('sha256').update(token).digest('hex')}`;
 }
 
-function sessionSignature(payload: string) {
-  const secret = env('CATALOGOTOP_SESSION_SECRET');
-  if (!secret) throw new Error('CATALOGOTOP_SESSION_SECRET ausente.');
-  return createHmac('sha256', secret).update(payload).digest('base64url');
+export async function issueWriteSession(ttlSeconds = 3600) {
+  const token = randomBytes(32).toString('base64url');
+  const now = Math.floor(Date.now() / 1000);
+  const record: WriteSession = {
+    exp: now + ttlSeconds,
+    createdAt: new Date().toISOString()
+  };
+  await sessionsStore().setJSON(sessionKey(token), record);
+  return token;
 }
 
-export function makeSessionCookie(ttlSeconds = 3600) {
-  const payload = base64url(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + ttlSeconds }));
-  const value = `${payload}.${sessionSignature(payload)}`;
-  return `${SESSION_COOKIE}=${value}; Max-Age=${ttlSeconds}; Path=/api; HttpOnly; Secure; SameSite=Strict`;
+export function makeSessionCookie(token: string, ttlSeconds = 3600) {
+  return `${SESSION_COOKIE}=${token}; Max-Age=${ttlSeconds}; Path=/api; HttpOnly; Secure; SameSite=Strict`;
 }
 
-export function hasWriteSession(request: Request) {
-  const value = parseCookies(request).get(SESSION_COOKIE);
-  if (!value) return false;
-  const [payload, signature] = value.split('.');
-  if (!payload || !signature) return false;
-  const expected = sessionSignature(payload);
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
-  try {
-    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    return Number(parsed.exp) > Math.floor(Date.now() / 1000);
-  } catch {
+export async function hasWriteSession(request: Request) {
+  const token = parseCookies(request).get(SESSION_COOKIE);
+  if (!token || token.length < 32 || token.length > 256) return false;
+  const store = sessionsStore();
+  const record = await store.get(sessionKey(token), { type: 'json' }) as WriteSession | null;
+  if (!record || !Number.isFinite(Number(record.exp))) return false;
+  if (Number(record.exp) <= Math.floor(Date.now() / 1000)) {
+    await store.delete(sessionKey(token));
     return false;
   }
+  return true;
 }
 
 export function verifyAccessPhrase(phrase: string) {
-  const encoded = env('CATALOGOTOP_WRITE_PASSWORD_SCRYPT');
-  const [kind, nText, rText, pText, saltText, hashText] = encoded.split('$');
+  const [kind, nText, rText, pText, saltText, hashText] = ACCESS_PHRASE_SCRYPT.split('$');
   if (kind !== 'scrypt' || !saltText || !hashText) return false;
   const expected = Buffer.from(hashText, 'base64url');
   const actual = scryptSync(String(phrase || ''), Buffer.from(saltText, 'base64url'), expected.length, {
