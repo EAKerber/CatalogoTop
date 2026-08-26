@@ -86,7 +86,7 @@ Não foi criado carousel genérico, router interno ou estado persistente. O cont
 
 ### Mobile — `< 640 px`
 
-- as tabs principais **Produtos / Catálogo / Templates** ficam sozinhas numa linha inferior fixa e nunca participam do scroll horizontal das utilidades;
+- as tabs principais **Produtos / Catálogo / Templates** ficam sozinhas numa linha inferior e nunca participam do scroll horizontal das utilidades;
 - a linha superior mantém marca e utilidades; importação de produtos e backup possuem áreas horizontais roláveis próprias quando falta largura;
 - Produtos possui tabs locais **Cadastro / Produtos** com swipe horizontal opcional;
 - controles de duas colunas passam a uma coluna;
