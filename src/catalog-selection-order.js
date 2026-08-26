@@ -5,6 +5,38 @@
   let applying = false;
   let observer = null;
 
+  function ensureStyle(href) {
+    if (document.querySelector(`link[href="${href}"]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
+  function loadScript(src) {
+    if (document.querySelector(`script[src="${src}"]`)) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = false;
+      script.addEventListener('load', resolve, { once: true });
+      script.addEventListener('error', () => reject(new Error(`Falha ao carregar ${src}`)), { once: true });
+      document.head.appendChild(script);
+    });
+  }
+
+  async function loadCollectionRuntime() {
+    ensureStyle('collection-block.css');
+    for (const src of [
+      'src/collection.js',
+      'src/collection-document.js',
+      'src/collection-render.js',
+      'src/collection-controls.js'
+    ]) {
+      await loadScript(src);
+    }
+  }
+
   function effectiveOrderMap() {
     const state = NS.Core?.getState?.();
     if (!state || !NS.CatalogDocument?.build) return new Map();
@@ -67,5 +99,10 @@
     applyEffectiveOrder();
   }
 
-  init();
+  loadCollectionRuntime()
+    .then(() => {
+      init();
+      window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));
+    })
+    .catch(error => console.error(error));
 })();

@@ -38,6 +38,7 @@
   <link rel="stylesheet" href="cards.css" />
   <link rel="stylesheet" href="catalog-page.css" />
   <link rel="stylesheet" href="editorial-composition.css" />
+  <link rel="stylesheet" href="collection-block.css" />
   <link rel="stylesheet" href="print.css" />
 </head>
 <body class="catalog-print-document" data-logical-pages="${documentModel?.pageCount ?? pages.length}">
