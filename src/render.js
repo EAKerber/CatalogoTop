@@ -63,12 +63,20 @@
     return { variants: 4, rows: 6, specs: hasTable ? 1 : 3 };
   }
 
-  function limitsFor(template, hasTable, contentPreset = 'standard', emphasis = 'normal') {
+  function limitsFor(template, hasTable, contentPreset = 'visual', emphasis = 'normal') {
     const base = baseLimits(template, hasTable);
     let limits = { ...base };
 
     if (contentPreset === 'visual') {
       limits = { variants: Math.max(base.variants, 5), rows: 0, specs: 0 };
+    } else if (contentPreset === 'essential') {
+      limits = { variants: Math.min(base.variants, 2), rows: 0, specs: 0 };
+    } else if (contentPreset === 'detailed') {
+      limits = {
+        variants: base.variants + 1,
+        rows: base.rows + 2,
+        specs: Math.max(base.specs + 3, hasTable ? 3 : 5)
+      };
     } else if (contentPreset === 'technical') {
       limits = {
         variants: Math.max(2, base.variants - 1),
@@ -171,8 +179,8 @@
     const span = Math.max(2, Math.round(6 / Math.max(1, Number(template.columns) || 2)));
     return {
       product,
-      style: { contentPreset: 'auto', emphasis: 'normal' },
-      contentPreset: 'standard',
+      style: { contentPreset: 'visual', emphasis: 'normal' },
+      contentPreset: 'visual',
       span,
       row: 1,
       start: 1
@@ -181,7 +189,7 @@
 
   function cardMarkup(product, template, showPrices, layoutItem) {
     const item = layoutItem || fallbackLayoutItem(product, template);
-    const contentPreset = item.contentPreset || NS.Composition?.resolveContentPreset(product, item.style?.contentPreset) || 'standard';
+    const contentPreset = item.contentPreset || NS.Composition?.resolveContentPreset(product, item.style?.contentPreset) || 'visual';
     const emphasis = item.style?.emphasis || 'normal';
     const hasTable = Array.isArray(product.tableRows) && product.tableRows.length > 0;
     const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
@@ -206,7 +214,7 @@
         ${product.subcategory ? `<p class="catalog-card-subcategory">${esc(product.subcategory)}</p>` : ''}
         ${specs ? `<ul class="catalog-card-specs">${specs}</ul>` : ''}
         ${table}
-        ${product.notes && !hasTable && contentPreset !== 'visual' ? `<p class="catalog-card-notes">${esc(product.notes)}</p>` : ''}
+        ${product.notes && !hasTable && contentPreset !== 'visual' && contentPreset !== 'essential' ? `<p class="catalog-card-notes">${esc(product.notes)}</p>` : ''}
         ${showPrices && product.price && !hasTable ? `<div class="catalog-card-price">${esc(product.price)}</div>` : ''}
       </div>
     </article>`;
