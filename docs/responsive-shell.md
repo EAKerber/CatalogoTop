@@ -20,7 +20,7 @@ Backup continua separado à direita por ser uma ação global do acervo local, n
 
 O antigo título promocional alto foi reduzido a um heading utilitário curto: **Biblioteca de produtos**. O botão **Novo produto** também deixa esse cabeçalho; ele fica junto do próprio formulário de edição, onde sua função de limpar/iniciar um cadastro tem contexto.
 
-A intenção é que, ao abrir Produtos, a maior parte da primeira viewport já pertença ao formulário e ao filesystem de categorias/produtos.
+No mobile esse heading é ocultado completamente: a interface passa diretamente do shell para o seletor **Cadastro / Produtos**.
 
 ## Produtos sem scroll externo no desktop
 
@@ -42,6 +42,22 @@ O formulário mantém os mesmos dados e IDs, mas a apresentação é dividida em
 3. **Variações** — cores/acabamentos, tabela comercial e observações.
 
 Não existe wizard persistente nem estado novo no schema. A etapa atual é apenas estado de interface. `Enter` nas etapas 1 e 2 avança; o produto só é submetido na etapa 3.
+
+## Workspace mobile: Cadastro / Produtos
+
+Abaixo de 640 px, cadastro e filesystem não ficam mais empilhados em uma página longa. Eles passam a ser dois estados irmãos:
+
+- **Cadastro** — formulário em três etapas;
+- **Produtos** — busca, categorias e tabela da biblioteca.
+
+A troca pode ser feita de duas formas equivalentes:
+
+- toque nas tabs **Cadastro / Produtos**;
+- swipe horizontal no espaço não interativo do workspace: esquerda abre Produtos, direita volta ao Cadastro.
+
+O swipe é apenas um atalho. Campos, selects, botões e links não iniciam o gesto, evitando conflito com edição e seleção. Ao tocar para editar um item da biblioteca, a interface volta automaticamente para Cadastro.
+
+Não foi criado carousel genérico, router interno ou estado persistente. O controlador mobile possui somente dois estados de apresentação.
 
 ## Breakpoints
 
@@ -70,10 +86,12 @@ Não existe wizard persistente nem estado novo no schema. A etapa atual é apena
 
 ### Mobile — `< 640 px`
 
-- tabs e importação continuam na mesma faixa horizontal rolável;
+- shell é forçado a exatamente duas linhas lógicas: **marca + backups** acima; **abas + importação** abaixo;
+- a segunda linha pode rolar horizontalmente se não houver largura suficiente;
+- Produtos possui tabs locais **Cadastro / Produtos** com swipe horizontal opcional;
 - controles de duas colunas passam a uma coluna;
-- pastas de categoria viram uma faixa horizontal rolável;
-- tabela de produtos reduz colunas de baixa prioridade e mantém código, produto e ação de edição;
+- pastas de categoria viram uma faixa horizontal rolável dentro da biblioteca;
+- tabela reduz colunas de baixa prioridade e mantém código, produto e ação de edição;
 - ações do formulário podem quebrar em duas linhas;
 - o botão local **+ Novo** pode ser ocultado porque o `×` já limpa o formulário em telas muito estreitas.
 
@@ -81,14 +99,15 @@ Não existe wizard persistente nem estado novo no schema. A etapa atual é apena
 
 - não criar sidebar global, drawer, command palette ou navegação duplicada;
 - não reintroduzir faixa permanente de importação dentro da aba Produtos;
-- não introduzir estado persistente para a etapa do formulário;
+- não introduzir estado persistente para a etapa do formulário ou para o seletor Cadastro/Produtos;
+- swipe não deve interceptar interação iniciada em input, textarea, select, button ou link;
 - não escalar ou reconstruir o A4 para mobile: o documento continua com geometria física e pode rolar horizontalmente;
 - priorizar scroll interno apenas quando há viewport suficiente; em telas pequenas, preferir fluxo vertical natural;
 - manter backup e importação como ações explícitas, sem automação invisível.
 
 ## Estado após feedback visual
 
-Após a primeira inspeção do preview, o shell foi novamente comprimido: a importação saiu da faixa branca da aba Produtos e foi colocada junto de **Produtos / Catálogo / Templates**. O título alto e o botão **+ Novo produto** também deixaram de consumir a área inicial da biblioteca. Essa revisão é considerada parte do mesmo recorte v0.5, não um novo componente.
+Após as inspeções do preview, o shell foi comprimido em duas rodadas: a importação saiu da faixa branca da aba Produtos e foi colocada junto de **Produtos / Catálogo / Templates**; depois o mobile passou a usar duas linhas estáveis e o workspace de Produtos foi dividido em **Cadastro / Produtos**. Essas revisões continuam pertencendo ao mesmo recorte v0.5.
 
 ## Próximo passo relacionado
 
