@@ -186,29 +186,54 @@
         if (!checkbox) return;
         const id = String(checkbox.dataset.selectProduct);
         const block = membership.get(id);
+        const active = Boolean(block && checkbox.checked);
         label.classList.toggle('in-collection', Boolean(block));
-        label.querySelector('.collection-member-badge')?.remove();
-        label.querySelector('.collection-member-controls')?.remove();
-        if (!block || !checkbox.checked) return;
 
-        const badge = document.createElement('span');
-        badge.className = 'collection-member-badge';
-        badge.textContent = `Coleção · ${block.title || 'sem título'}`;
-        label.querySelector(':scope > span')?.appendChild(badge);
+        let badge = label.querySelector('.collection-member-badge');
+        let controls = label.querySelector('.collection-member-controls');
+        if (!active) {
+          badge?.remove();
+          controls?.remove();
+          return;
+        }
+
+        const badgeText = `Coleção · ${block.title || 'sem título'}`;
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'collection-member-badge';
+          badge.textContent = badgeText;
+          label.querySelector(':scope > span')?.appendChild(badge);
+        } else if (badge.textContent !== badgeText) {
+          badge.textContent = badgeText;
+        }
 
         const style = Collection.memberStyleFor(block, id);
-        const controls = document.createElement('div');
-        controls.className = 'collection-member-controls';
-        controls.innerHTML = `<label>Ênfase<select data-collection-member-emphasis="${esc(id)}" data-block-id="${esc(block.id)}">
-          <option value="normal"${style.emphasis === 'normal' ? ' selected' : ''}>Normal</option>
-          <option value="feature"${style.emphasis === 'feature' ? ' selected' : ''}>Destaque</option>
-        </select></label>
-        <label>Largura<select data-collection-member-width="${esc(id)}" data-block-id="${esc(block.id)}">
-          <option value="simple"${style.width === 'simple' ? ' selected' : ''}>Simples</option>
-          <option value="wide"${style.width === 'wide' ? ' selected' : ''}>Largo</option>
-          <option value="full"${style.width === 'full' ? ' selected' : ''}>Linha inteira</option>
-        </select></label>`;
-        label.appendChild(controls);
+        if (!controls) {
+          controls = document.createElement('div');
+          controls.className = 'collection-member-controls';
+          controls.innerHTML = `<label>Ênfase<select data-collection-member-emphasis="${esc(id)}" data-block-id="${esc(block.id)}">
+            <option value="normal"${style.emphasis === 'normal' ? ' selected' : ''}>Normal</option>
+            <option value="feature"${style.emphasis === 'feature' ? ' selected' : ''}>Destaque</option>
+          </select></label>
+          <label>Largura<select data-collection-member-width="${esc(id)}" data-block-id="${esc(block.id)}">
+            <option value="simple"${style.width === 'simple' ? ' selected' : ''}>Simples</option>
+            <option value="wide"${style.width === 'wide' ? ' selected' : ''}>Largo</option>
+            <option value="full"${style.width === 'full' ? ' selected' : ''}>Linha inteira</option>
+          </select></label>`;
+          label.appendChild(controls);
+          return;
+        }
+
+        const emphasis = controls.querySelector('[data-collection-member-emphasis]');
+        const width = controls.querySelector('[data-collection-member-width]');
+        if (emphasis) {
+          if (emphasis.dataset.blockId !== block.id) emphasis.dataset.blockId = block.id;
+          if (emphasis.value !== style.emphasis) emphasis.value = style.emphasis;
+        }
+        if (width) {
+          if (width.dataset.blockId !== block.id) width.dataset.blockId = block.id;
+          if (width.value !== style.width) width.value = style.width;
+        }
       });
     } finally {
       patchingSelection = false;
