@@ -154,7 +154,7 @@ Em tablet/mobile o header mantém duas linhas lógicas:
 1. marca + dois grupos de utilidades com scroll horizontal próprio;
 2. `Produtos / Catálogo / Templates` isolados em três colunas iguais.
 
-O objetivo é impedir overlap dos botões sem empurrar as tabs para uma terceira linha ou misturá-las às ações de importação/backup.
+O objetivo é impedir overlap dos botões sem empurrar as tabs para uma terceira linha ou misturá-las às ações de importação/backup. Em telas muito estreitas, o nome `CatalogoTop` é ocultado e a marca vira o ponto de ancoragem visual da primeira linha.
 
 ## Fora do recorte
 
@@ -180,6 +180,8 @@ Automáticos:
 - `Visual` é o padrão de cards sem override;
 - `Essencial` e `Detalhado` existem como limites explícitos de densidade;
 - `Auto` é determinístico;
+- aplicação em lote altera apenas `catalog.presentation`;
+- header mobile mantém tabs isoladas na linha inferior e scroll horizontal nas utilidades;
 - paginação considera linhas, não apenas `perPage` nominal;
 - print guard de 296 mm permanece presente.
 
