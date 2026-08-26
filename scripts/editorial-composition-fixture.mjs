@@ -22,6 +22,9 @@ const compact = { id: 'compact', columns: 3, rows: 4, perPage: 12 };
 const technical = { id: 'technical', columns: 2, rows: 4, perPage: 8 };
 const balanced = Composition.normalizePresentation({ distribution: 'balanced' });
 
+if (Composition.styleFor(balanced, 'novo').contentPreset !== 'visual') fail('cards sem override devem usar Visual como padrão');
+if (!Composition.CONTENT_PRESETS.some(item => item.id === 'essential') || !Composition.CONTENT_PRESETS.some(item => item.id === 'detailed')) fail('presets devem cobrir densidade essencial e detalhada');
+
 const five = Composition.planProducts(['a', 'b', 'c', 'd', 'e'].map(id => product(id)), compact, balanced);
 if (five.rowCount !== 2) fail('cinco produtos compactos devem ocupar duas linhas balanceadas');
 if (five.rows[0].map(item => item.span).join(',') !== '2,2,2') fail('primeira linha compacta deve preservar três cards');
@@ -41,17 +44,19 @@ const presentation = Composition.normalizePresentation({
   }
 });
 const emphasized = Composition.planProducts([product('a'), product('b'), product('c')], technical, presentation);
+if (emphasized.items.map(item => item.product.id).join(',') !== 'c,a,b') fail('hero e destaque devem subir ao topo mantendo estabilidade dentro de cada prioridade');
 const a = emphasized.items.find(item => item.product.id === 'a');
 const b = emphasized.items.find(item => item.product.id === 'b');
 const c = emphasized.items.find(item => item.product.id === 'c');
-if (a.span !== 4 || b.span !== 2) fail('destaque deve aceitar card normal reduzido para completar seis colunas');
-if (c.span !== 6) fail('hero deve ocupar a linha inteira');
-if (c.row <= a.row) fail('hero deve iniciar linha própria preservando ordem');
+if (c.span !== 6 || c.row !== 1) fail('hero deve ocupar a primeira linha inteira');
+if (a.span !== 4 || b.span !== 2 || a.row !== 2 || b.row !== 2) fail('destaque deve formar 4+2 logo após hero');
 
 const autoTechnical = Composition.resolveContentPreset(product('t', { specs: [1,2,3,4,5].map(value => ({ label: 'x', value })) }), 'auto');
+const autoDetailed = Composition.resolveContentPreset(product('d', { specs: [1,2,3].map(value => ({ label: 'x', value })) }), 'auto');
 const autoCommercial = Composition.resolveContentPreset(product('p', { price: 'R$ 10,00', specs: [{ label: 'x', value: 'y' }] }), 'auto');
 const autoVisual = Composition.resolveContentPreset(product('v', { variants: [1,2,3,4].map(index => ({ id: String(index), label: `Cor ${index}` })) }), 'auto');
-if (autoTechnical !== 'technical' || autoCommercial !== 'commercial' || autoVisual !== 'visual') fail('preset Auto deve ser determinístico por conteúdo');
+const autoSimple = Composition.resolveContentPreset(product('s'), 'auto');
+if (autoTechnical !== 'technical' || autoDetailed !== 'detailed' || autoCommercial !== 'commercial' || autoVisual !== 'visual' || autoSimple !== 'visual') fail('preset Auto deve ser determinístico e tender a Visual quando o conteúdo é simples');
 
 const paginated = Composition.paginateProducts([
   product('h1'), product('h2'), product('h3'), product('h4'), product('h5')
