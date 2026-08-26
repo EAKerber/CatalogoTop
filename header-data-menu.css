@@ -1,0 +1,179 @@
+/* v0.11.0.1 — utilidades secundárias do header agrupadas em menu Dados. */
+.app-header-actions {
+  overflow: visible !important;
+  align-items: center;
+}
+
+#productSyncStatus {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-data-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.header-data-menu > summary {
+  min-height: 36px;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  list-style: none;
+  border: 1px solid #3b414b;
+  border-radius: 9px;
+  background: #20242b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.header-data-menu > summary::-webkit-details-marker { display: none; }
+.header-data-menu > summary:hover,
+.header-data-menu[open] > summary { background: #292e37; }
+.header-data-menu[open] > summary { border-color: #59606b; }
+.header-data-caret {
+  font-size: 10px;
+  transition: transform 140ms ease;
+}
+.header-data-menu[open] .header-data-caret { transform: rotate(180deg); }
+
+.header-data-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 120;
+  width: min(300px, calc(100vw - 20px));
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid #3a404a;
+  border-radius: 12px;
+  background: #171a20;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .34);
+}
+
+.header-data-section {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.header-data-label {
+  padding: 4px 8px 3px;
+  color: #8f96a1;
+  font-size: 9px;
+  font-weight: 820;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+.header-data-action {
+  position: relative;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #f3f5f7;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 720;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.header-data-action:hover { background: #252a32; }
+.header-data-action.file-button { overflow: hidden; }
+.header-data-action.file-button input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.header-data-field {
+  min-height: 40px;
+  padding: 5px 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 142px;
+  align-items: center;
+  gap: 8px;
+  color: #c5cad1;
+  font-size: 10px;
+  font-weight: 700;
+}
+.header-data-field select {
+  min-width: 0;
+  min-height: 30px;
+  padding: 0 26px 0 8px;
+  border: 1px solid #454c57;
+  border-radius: 7px;
+  background: #20242b;
+  color: #fff;
+  color-scheme: dark;
+  font-size: 10px;
+  font-weight: 720;
+}
+.header-data-divider {
+  height: 1px;
+  margin: 1px 6px;
+  background: #303640;
+}
+
+@media (max-width: 959px) {
+  .app-shell-header {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-rows: auto auto !important;
+  }
+  .app-brand {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+  .app-header-actions {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: end !important;
+    justify-content: flex-end !important;
+    min-width: 0;
+    max-width: none;
+  }
+  .app-shell-header .app-tabs {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+  }
+}
+
+@media (max-width: 639px) {
+  #productSyncStatus {
+    max-width: 150px;
+    min-height: 30px;
+    font-size: 9px;
+  }
+  .header-data-menu > summary {
+    min-height: 30px;
+    padding: 5px 7px;
+    font-size: 9px;
+  }
+  .header-data-popover {
+    top: calc(100% + 6px);
+    width: min(286px, calc(100vw - 12px));
+  }
+}
+
+@media (max-width: 420px) {
+  .app-shell-header {
+    grid-template-columns: 38px minmax(0, 1fr) !important;
+  }
+  #productSyncStatus { max-width: 138px; }
+}
