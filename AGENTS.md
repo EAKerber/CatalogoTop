@@ -83,6 +83,6 @@ Recorte v0.11.0.1 consolidado na `main`: o estado de sincronização permanece s
 
 Recorte v0.11.1 consolidado na `main`: `selectedIds` representa membership, `presentation.order` representa ordem editorial persistida, `CatalogOrder` resolve a sequência antes do `CatalogDocument`, o preview seleciona Card/Collection/member/Table para um inspector contextual e o reorder acontece exclusivamente pela lista com Collection/Table como unidades atômicas. Ver `docs/contextual-inspector-v0.11.1.md`.
 
-Recorte v0.11.1.1 em implementação: a data do catálogo acompanha o dia local atual por padrão e aceita um override date-only por um controle compacto `Hoje / escolher outra data`, sem alterar ProductStore ou o documento estrutural. Ver `docs/catalog-date-v0.11.1.1.md`.
+Recorte v0.11.1.1 consolidado na `main`: a data do catálogo acompanha o dia local atual por padrão e aceita um override date-only por um controle compacto `Hoje / escolher outra data`, sem alterar ProductStore ou o documento estrutural. Ver `docs/catalog-date-v0.11.1.1.md`.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.
