@@ -16,20 +16,16 @@
     return ids;
   }
 
-  function visibleSelectedIds() {
-    return Array.from(document.querySelectorAll('#selectableProducts > .select-product [data-select-product]:checked'))
-      .map(input => String(input.dataset.selectProduct || '')).filter(Boolean);
-  }
-
   function candidateIds() {
     const current = state();
     const membership = allMembership();
-    const visible = new Set(visibleSelectedIds().filter(id => !membership.has(id)));
-    if (visible.size < 2 || visible.size > TableBlock.MAX_MEMBERS) return [];
+    const selected = new Set((current.selectedIds || []).map(String));
+    const marked = new Set((NS.BlockSelection?.ids?.() || []).filter(id => selected.has(id) && !membership.has(id)));
+    if (marked.size < 2 || marked.size > TableBlock.MAX_MEMBERS) return [];
     const byId = new Map(current.products.map(product => [String(product.id), product]));
     const effective = NS.CatalogOrder?.effectiveIds ? NS.CatalogOrder.effectiveIds(current) : current.selectedIds.map(String);
-    const candidates = effective.filter(id => visible.has(id));
-    if (candidates.length < 2 || candidates.length > TableBlock.MAX_MEMBERS) return [];
+    const candidates = effective.filter(id => marked.has(id));
+    if (candidates.length !== marked.size || candidates.length < 2 || candidates.length > TableBlock.MAX_MEMBERS) return [];
     const category = String(byId.get(candidates[0])?.category || 'Sem categoria');
     if (candidates.some(id => String(byId.get(id)?.category || 'Sem categoria') !== category)) return [];
     const categoryIds = effective.filter(id => String(byId.get(id)?.category || 'Sem categoria') === category);
@@ -50,7 +46,7 @@
   function createTable() {
     const ids = candidateIds();
     if (ids.length < 2) {
-      window.alert?.('Para criar uma tabela, deixe visível um trecho contíguo de 2 a 30 produtos selecionados, ainda não agrupados, da mesma categoria e na ordem editorial atual.');
+      window.alert?.('Marque de 2 a 30 produtos contíguos, da mesma categoria e ainda fora de outro bloco usando a ação “Agrupar” de cada item.');
       return;
     }
     const byId = new Map(state().products.map(product => [String(product.id), product]));
@@ -65,6 +61,7 @@
       density: 'compact',
       columns: TableBlock.defaultColumns('products')
     });
+    NS.BlockSelection?.clear?.(false);
     mutateBlocks(blocks => blocks.push(block));
     NS.ComposerSelection?.select?.({ kind: 'table', blockId: block.id });
   }
@@ -78,7 +75,6 @@
       button.className = 'button secondary compact';
       button.id = 'btnCreateTableBlock';
       button.type = 'button';
-      button.textContent = 'Agrupar em tabela';
       actions.appendChild(button);
       button.addEventListener('click', createTable);
     }
@@ -89,9 +85,11 @@
     const button = ensureButton();
     if (!button) return;
     const ids = candidateIds();
+    const count = NS.BlockSelection?.ids?.().length || 0;
+    button.textContent = count ? `Criar tabela (${count})` : 'Criar tabela';
     button.disabled = ids.length < 2 || ids.length > TableBlock.MAX_MEMBERS;
     button.title = button.disabled
-      ? 'Deixe visível um trecho contíguo de 2 a 30 produtos selecionados da mesma categoria e ainda não usado em outro bloco.'
+      ? 'Marque um trecho contíguo de 2 a 30 produtos do catálogo, da mesma categoria e ainda fora de outro bloco.'
       : `Agrupar ${ids.length} produtos em tabela`;
   }
 
