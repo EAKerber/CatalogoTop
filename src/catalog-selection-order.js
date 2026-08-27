@@ -4,11 +4,10 @@
   const NS = window.CatalogoTop = window.CatalogoTop || {};
 
   function effectiveOrderMap(state) {
-    if (!NS.CatalogDocument?.build) return new Map();
     const current = state || NS.Core?.getState?.();
     if (!current) return new Map();
-    const doc = NS.CatalogDocument.build(current);
-    return new Map(doc.orderedIds.map((id, index) => [String(id), index + 1]));
+    const ids = NS.CatalogOrder?.effectiveIds ? NS.CatalogOrder.effectiveIds(current) : (current.selectedIds || []).map(String);
+    return new Map(ids.map((id, index) => [String(id), index + 1]));
   }
 
   function compareProducts(left, right, orderMap) {

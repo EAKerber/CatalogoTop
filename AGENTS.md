@@ -14,44 +14,52 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 ## Guardrails
 
 - Mudanças funcionais devem ser desenvolvidas em branch dedicada e promovidas por PR/gates; evitar commits diretos na `main` mesmo quando o recorte parecer pequeno.
-- Não reintroduzir editor livre, drag-and-drop, layers ou posicionamento arbitrário sem decisão explícita de produto.
+- Não reintroduzir editor livre, drag-and-drop sobre o A4, layers ou posicionamento arbitrário sem decisão explícita de produto.
 - Produto e apresentação permanecem separados.
 - Não inventar preço, especificação, disponibilidade ou qualquer outro fato comercial.
 - Código e descrição são a validação mínima para importação.
 - Colunas desconhecidas de planilha devem ser preservadas como especificações quando possível, não descartadas silenciosamente.
 - Header/footer são componentes compartilhados. Templates não devem copiá-los.
 - No header da aplicação, estado de sincronização permanece visível; importação, modo da importação, CSV modelo e backup são utilidades secundárias agrupadas no menu `Dados`.
-- Paginação deve derivar do contrato do template, das categorias, da ordem factual da seleção e da geometria declarada das unidades editoriais.
+- Paginação deve derivar do contrato do template, das categorias, da ordem editorial efetiva e da geometria declarada das unidades editoriais.
+- `selectedIds` representa somente membership local: quais produtos pertencem ao catálogo. Não usar `selectedIds` como mecanismo de reorder.
+- `catalog.presentation.order` representa somente ordem editorial persistida. Não usar `presentation.order` para incluir/remover membership.
+- A ordem efetiva é resolvida por `CatalogOrder` antes do `CatalogDocument`; nunca criar ciclo `CatalogDocument → corrigir selectedIds → obter ordem`.
+- `ComposerSelection` é estado efêmero da UI e não pode entrar em backup, ProductStore, `CatalogDocument` ou print.
 - Conteúdo, ênfase visual e largura são eixos independentes. `Destaque` não altera ordem nem largura; largura é modelada por slots (`simple=1`, `wide=2`, `full=todos`).
 - `Hero` não é primitiva estrutural. Estado legado `emphasis: hero` deve migrar deterministicamente para `Destaque visual + Linha inteira`, sem regra especial de paginação ou reordenação.
 - O planner não deve inferir importância a partir da geometria nem geometria a partir da importância. Um card largo pode ser visualmente normal e um Destaque pode ocupar um único slot.
 - `Collection` e `Table` são blocos editoriais locais, nunca produtos remotos. Ambos contêm somente produtos selecionados de uma única categoria e não escrevem no ProductStore.
-- Coleções e tabelas só podem consumir membros contíguos na ordem factual da categoria. Agrupar/desagrupar não pode alterar `selectedIds`; bloco inválido deve falhar para cards individuais, nunca ocultar produto.
+- Coleções e tabelas só podem consumir membros contíguos na ordem editorial efetiva da categoria. Agrupar/desagrupar não pode alterar membership; bloco inválido deve falhar para cards individuais, nunca ocultar produto.
+- Reorder só existe pela lista. `Collection` e `Table` são unidades atômicas de reorder; membros não podem ser movidos individualmente para fora do bloco por drag.
+- Reorder entre categorias é proibido no recorte atual. Busca textual ativa deve desabilitar reorder para evitar mover uma projeção parcial ambígua.
 - Um produto não pode pertencer simultaneamente a `Collection` e `Table`. Em estado importado conflitante, o materializador deve resolver deterministicamente sem duplicar nem esconder produto.
 - `Collection` é full-width top-level e atômica entre páginas, usa 2–4 colunas internas e no máximo 12 membros. Membros só recebem overrides locais discretos de largura e ênfase.
 - `Table` é full-width top-level e fragmentável entre páginas. O cabeçalho tabular deve repetir em continuações. A fragmentação é calculada no modelo antes do DOM e nunca pode duplicar `orderedIds` ou `selectedCount`.
 - `Table` usa somente colunas conhecidas e dados factuais existentes. Campos comerciais ausentes permanecem vazios; não sintetizar medidas, preços ou referências.
 - Profundidade máxima de blocos = 1. Não criar container genérico nem permitir nesting para acomodar casos futuros; novos tipos top-level exigem um caso real e contrato explícito.
 - `Card`, `Collection` e `Table` são o vocabulário estrutural preferido. Antes de criar um quarto primitivo, validar casos reais que não caibam nesses três.
-- A ordem exibida no compositor, no preview e no PDF deve derivar do mesmo `CatalogDocument`; `selectedIds` continua sendo estado factual/local e não deve ser mutado apenas para "parecer" uma ordem editorial.
+- A ordem exibida na lista, no preview e no PDF deve derivar da mesma `CatalogOrder` consumida pelo `CatalogDocument`.
 - Número de página e data de criação precisam ser calculados, nunca digitados em cada página.
-- O pipeline de documento é `state → CatalogDocument → preview / print`. Preview pode conter chrome editorial auxiliar; o documento print contém somente `.catalog-page`.
+- O pipeline de documento é `state → CatalogOrder → CatalogDocument → preview / print`. Preview pode conter chrome editorial auxiliar; o documento print contém somente `.catalog-page`.
 - `Composition.normalizePresentation`, `CatalogDocument.build` e `src/catalog-renderer.js` são as autoridades únicas de apresentação, materialização e render editorial. Módulos de Collection/Table não podem substituir essas funções por wrapping/monkey patch.
 - O bootstrap editorial deve ser explícito no `index.html`; módulos de ordenação, controles ou UI não devem carregar scripts/CSS como efeito colateral.
-- `renderSelection()` é a autoridade da lista `#selectableProducts`. Badges, ordem efetiva e controles de Card/Collection/Table devem nascer do render explícito; não reintroduzir `MutationObserver` para redecorar/reordenar essa lista.
+- `renderSelection()` é a autoridade da lista `#selectableProducts`. Badges, ordem efetiva e handles de reorder devem nascer do render explícito; propriedades editoriais do objeto selecionado pertencem ao inspector contextual. Não reintroduzir `MutationObserver` para redecorar/reordenar essa lista.
+- `PresentationActions` é a fronteira para mutações editoriais disparadas pelo inspector/lista. Não duplicar mutações equivalentes em managers paralelos de Collection/Table.
 - Patches derivados de `MutationObserver` em outras superfícies precisam ser idempotentes e observar a menor fronteira DOM possível. Não observar e escrever indiscriminadamente sobre a mesma árvore.
 - O botão de PDF não deve imprimir a aplicação inteira. A impressão deve usar documento/iframe isolado e stylesheet de print dedicado.
 - CSS de shell/mobile não pode conter regras de A4, compositor ou `@media print`; CSS do compositor deve responder à largura real do painel quando a limitação for de container, não ao viewport.
 - O preview pode aplicar zoom visual, mas a folha materializada e o documento print permanecem A4 físico `210 × 297 mm`.
-- No preview touch, o container pode conter overscroll horizontal para inspecionar zoom, mas deve preservar pan/scroll vertical da página; não capturar o gesto vertical iniciado sobre a folha A4.
+- No preview touch, o container pode conter overscroll horizontal para inspecionar zoom, mas deve preservar pan/scroll vertical da página; seleção editorial por tap não pode capturar `pointerdown`/`touchstart` da folha A4.
 - Mudanças que afetem impressão A4 devem ser verificadas por preview e por gate Chromium que compare páginas lógicas com páginas físicas.
+- O Browser Print Gate é autoridade de documento físico/A4/scroll touch; o Browser Inspector Gate é autoridade das interações de seleção, inspector e reorder. Não manter controles/atributos editoriais obsoletos apenas para satisfazer o gate físico.
 - Elementos institucionais essenciais do PDF não podem depender de "gráficos de fundo" do navegador; use bordas/SVG para linhas e sinais críticos.
-- Exclusão de produto deve usar uma operação de domínio única. Ela remove o produto da base, seleção, overrides e memberships; `Collection`/`Table` com menos de dois membros é dissolvida. Não duplicar lógica de limpeza entre formulário e biblioteca.
+- Exclusão de produto deve usar uma operação de domínio única. Ela remove o produto da base, membership, ordem editorial, overrides e memberships de blocos; `Collection`/`Table` com menos de dois membros é dissolvida. Não duplicar lógica de limpeza entre formulário e biblioteca.
 - Assets gerenciados são content-addressed e imutáveis; exclusão de produto não apaga automaticamente blobs potencialmente compartilhados.
 - Mantenha o aplicativo utilizável sem build obrigatório para o frontend; Functions Netlify podem usar dependências instaladas no deploy.
 - Categorias funcionam como pastas de primeiro nível para navegação; não introduzir árvore hierárquica genérica sem um caso real que a justifique.
 - No cadastro manual, categoria deve ser escolhida ou criada pelo mesmo campo sobrescrevível; não criar um CRUD paralelo de pastas vazias enquanto isso não for necessário.
-- Presets de conteúdo, ênfase, largura e blocos pertencem ao catálogo local, nunca ao produto remoto. `Visual` e `Simples` são os defaults atuais para cards sem override.
+- Presets de conteúdo, ênfase, largura, ordem e blocos pertencem ao catálogo local, nunca ao produto remoto. `Visual` e `Simples` são os defaults atuais para cards sem override.
 - Enquadramento futuro de imagem pertence à apresentação local (`presentation.imageFrames`), não ao asset/produto remoto. Reservar o contrato não autoriza interpretação antes do recorte específico.
 - Netlify está autorizado como backend **estreito** para a base compartilhada de produtos e assets. Não promover seleção atual, template escolhido, estado de UI ou catálogo em elaboração a estado remoto sem decisão explícita.
 - Produtos remotos usam snapshot revisionado e escrita protegida; não fazer overwrite silencioso quando `expectedRevision` divergir.
@@ -71,6 +79,8 @@ Recorte v0.10.2 consolidado na `main`: `Table` é o terceiro primitivo top-level
 
 Recorte v0.11.0 consolidado na `main`: `Composition`, `CatalogDocument` e o renderer editorial são fronteiras explícitas; wrappers globais, carregamento editorial dinâmico e observers de decoração de `#selectableProducts` foram removidos. Ver `docs/editor-runtime-boundaries-v0.11.0.md`.
 
-Recorte v0.11.0.1 em implementação: o estado de sincronização permanece sempre visível e as ações secundárias de importação/backup/CSV são consolidadas no menu `Dados`, sem alterar os contratos operacionais. Ver `docs/header-data-menu-v0.11.0.1.md`.
+Recorte v0.11.0.1 consolidado na `main`: o estado de sincronização permanece sempre visível e as ações secundárias de importação/backup/CSV foram consolidadas no menu `Dados`, sem alterar os contratos operacionais. Ver `docs/header-data-menu-v0.11.0.1.md`.
+
+Recorte v0.11.1 em implementação: introduz `presentation.order`, `CatalogOrder`, seleção efêmera pelo preview, inspector contextual e reorder exclusivamente pela lista, preservando `selectedIds` como membership e Card/Collection/Table como único vocabulário estrutural. Ver `docs/contextual-inspector-v0.11.1.md`.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.

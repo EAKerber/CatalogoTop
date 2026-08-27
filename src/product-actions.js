@@ -28,7 +28,11 @@
 
     const presentation = draft.catalog?.presentation;
     if (presentation && typeof presentation === 'object') {
+      presentation.order = NS.CatalogOrder?.removeFromOrder
+        ? NS.CatalogOrder.removeFromOrder(presentation.order, id)
+        : (Array.isArray(presentation.order) ? presentation.order.map(String).filter(item => item !== id) : []);
       if (presentation.itemStyles && typeof presentation.itemStyles === 'object') delete presentation.itemStyles[id];
+      if (presentation.imageFrames && typeof presentation.imageFrames === 'object') delete presentation.imageFrames[id];
       if (Array.isArray(presentation.blocks)) {
         presentation.blocks = presentation.blocks.map(block => cleanupBlock(block, id)).filter(Boolean);
       }
@@ -45,7 +49,7 @@
     if (!product) return false;
 
     if (confirmDelete) {
-      const ok = window.confirm?.(`Excluir ${product.code} · ${product.description}?\n\nA exclusão também remove o item da seleção e de blocos editoriais. Essa ação altera a base compartilhada.`);
+      const ok = window.confirm?.(`Excluir ${product.code} · ${product.description}?\n\nA exclusão também remove o item da seleção, da ordem editorial e de blocos. Essa ação altera a base compartilhada.`);
       if (!ok) return false;
     }
 

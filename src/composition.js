@@ -41,6 +41,15 @@
     return allowed.some(item => item.id === text) ? text : fallback;
   }
 
+  function uniqueIds(values) {
+    const seen = new Set();
+    return (Array.isArray(values) ? values : []).map(String).filter(id => {
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }
+
   function widthFromLegacySlots(value) {
     const slots = Number(value);
     if (!Number.isFinite(slots) || slots <= 1) return 'simple';
@@ -92,6 +101,7 @@
     return {
       distribution: normalizeChoice(source.distribution, DISTRIBUTIONS, 'balanced'),
       typography: normalizeChoice(source.typography, TYPOGRAPHY_PRESETS, 'neutral'),
+      order: uniqueIds(source.order),
       itemStyles,
       blocks: normalizeBlocks(source.blocks),
       imageFrames: normalizeImageFrames(source.imageFrames)
@@ -259,6 +269,7 @@
     WIDTH_PRESETS,
     DISTRIBUTIONS,
     TYPOGRAPHY_PRESETS,
+    uniqueIds,
     normalizeItemStyle,
     normalizeBlocks,
     normalizePresentation,
