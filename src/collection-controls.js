@@ -58,13 +58,31 @@
       clear.addEventListener('click', () => clearMarked());
       actions.appendChild(clear);
     }
-    status.textContent = `${markedIds.size} ${markedIds.size === 1 ? 'marcado para bloco' : 'marcados para bloco'}`;
+    status.textContent = `${markedIds.size} ${markedIds.size === 1 ? 'marcado para agrupar' : 'marcados para agrupar'}`;
     status.hidden = markedIds.size === 0;
     clear.hidden = markedIds.size === 0;
   }
 
   function productCopy(row) {
     return row.querySelector(':scope > span:not(.order-handle-spacer)');
+  }
+
+  function memberMoveButton({ blockId, productId, delta, disabled, label }) {
+    const button = document.createElement('button');
+    button.className = 'icon-button';
+    button.type = 'button';
+    button.dataset.blockMemberDelta = String(delta);
+    button.dataset.blockId = String(blockId);
+    button.dataset.blockProductId = String(productId);
+    button.disabled = Boolean(disabled);
+    button.style.width = '28px';
+    button.style.height = '28px';
+    button.style.fontSize = '13px';
+    const direction = delta < 0 ? 'Subir' : 'Descer';
+    button.title = `${direction} dentro da ${label}`;
+    button.setAttribute('aria-label', `${direction} produto dentro da ${label}`);
+    button.textContent = delta < 0 ? '↑' : '↓';
+    return button;
   }
 
   function decorateRows() {
@@ -90,7 +108,10 @@
         controls.style.display = 'inline-flex';
         controls.style.gap = '4px';
         controls.style.justifySelf = 'start';
-        controls.innerHTML = `<button class="icon-button" style="width:28px;height:28px;font-size:13px" type="button" data-block-member-delta="-1" data-block-id="${unit.blockId}" data-block-product-id="${id}" ${index <= 0 ? 'disabled' : ''} title="Subir dentro da ${label}" aria-label="Subir produto dentro da ${label}">↑</button><button class="icon-button" style="width:28px;height:28px;font-size:13px" type="button" data-block-member-delta="1" data-block-id="${unit.blockId}" data-block-product-id="${id}" ${index >= unit.memberIds.length - 1 ? 'disabled' : ''} title="Descer dentro da ${label}" aria-label="Descer produto dentro da ${label}">↓</button>`;
+        controls.append(
+          memberMoveButton({ blockId: unit.blockId, productId: id, delta: -1, disabled: index <= 0, label }),
+          memberMoveButton({ blockId: unit.blockId, productId: id, delta: 1, disabled: index >= unit.memberIds.length - 1, label })
+        );
         copy.appendChild(controls);
         return;
       }
@@ -102,8 +123,8 @@
       button.className = `button compact ${markedIds.has(id) ? 'primary' : 'secondary'}`;
       button.style.justifySelf = 'start';
       button.setAttribute('aria-pressed', markedIds.has(id) ? 'true' : 'false');
-      button.textContent = markedIds.has(id) ? 'Marcado para bloco' : 'Agrupar';
-      button.title = markedIds.has(id) ? 'Remover da marcação para Collection/Table' : 'Marcar para criar Collection ou Table';
+      button.textContent = markedIds.has(id) ? 'Marcado' : 'Marcar';
+      button.title = markedIds.has(id) ? 'Remover da marcação para agrupamento' : 'Marcar produto para criar uma coleção ou tabela';
       copy.appendChild(button);
     });
   }
@@ -165,7 +186,7 @@
   function createCollection() {
     const ids = candidateIds();
     if (ids.length < 2) {
-      alert('Marque de 2 a 12 produtos contíguos, da mesma categoria e ainda fora de outro bloco usando a ação “Agrupar” de cada item.');
+      alert('Marque de 2 a 12 produtos contíguos, da mesma categoria e ainda fora de outro bloco usando a ação “Marcar” de cada item.');
       return;
     }
     if (ids.length > Collection.MAX_MEMBERS) {
