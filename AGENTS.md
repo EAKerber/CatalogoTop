@@ -40,7 +40,7 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 - Profundidade máxima de blocos = 1. Não criar container genérico nem permitir nesting para acomodar casos futuros; novos tipos top-level exigem um caso real e contrato explícito.
 - `Card`, `Collection` e `Table` são o vocabulário estrutural preferido. Antes de criar um quarto primitivo, validar casos reais que não caibam nesses três.
 - A ordem exibida na lista, no preview e no PDF deve derivar da mesma `CatalogOrder` consumida pelo `CatalogDocument`.
-- Número de página e data de criação precisam ser calculados, nunca digitados em cada página.
+- Número de página é sempre calculado. A data do catálogo acompanha o dia local atual por padrão; somente `catalog.dateOverride` pode congelá-la explicitamente em outra data. Um `createdAt` legado não deve ser tratado como override implícito.
 - O pipeline de documento é `state → CatalogOrder → CatalogDocument → preview / print`. Preview pode conter chrome editorial auxiliar; o documento print contém somente `.catalog-page`.
 - `Composition.normalizePresentation`, `CatalogDocument.build` e `src/catalog-renderer.js` são as autoridades únicas de apresentação, materialização e render editorial. Módulos de Collection/Table não podem substituir essas funções por wrapping/monkey patch.
 - O bootstrap editorial deve ser explícito no `index.html`; módulos de ordenação, controles ou UI não devem carregar scripts/CSS como efeito colateral.
@@ -82,5 +82,7 @@ Recorte v0.11.0 consolidado na `main`: `Composition`, `CatalogDocument` e o rend
 Recorte v0.11.0.1 consolidado na `main`: o estado de sincronização permanece sempre visível e as ações secundárias de importação/backup/CSV foram consolidadas no menu `Dados`, sem alterar os contratos operacionais. Ver `docs/header-data-menu-v0.11.0.1.md`.
 
 Recorte v0.11.1 consolidado na `main`: `selectedIds` representa membership, `presentation.order` representa ordem editorial persistida, `CatalogOrder` resolve a sequência antes do `CatalogDocument`, o preview seleciona Card/Collection/member/Table para um inspector contextual e o reorder acontece exclusivamente pela lista com Collection/Table como unidades atômicas. Ver `docs/contextual-inspector-v0.11.1.md`.
+
+Recorte v0.11.1.1 consolidado na `main`: a data do catálogo acompanha o dia local atual por padrão e aceita um override date-only por um controle compacto `Hoje / escolher outra data`, sem alterar ProductStore ou o documento estrutural. Ver `docs/catalog-date-v0.11.1.1.md`.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.
