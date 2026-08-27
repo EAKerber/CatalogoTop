@@ -12,6 +12,104 @@
     services: ['Qualidade', 'Estoque', 'Entrega rápida', 'Atendimento']
   });
 
+  function moneyFailure(raw, reason) {
+    return { ok: false, empty: false, cents: null, canonical: String(raw || '').trim(), raw: String(raw || '').trim(), reason };
+  }
+
+  function validGroupedInteger(value, separator) {
+    if (!separator || !value.includes(separator)) return /^\d+$/.test(value);
+    const groups = value.split(separator);
+    return /^\d{1,3}$/.test(groups[0] || '') && groups.slice(1).every(group => /^\d{3}$/.test(group));
+  }
+
+  function formatMoneyCents(cents) {
+    const value = Number(cents);
+    if (!Number.isSafeInteger(value) || value < 0) return '';
+    const integer = Math.floor(value / 100);
+    const fraction = String(value % 100).padStart(2, '0');
+    const grouped = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0, useGrouping: true }).format(integer);
+    return `R$ ${grouped},${fraction}`;
+  }
+
+  function parseMoney(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return { ok: true, empty: true, cents: null, canonical: '', raw: '' };
+
+    let text = raw.replace(/[\u00a0\u202f]/g, ' ').trim();
+    if (/^R\$/i.test(text)) text = text.replace(/^R\$\s*/i, '');
+    if (!text || !/^\d[\d\s.,]*$/.test(text)) return moneyFailure(raw, 'Formato monetário não reconhecido.');
+    text = text.replace(/\s+/g, '');
+
+    const dotCount = (text.match(/\./g) || []).length;
+    const commaCount = (text.match(/,/g) || []).length;
+    let integerDigits = '';
+    let fractionDigits = '00';
+
+    if (dotCount && commaCount) {
+      const decimalSeparator = text.lastIndexOf('.') > text.lastIndexOf(',') ? '.' : ',';
+      const groupSeparator = decimalSeparator === '.' ? ',' : '.';
+      const decimalCount = decimalSeparator === '.' ? dotCount : commaCount;
+      if (decimalCount !== 1) return moneyFailure(raw, 'Separadores monetários ambíguos.');
+      const index = text.lastIndexOf(decimalSeparator);
+      const integerPart = text.slice(0, index);
+      const fractionPart = text.slice(index + 1);
+      if (!/^\d{1,2}$/.test(fractionPart) || !validGroupedInteger(integerPart, groupSeparator)) {
+        return moneyFailure(raw, 'Formato monetário não reconhecido.');
+      }
+      integerDigits = integerPart.replaceAll(groupSeparator, '');
+      fractionDigits = fractionPart.padEnd(2, '0');
+    } else if (dotCount || commaCount) {
+      const separator = dotCount ? '.' : ',';
+      const count = dotCount || commaCount;
+      const parts = text.split(separator);
+      if (count === 1) {
+        const [integerPart, tail = ''] = parts;
+        if (!/^\d+$/.test(integerPart) || !/^\d+$/.test(tail)) return moneyFailure(raw, 'Formato monetário não reconhecido.');
+        if (tail.length === 1 || tail.length === 2) {
+          integerDigits = integerPart;
+          fractionDigits = tail.padEnd(2, '0');
+        } else if (tail.length === 3 && /^\d{1,3}$/.test(integerPart)) {
+          integerDigits = `${integerPart}${tail}`;
+        } else {
+          return moneyFailure(raw, 'Formato monetário não reconhecido.');
+        }
+      } else {
+        if (!/^\d{1,3}$/.test(parts[0] || '') || !parts.slice(1).every(part => /^\d{3}$/.test(part))) {
+          return moneyFailure(raw, 'Formato monetário não reconhecido.');
+        }
+        integerDigits = parts.join('');
+      }
+    } else {
+      if (!/^\d+$/.test(text)) return moneyFailure(raw, 'Formato monetário não reconhecido.');
+      integerDigits = text;
+    }
+
+    const integer = Number(integerDigits);
+    const fraction = Number(fractionDigits);
+    if (!Number.isSafeInteger(integer) || integer < 0 || !Number.isInteger(fraction) || fraction < 0 || fraction > 99) {
+      return moneyFailure(raw, 'Valor monetário fora do intervalo suportado.');
+    }
+    const cents = integer * 100 + fraction;
+    if (!Number.isSafeInteger(cents)) return moneyFailure(raw, 'Valor monetário fora do intervalo suportado.');
+    return { ok: true, empty: false, cents, canonical: formatMoneyCents(cents), raw };
+  }
+
+  function normalizeMoney(value) {
+    const parsed = parseMoney(value);
+    return parsed.ok ? parsed.canonical : String(value ?? '').trim();
+  }
+
+  NS.Money = Object.freeze({
+    parse: parseMoney,
+    normalize: normalizeMoney,
+    formatBRL: normalizeMoney,
+    formatCents: formatMoneyCents,
+    isValid(value, { allowEmpty = true } = {}) {
+      const parsed = parseMoney(value);
+      return parsed.ok && (allowEmpty || !parsed.empty);
+    }
+  });
+
   function uuid() {
     if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
     return `p-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -134,7 +232,7 @@
         variant: String(item.variant || item.color || item.finish || '').trim(),
         code: String(item.code || item.sku || item.reference || '').trim(),
         package: String(item.package || item.packaging || '').trim(),
-        price: String(item.price || '').trim()
+        price: normalizeMoney(item.price)
       };
     }).filter(item => item.variant || item.code || item.package || item.price);
   }
@@ -164,7 +262,7 @@
       description: String(product.description || '').trim(),
       category,
       subcategory: String(product.subcategory || '').trim(),
-      price: String(product.price || '').trim(),
+      price: normalizeMoney(product.price),
       status: product.status === 'Inativo' ? 'Inativo' : 'Ativo',
       notes: String(product.notes || '').trim(),
       image: String(product.image || '').trim(),
