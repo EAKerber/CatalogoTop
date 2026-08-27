@@ -40,6 +40,10 @@
     return draft;
   }
 
+  async function publishCurrent() {
+    if (NS.ProductStore?.publishCurrent) await NS.ProductStore.publishCurrent();
+  }
+
   async function deleteProduct(productId, { confirmDelete = true } = {}) {
     const Core = NS.Core;
     if (!Core) throw new Error('Base de produtos indisponível.');
@@ -55,13 +59,44 @@
 
     Core.mutate(draft => cleanupDraftForDeletedProduct(draft, id));
     window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));
-    if (NS.ProductStore?.publishCurrent) await NS.ProductStore.publishCurrent();
+    await publishCurrent();
+    return true;
+  }
+
+  async function deleteCategory(categoryName, { confirmDelete = true } = {}) {
+    const Core = NS.Core;
+    if (!Core) throw new Error('Base de produtos indisponível.');
+    const category = String(categoryName || '').trim();
+    if (!category) return false;
+
+    const current = Core.getState();
+    const products = current.products.filter(product => String(product.category || '').trim() === category);
+    if (!products.length) return false;
+
+    if (confirmDelete) {
+      const count = products.length;
+      const ok = window.confirm?.(
+        `Excluir a categoria “${category}” e ${count} ${count === 1 ? 'produto' : 'produtos'}?\n\n`
+        + 'As categorias são derivadas dos produtos. Portanto, excluir esta categoria remove todos os produtos dela da base compartilhada, do catálogo atual, da ordem editorial e de Collection/Table.'
+      );
+      if (!ok) return false;
+    }
+
+    const ids = products.map(product => String(product.id));
+    Core.mutate(draft => {
+      ids.forEach(id => cleanupDraftForDeletedProduct(draft, id));
+    });
+    window.dispatchEvent(new CustomEvent('catalogotop:products-updated', {
+      detail: { type: 'category-deleted', category, deletedProductIds: ids.slice() }
+    }));
+    await publishCurrent();
     return true;
   }
 
   NS.ProductActions = {
     cleanupBlock,
     cleanupDraftForDeletedProduct,
-    deleteProduct
+    deleteProduct,
+    deleteCategory
   };
 })();
