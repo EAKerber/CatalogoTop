@@ -19,6 +19,7 @@
   let pickerRoot = null;
   let pickerToggle = null;
   let activePickerIndex = -1;
+  let suppressFocusOpen = false;
 
   function esc(value) {
     return String(value ?? '')
@@ -146,7 +147,8 @@
     categoryInput.dataset.categoryMode = create ? 'new' : 'existing';
     categoryInput.dispatchEvent(new Event('input', { bubbles: true }));
     closePicker();
-    categoryInput.focus();
+    suppressFocusOpen = true;
+    categoryInput.focus({ preventScroll: true });
   }
 
   function pickerButtons() {
@@ -192,7 +194,13 @@
     categoryInput.setAttribute('aria-controls', pickerRoot.id);
     categoryInput.setAttribute('aria-expanded', 'false');
 
-    categoryInput.addEventListener('focus', () => renderPicker({ forceOpen: true }));
+    categoryInput.addEventListener('focus', () => {
+      if (suppressFocusOpen) {
+        suppressFocusOpen = false;
+        return;
+      }
+      renderPicker({ forceOpen: true });
+    });
     categoryInput.addEventListener('input', () => renderPicker({ forceOpen: true }));
     categoryInput.addEventListener('keydown', event => {
       if (event.key === 'ArrowDown') {
