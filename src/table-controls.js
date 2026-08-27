@@ -86,7 +86,7 @@
     if (!button) return;
     const ids = candidateIds();
     const count = NS.BlockSelection?.ids?.().length || 0;
-    button.textContent = count ? `Criar tabela (${count})` : 'Criar tabela';
+    button.textContent = count ? `Agrupar em tabela (${count})` : 'Agrupar em tabela';
     button.disabled = ids.length < 2 || ids.length > TableBlock.MAX_MEMBERS;
     button.title = button.disabled
       ? 'Marque um trecho contíguo de 2 a 30 produtos do catálogo, da mesma categoria e ainda fora de outro bloco.'
