@@ -59,7 +59,8 @@
       subtitle: String(source.subtitle || '').trim(),
       rowSource,
       density: choice(source.density, TABLE_DENSITIES, 'compact'),
-      columns: normalizeColumns(source.columns, rowSource)
+      columns: normalizeColumns(source.columns, rowSource),
+      commercialPrices: source.commercialPrices === true
     };
   }
 
