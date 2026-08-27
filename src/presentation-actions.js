@@ -95,6 +95,13 @@
     return mutatePresentation(presentation => { presentation.order = nextOrder; });
   }
 
+  function moveBlockMember(blockId, productId, delta) {
+    const current = NS.Core?.getState?.();
+    if (!current || !NS.CatalogOrder?.moveBlockMember) return null;
+    const nextOrder = NS.CatalogOrder.moveBlockMember(current, blockId, productId, delta);
+    return mutatePresentation(presentation => { presentation.order = nextOrder; });
+  }
+
   NS.PresentationActions = {
     mutatePresentation,
     setCardStyle,
@@ -104,6 +111,7 @@
     dissolveCollection,
     dissolveTable,
     moveOrderUnit,
-    moveOrderUnitRelative
+    moveOrderUnitRelative,
+    moveBlockMember
   };
 })();
