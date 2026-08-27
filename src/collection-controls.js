@@ -197,7 +197,7 @@
     if (!button) return;
     const ids = candidateIds();
     const count = marked().length;
-    button.textContent = count ? `Criar coleção (${count})` : 'Criar coleção';
+    button.textContent = count ? `Agrupar em coleção (${count})` : 'Agrupar em coleção';
     button.disabled = ids.length < 2 || ids.length > Collection.MAX_MEMBERS;
     button.title = button.disabled
       ? 'Marque um trecho contíguo de 2 a 12 produtos do catálogo, da mesma categoria e ainda fora de outro bloco.'
