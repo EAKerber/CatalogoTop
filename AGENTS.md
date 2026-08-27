@@ -81,6 +81,6 @@ Recorte v0.11.0 consolidado na `main`: `Composition`, `CatalogDocument` e o rend
 
 Recorte v0.11.0.1 consolidado na `main`: o estado de sincronização permanece sempre visível e as ações secundárias de importação/backup/CSV foram consolidadas no menu `Dados`, sem alterar os contratos operacionais. Ver `docs/header-data-menu-v0.11.0.1.md`.
 
-Recorte v0.11.1 em implementação: introduz `presentation.order`, `CatalogOrder`, seleção efêmera pelo preview, inspector contextual e reorder exclusivamente pela lista, preservando `selectedIds` como membership e Card/Collection/Table como único vocabulário estrutural. Ver `docs/contextual-inspector-v0.11.1.md`.
+Recorte v0.11.1 consolidado na `main`: `selectedIds` representa membership, `presentation.order` representa ordem editorial persistida, `CatalogOrder` resolve a sequência antes do `CatalogDocument`, o preview seleciona Card/Collection/member/Table para um inspector contextual e o reorder acontece exclusivamente pela lista com Collection/Table como unidades atômicas. Ver `docs/contextual-inspector-v0.11.1.md`.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.
