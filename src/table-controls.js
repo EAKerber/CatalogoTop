@@ -46,7 +46,7 @@
   function createTable() {
     const ids = candidateIds();
     if (ids.length < 2) {
-      window.alert?.('Marque de 2 a 30 produtos contíguos, da mesma categoria e ainda fora de outro bloco usando a ação “Agrupar” de cada item.');
+      window.alert?.('Marque de 2 a 30 produtos contíguos, da mesma categoria e ainda fora de outro bloco usando a ação “Marcar” de cada item.');
       return;
     }
     const byId = new Map(state().products.map(product => [String(product.id), product]));
