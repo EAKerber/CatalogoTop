@@ -63,10 +63,16 @@
     return scratch.querySelector('.catalog-page');
   }
 
+  function finalizePresentation(root, state) {
+    NS.CommercialPresentation?.apply?.(root, state);
+    NS.TextFit?.fitCatalog?.(root);
+  }
+
   function renderDocument(root, state) {
     const documentModel = NS.CatalogDocument.build(state);
     if (!documentModel.pageCount) {
       const summary = baseRenderCatalog(root, state);
+      finalizePresentation(root, state);
       root.__catalogDocument = documentModel;
       return { ...summary, document: documentModel };
     }
@@ -81,6 +87,7 @@
       fragments.push(skeleton.outerHTML);
     });
     root.innerHTML = fragments.join('');
+    finalizePresentation(root, state);
     root.__catalogDocument = documentModel;
     return {
       selectedCount: documentModel.selectedCount,
