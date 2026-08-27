@@ -111,6 +111,10 @@
         invalid.push({ row: rowIndex + 2, reason: 'Código e descrição são obrigatórios.' });
         return;
       }
+      if (String(product.price || '').trim() && NS.Money && !NS.Money.parse(product.price).ok) {
+        invalid.push({ row: rowIndex + 2, reason: `Preço “${String(product.price).trim()}” não reconhecido.` });
+        return;
+      }
       products.push(Core().normalizeProduct(product));
     });
 
