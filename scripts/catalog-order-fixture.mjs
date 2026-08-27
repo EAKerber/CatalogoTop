@@ -35,6 +35,16 @@ const movedCollection = Order.moveUnit(state, 'collection:collection-1', 'card:e
 if (movedCollection.join(',') !== 'a,d,e,b,c,f,g,x,y') fail(`Collection deve mover atomicamente: ${movedCollection.join(',')}`);
 if (movedCollection.indexOf('c') !== movedCollection.indexOf('b') + 1) fail('membros de Collection perderam contiguidade');
 
+const reorderedCollectionMembers = Order.moveBlockMember(state, 'collection-1', 'c', -1);
+if (reorderedCollectionMembers.join(',') !== 'a,d,c,b,e,f,g,x,y') fail(`membro da Collection deve reordenar dentro do bloco: ${reorderedCollectionMembers.join(',')}`);
+if (reorderedCollectionMembers.indexOf('b') !== reorderedCollectionMembers.indexOf('c') + 1) fail('reorder interno da Collection rompeu contiguidade');
+if (state.selectedIds.join(',') !== 'a,b,c,d,e,f,g,x,y') fail('reorder interno não pode alterar membership');
+
+const reorderedTableMembers = Order.moveBlockMember(state, 'table-1', 'f', 1);
+if (reorderedTableMembers.join(',') !== 'a,d,b,c,e,g,f,x,y') fail(`membro da Table deve reordenar dentro do bloco: ${reorderedTableMembers.join(',')}`);
+const boundedMemberMove = Order.moveBlockMember(state, 'collection-1', 'b', -1);
+if (boundedMemberMove.join(',') !== effective.join(',')) fail('reorder interno deve respeitar os limites do bloco');
+
 const movedTable = Order.moveUnit({ ...state, catalog: { presentation: { ...state.catalog.presentation, order: movedCollection } } }, 'table:table-1', 'card:a', 'before');
 if (movedTable.join(',') !== 'f,g,a,d,e,b,c,x,y') fail(`Table deve mover atomicamente: ${movedTable.join(',')}`);
 if (movedTable.indexOf('g') !== movedTable.indexOf('f') + 1) fail('membros de Table perderam contiguidade');
@@ -49,4 +59,4 @@ const partial = {
 };
 if (Order.effectiveIds(partial).join(',') !== 'd,a,b,c') fail('IDs ausentes/duplicados devem ser normalizados e selecionados omitidos anexados');
 
-console.log('PASS catalog order fixture: membership separado, categorias preservadas e blocos atômicos');
+console.log('PASS catalog order fixture: membership separado, blocos atômicos e ordem interna editável');

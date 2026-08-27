@@ -163,6 +163,27 @@
     return moveUnit(state, source.id, target.id, delta < 0 ? 'before' : 'after');
   }
 
+  function moveBlockMember(state, blockId, productId, delta) {
+    const current = effectiveIds(state);
+    const block = allUnits(state).find(unit => ['collection', 'table'].includes(unit.type)
+      && String(unit.blockId) === String(blockId)
+      && unit.memberIds.includes(String(productId)));
+    if (!block) return current;
+
+    const members = block.memberIds.slice();
+    const sourceIndex = members.indexOf(String(productId));
+    const targetIndex = sourceIndex + (Number(delta) < 0 ? -1 : 1);
+    if (sourceIndex < 0 || targetIndex < 0 || targetIndex >= members.length) return current;
+
+    [members[sourceIndex], members[targetIndex]] = [members[targetIndex], members[sourceIndex]];
+    const memberSet = new Set(block.memberIds);
+    const firstIndex = current.findIndex(id => memberSet.has(id));
+    if (firstIndex < 0) return current;
+    const next = current.filter(id => !memberSet.has(id));
+    next.splice(firstIndex, 0, ...members);
+    return next;
+  }
+
   function removeFromOrder(order, productId) {
     const id = String(productId);
     return uniqueIds(order).filter(item => item !== id);
@@ -181,6 +202,7 @@
     allUnits,
     moveUnit,
     moveUnitRelative,
+    moveBlockMember,
     removeFromOrder
   };
 })();

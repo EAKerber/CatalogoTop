@@ -73,6 +73,17 @@
     return rows;
   }
 
+  function decodeCsvBytes(buffer) {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer || 0);
+    if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) return new TextDecoder('utf-16le').decode(bytes);
+    if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) return new TextDecoder('utf-16be').decode(bytes);
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch (_error) {
+      return new TextDecoder('windows-1252').decode(bytes);
+    }
+  }
+
   function sheetRowsFromMatrix(matrix) {
     if (!Array.isArray(matrix) || matrix.length < 1) return { products: [], report: { headers: [], mapped: [], extras: [], invalid: [], totalRows: 0 } };
     const rawHeaders = matrix[0].map(value => String(value || '').trim());
@@ -117,8 +128,8 @@
   }
 
   async function parseCsv(file) {
-    const text = await file.text();
-    return sheetRowsFromMatrix(parseDelimited(text));
+    const buffer = await file.arrayBuffer();
+    return sheetRowsFromMatrix(parseDelimited(decodeCsvBytes(buffer)));
   }
 
   async function parseExcel(file) {
@@ -140,5 +151,5 @@
     throw new Error('Formato não suportado. Use CSV, XLSX, XLS ou XLSM.');
   }
 
-  NS.Importer = { parseFile, parseDelimited, sheetRowsFromMatrix, normalizeHeader };
+  NS.Importer = { parseFile, parseDelimited, sheetRowsFromMatrix, normalizeHeader, decodeCsvBytes };
 })();
