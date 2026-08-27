@@ -39,11 +39,13 @@
   function refreshStatus() {
     const actions = $('.selection-actions');
     if (!actions) return;
+    actions.style.flexWrap = 'wrap';
     let status = $('#blockSelectionStatus');
     if (!status) {
       status = document.createElement('span');
       status.id = 'blockSelectionStatus';
       status.className = 'counter';
+      status.style.flexBasis = '100%';
       actions.appendChild(status);
     }
     let clear = $('#btnClearBlockSelection');
@@ -57,7 +59,12 @@
       actions.appendChild(clear);
     }
     status.textContent = `${markedIds.size} ${markedIds.size === 1 ? 'marcado para bloco' : 'marcados para bloco'}`;
+    status.hidden = markedIds.size === 0;
     clear.hidden = markedIds.size === 0;
+  }
+
+  function productCopy(row) {
+    return row.querySelector(':scope > span:not(.order-handle-spacer)');
   }
 
   function decorateRows() {
@@ -70,7 +77,8 @@
     document.querySelectorAll('#selectableProducts > .select-product').forEach(row => {
       row.querySelectorAll('[data-block-pick],[data-block-member-move]').forEach(control => control.remove());
       const id = String(row.dataset.productRow || '');
-      if (!id || !selected.has(id)) return;
+      const copy = productCopy(row);
+      if (!id || !copy || !selected.has(id)) return;
 
       const unit = unitsByMember.get(id);
       if (unit) {
@@ -79,8 +87,11 @@
         const controls = document.createElement('span');
         controls.dataset.blockMemberMove = id;
         controls.className = 'block-member-order-controls';
-        controls.innerHTML = `<button class="icon-button" type="button" data-block-member-delta="-1" data-block-id="${unit.blockId}" data-block-product-id="${id}" ${index <= 0 ? 'disabled' : ''} title="Subir dentro da ${label}" aria-label="Subir produto dentro da ${label}">↑</button><button class="icon-button" type="button" data-block-member-delta="1" data-block-id="${unit.blockId}" data-block-product-id="${id}" ${index >= unit.memberIds.length - 1 ? 'disabled' : ''} title="Descer dentro da ${label}" aria-label="Descer produto dentro da ${label}">↓</button>`;
-        row.appendChild(controls);
+        controls.style.display = 'inline-flex';
+        controls.style.gap = '4px';
+        controls.style.justifySelf = 'start';
+        controls.innerHTML = `<button class="icon-button" style="width:28px;height:28px;font-size:13px" type="button" data-block-member-delta="-1" data-block-id="${unit.blockId}" data-block-product-id="${id}" ${index <= 0 ? 'disabled' : ''} title="Subir dentro da ${label}" aria-label="Subir produto dentro da ${label}">↑</button><button class="icon-button" style="width:28px;height:28px;font-size:13px" type="button" data-block-member-delta="1" data-block-id="${unit.blockId}" data-block-product-id="${id}" ${index >= unit.memberIds.length - 1 ? 'disabled' : ''} title="Descer dentro da ${label}" aria-label="Descer produto dentro da ${label}">↓</button>`;
+        copy.appendChild(controls);
         return;
       }
 
@@ -89,10 +100,11 @@
       button.type = 'button';
       button.dataset.blockPick = id;
       button.className = `button compact ${markedIds.has(id) ? 'primary' : 'secondary'}`;
+      button.style.justifySelf = 'start';
       button.setAttribute('aria-pressed', markedIds.has(id) ? 'true' : 'false');
-      button.textContent = markedIds.has(id) ? 'Marcado' : 'Agrupar';
+      button.textContent = markedIds.has(id) ? 'Marcado para bloco' : 'Agrupar';
       button.title = markedIds.has(id) ? 'Remover da marcação para Collection/Table' : 'Marcar para criar Collection ou Table';
-      row.appendChild(button);
+      copy.appendChild(button);
     });
   }
 
