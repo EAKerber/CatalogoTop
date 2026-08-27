@@ -41,7 +41,7 @@ const server = createServer(async (request, response) => {
 
 const LONG_DESCRIPTION = 'CORREDIÇA TELESCÓPICA INV SOFT EXTRA 350 MM REFORÇADA PARA MÓVEIS RESIDENCIAIS COM ABERTURA TOTAL DESLIZAMENTO SUAVE ALTA DURABILIDADE ACABAMENTO ZINCADO E SISTEMA DE AMORTECIMENTO INTEGRADO';
 
-function installFixture() {
+function installFixture(longDescription) {
   const NS = window.CatalogoTop;
   const base = (id, price, extras = {}) => ({
     id,
@@ -60,9 +60,9 @@ function installFixture() {
     ...extras
   });
   const products = [
-    base('p1', '54,9', { description: LONG_DESCRIPTION }),
+    base('p1', '54,9', { description: longDescription }),
     base('p2', '39,9'),
-    base('p3', '89,9', { description: LONG_DESCRIPTION }),
+    base('p3', '89,9', { description: longDescription }),
     base('p4', '17,64', { tableRows: [{ id: 'r1', variant: '350 mm', code: 'P4-350', package: 'CX 10', price: '16,9' }] }),
     base('p5', '25,9'),
     base('p6', '27,9')
@@ -118,7 +118,7 @@ try {
     && window.CatalogoTop?.CommercialControls
   ));
 
-  await page.evaluate(installFixture);
+  await page.evaluate(installFixture, LONG_DESCRIPTION);
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('.catalog-card[data-product-id="p1"].price-style-standard');
   await page.waitForSelector('.catalog-table-block[data-table-block-id="table-commercial"].commercial-prices');
