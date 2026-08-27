@@ -24,6 +24,13 @@
     { id: 'full', name: 'Linha inteira' }
   ]);
 
+  const PRICE_STYLES = Object.freeze([
+    { id: 'standard', name: 'Padrão' },
+    { id: 'red', name: 'Vermelho' },
+    { id: 'label', name: 'Etiqueta' },
+    { id: 'block', name: 'Bloco' }
+  ]);
+
   const DISTRIBUTIONS = Object.freeze([
     { id: 'compact', name: 'Compacta' },
     { id: 'balanced', name: 'Balanceada' },
@@ -65,7 +72,8 @@
     return {
       contentPreset: normalizeChoice(item.contentPreset, CONTENT_PRESETS, 'visual'),
       emphasis: normalizeChoice(legacyHero ? 'feature' : item.emphasis, EMPHASIS_PRESETS, 'normal'),
-      width: normalizeChoice(explicitWidth, WIDTH_PRESETS, widthFallback)
+      width: normalizeChoice(explicitWidth, WIDTH_PRESETS, widthFallback),
+      priceStyle: normalizeChoice(item.priceStyle, PRICE_STYLES, 'standard')
     };
   }
 
@@ -267,6 +275,7 @@
     CONTENT_PRESETS,
     EMPHASIS_PRESETS,
     WIDTH_PRESETS,
+    PRICE_STYLES,
     DISTRIBUTIONS,
     TYPOGRAPHY_PRESETS,
     uniqueIds,
