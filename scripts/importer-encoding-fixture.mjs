@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { TextDecoder } from 'node:util';
+import { TextDecoder, TextEncoder } from 'node:util';
 
 const source = await readFile('src/importer.js', 'utf8');
 const context = {
