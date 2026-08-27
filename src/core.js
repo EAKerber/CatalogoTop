@@ -46,6 +46,12 @@
     };
   }
 
+  function effectiveCatalogDateIso(dateOverride = '') {
+    if (NS.CatalogDate?.effectiveIso) return NS.CatalogDate.effectiveIso({ dateOverride });
+    if (dateOverride) return new Date(`${dateOverride}T12:00:00`).toISOString();
+    return new Date().toISOString();
+  }
+
   function createInitialState() {
     return {
       schemaVersion: SCHEMA_VERSION,
@@ -55,7 +61,8 @@
         title: 'Categoria',
         templateId: 'technical',
         showPrices: true,
-        createdAt: new Date().toISOString(),
+        dateOverride: '',
+        createdAt: effectiveCatalogDateIso(''),
         presentation: normalizePresentation({ order: [], blocks: [] })
       }
     };
@@ -178,6 +185,7 @@
       ...rawPresentation,
       order: Array.isArray(rawPresentation.order) ? rawPresentation.order : selectedIds
     });
+    const dateOverride = NS.CatalogDate?.normalizeOverride?.(raw.catalog?.dateOverride) || '';
     return {
       schemaVersion: SCHEMA_VERSION,
       products,
@@ -186,7 +194,8 @@
         title: String(raw.catalog?.title || raw.selectionName || base.catalog.title),
         templateId: ({ eletrica: 'technical', moveis: 'compact', promo: 'showcase' }[String(raw.catalog?.templateId || raw.currentTemplate || '')] || String(raw.catalog?.templateId || raw.currentTemplate || base.catalog.templateId)),
         showPrices: raw.catalog?.showPrices ?? raw.showPrices ?? true,
-        createdAt: raw.catalog?.createdAt || base.catalog.createdAt,
+        dateOverride,
+        createdAt: effectiveCatalogDateIso(dateOverride),
         presentation
       }
     };
@@ -238,6 +247,7 @@
   function resetCatalog() {
     return mutate(draft => {
       draft.selectedIds = [];
+      draft.catalog.dateOverride = '';
       draft.catalog.createdAt = new Date().toISOString();
       draft.catalog.title = 'Categoria';
       draft.catalog.presentation = normalizePresentation({
