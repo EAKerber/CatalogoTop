@@ -7,9 +7,18 @@
   white-space: nowrap;
 }
 .product-row-actions .danger-action {
+  width: auto;
+  min-width: 58px;
+  padding: 0 9px;
   color: #a7191d;
   border-color: rgba(167,25,29,.16);
   background: #fff7f7;
+  font-size: 0;
+}
+.product-row-actions .danger-action::after {
+  content: 'Excluir';
+  font-size: 11px;
+  font-weight: 760;
 }
 .product-row-actions .danger-action:hover,
 .product-row-actions .danger-action:focus-visible {
@@ -20,4 +29,5 @@
 @media (max-width: 639px) {
   .product-row-actions { gap: 2px; }
   .product-row-actions .icon-button { min-width: 34px; min-height: 34px; }
+  .product-row-actions .danger-action { min-width: 54px; }
 }
