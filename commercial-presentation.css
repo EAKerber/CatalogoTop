@@ -71,6 +71,8 @@
   color: var(--brand-deep);
 }
 
+/* A Table não presume mais que a última coluna é preço. */
+.catalog-table-block td:last-child { font-weight: 650; }
 .catalog-table-block .table-column-price,
 .catalog-table-block .table-cell-price {
   text-align: right;
