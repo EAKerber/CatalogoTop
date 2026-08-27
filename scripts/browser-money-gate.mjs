@@ -122,19 +122,25 @@ try {
   }
 
   await page.click('[data-tab="products"]');
+  await page.fill('#code', 'MONEY-GATE');
+  await page.fill('#description', 'Produto de teste monetário');
+  await page.fill('#category', 'CORREDIÇAS');
   await page.click('[data-form-step-target="2"]');
+  await page.waitForSelector('[data-form-step="2"].active #price');
   await page.fill('#price', '4.2');
   await page.locator('#price').blur();
   const normalizedField = await page.inputValue('#price');
   if (normalizedField !== 'R$ 4,20') throw new Error(`campo de preço não normalizou no blur: ${normalizedField}`);
 
   await page.click('[data-form-step-target="3"]');
+  await page.waitForSelector('[data-form-step="3"].active #commercialRows');
   await page.fill('#commercialRows', 'Branco | P-1 | CX 10 | 39.9');
   await page.locator('#commercialRows').blur();
   const commercialField = await page.inputValue('#commercialRows');
   if (!commercialField.includes('R$ 39,90')) throw new Error(`linhas comerciais não normalizaram no blur: ${commercialField}`);
 
   await page.click('[data-form-step-target="2"]');
+  await page.waitForSelector('[data-form-step="2"].active #price');
   await page.fill('#price', '54 reais');
   await page.locator('#price').blur();
   const invalidState = await page.evaluate(() => ({ valid: document.getElementById('price').checkValidity(), message: document.getElementById('price').validationMessage }));
