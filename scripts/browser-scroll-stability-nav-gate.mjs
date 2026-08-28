@@ -48,46 +48,42 @@ try {
   await page.evaluate(installFixture);
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('.selection-layout');
-  await page.evaluate(() => window.CatalogoTop.GroupingControls.measureComposerHeight());
-  await page.waitForTimeout(50);
+  await page.waitForTimeout(60);
 
   const desktop = await page.evaluate(() => {
-    const layout = document.querySelector('.selection-layout');
     const panel = document.querySelector('.selection-panel');
     const previewColumn = document.querySelector('.preview-column');
     const preview = document.querySelector('#catalogPreviewViewport');
     const list = document.querySelector('#selectableProducts');
     return {
-      variable: getComputedStyle(layout).getPropertyValue('--composer-available-height').trim(),
       panelHeight: panel.getBoundingClientRect().height,
+      panelMaxHeight: getComputedStyle(panel).maxHeight,
       previewHeight: previewColumn.getBoundingClientRect().height,
       previewOverflow: getComputedStyle(preview).overflowY,
       columnOverflow: getComputedStyle(previewColumn).overflowY,
+      listOverflow: getComputedStyle(list).overflowY,
       listScrollbar: getComputedStyle(list).scrollbarWidth
     };
   });
-  if (!/px$/.test(desktop.variable)) throw new Error(`altura útil não foi materializada: ${JSON.stringify(desktop)}`);
-  if (Math.abs(desktop.panelHeight - desktop.previewHeight) > 2 || desktop.previewOverflow !== 'auto' || desktop.columnOverflow !== 'hidden') throw new Error(`ownership desktop incorreto: ${JSON.stringify(desktop)}`);
+  if (desktop.panelMaxHeight !== 'none' || desktop.previewOverflow !== 'visible' || desktop.columnOverflow !== 'visible' || desktop.listOverflow !== 'auto') throw new Error(`ownership desktop adaptativo incorreto: ${JSON.stringify(desktop)}`);
   if (desktop.listScrollbar !== 'thin') throw new Error(`scrollbar editorial não foi tematizada: ${JSON.stringify(desktop)}`);
 
   const heightBeforeScroll = await page.locator('.selection-panel').evaluate(node => node.getBoundingClientRect().height);
-  await page.evaluate(() => window.scrollBy(0, 260));
+  await page.evaluate(() => document.querySelector('#catalog')?.scrollBy?.(0, 260));
   await page.waitForTimeout(80);
   const heightAfterScroll = await page.locator('.selection-panel').evaluate(node => node.getBoundingClientRect().height);
   if (Math.abs(heightBeforeScroll - heightAfterScroll) > 1) throw new Error(`scroll externo redimensionou compositor: ${heightBeforeScroll} -> ${heightAfterScroll}`);
 
   await page.click('.catalog-table-block[data-table-block-id="table-scroll"] .catalog-table-heading');
-  await page.waitForSelector('#contextualInspector .inspector-member-order-list');
+  await page.waitForSelector('#contextualInspector .inspector-mode-tabs');
+  await page.click('#contextualInspector [data-inspector-mode="order"]');
+  await page.waitForSelector('#contextualInspector .inspector-member-order-list', { state: 'visible' });
   const nested = await page.evaluate(() => {
     const memberList = document.querySelector('#contextualInspector .inspector-member-order-list');
     const inspector = document.querySelector('#contextualInspector');
-    const beforeHeight = inspector.getBoundingClientRect().height;
-    inspector.scrollTop = Math.min(80, inspector.scrollHeight);
-    return { overflow: getComputedStyle(memberList).overflowY, delta: memberList.scrollHeight - memberList.clientHeight, beforeHeight };
+    return { memberOverflow: getComputedStyle(memberList).overflowY, inspectorOverflow: getComputedStyle(inspector).overflowY, delta: memberList.scrollHeight - memberList.clientHeight };
   });
-  await page.waitForTimeout(60);
-  const inspectorAfter = await page.locator('#contextualInspector').evaluate(node => node.getBoundingClientRect().height);
-  if (nested.overflow !== 'visible' || Math.abs(nested.delta) > 2 || Math.abs(nested.beforeHeight - inspectorAfter) > 1) throw new Error(`ordem interna ainda cria scroll/jump: ${JSON.stringify({ nested, inspectorAfter })}`);
+  if (nested.memberOverflow !== 'visible' || Math.abs(nested.delta) > 2 || nested.inspectorOverflow !== 'auto') throw new Error(`ordem interna não está sob o único scroll da aba Ordenação: ${JSON.stringify(nested)}`);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.click('[data-tab="products"]');
@@ -115,17 +111,17 @@ try {
   if (floaterCount !== 3) throw new Error(`floater mobile deveria ter ↑ / ajustes / ↓; recebeu ${floaterCount}`);
   await page.evaluate(() => { window.CatalogoTop.ContextualInspector.setMinimized(true); window.scrollTo(0, document.body.scrollHeight); });
   await page.waitForTimeout(60);
-  await page.evaluate(() => document.querySelector('[data-editor-settings]')?.click());
+  await page.click('[data-editor-settings]');
   await page.waitForFunction(() => window.CatalogoTop.ContextualInspector.isMinimized() === false);
   await page.waitForTimeout(350);
   const settings = await page.evaluate(() => ({
     target: window.CatalogoTop.ComposerSelection.get(),
-    inspectorTop: document.querySelector('#contextualInspector').scrollTop,
+    mode: document.querySelector('#contextualInspector')?.dataset.inspectorMode,
     minimized: window.CatalogoTop.ContextualInspector.isMinimized()
   }));
-  if (settings.target?.productId !== 'p2' || settings.minimized || settings.inspectorTop !== 0) throw new Error(`atalho Ajustes perdeu seleção/estado: ${JSON.stringify(settings)}`);
+  if (settings.target?.productId !== 'p2' || settings.minimized || settings.mode !== 'general') throw new Error(`atalho Ajustes perdeu seleção/estado: ${JSON.stringify(settings)}`);
 
-  console.log('PASS browser scroll stability/nav gate: ownership único, altura estável, rail horizontal e atalho Ajustes');
+  console.log('PASS browser scroll stability/nav gate: fluxo vertical, ordem com scroll único, rail horizontal e atalho Ajustes');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
