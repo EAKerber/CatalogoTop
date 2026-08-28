@@ -18,9 +18,7 @@
 }
 .select-product.editor-selected-row > span { cursor: pointer; }
 
-/* O modo Agrupar deixou de existir; ações aparecem conforme a seleção editorial. */
-#btnEnterGrouping,
-#btnCancelGrouping { display: none !important; }
+/* Ações de agrupamento aparecem somente quando a seleção editorial tem 2+ itens. */
 #groupingActions {
   gap: 6px;
   align-items: center;
