@@ -10,8 +10,8 @@
     const preset = block.itemPreset || 'visual';
     const style = item.style || { emphasis: 'normal', width: 'simple', priceStyle: 'standard' };
     const placement = `grid-column:${item.start} / span ${item.slotSpan};grid-row:${item.row};`;
-    const price = showPrices && product.price && preset === 'commercial'
-      ? `<strong class="catalog-collection-price">${Render.esc(product.price)}</strong>` : '';
+    const showMemberPrice = showPrices && product.price && (preset === 'commercial' || style.priceStyle !== 'standard');
+    const price = showMemberPrice ? `<strong class="catalog-collection-price">${Render.esc(product.price)}</strong>` : '';
     const description = preset === 'compact' ? '' : `<b>${Render.esc(product.description)}</b>`;
     const effectiveOrder = item.effectiveOrder ? ` data-effective-order="${item.effectiveOrder}"` : '';
     return `<article class="catalog-collection-item emphasis-${Render.esc(style.emphasis)} width-${Render.esc(style.width)} price-style-${Render.esc(style.priceStyle || 'standard')} preset-${Render.esc(preset)}" data-product-id="${Render.esc(product.id)}" data-member-width="${Render.esc(style.width)}" data-price-style="${Render.esc(style.priceStyle || 'standard')}"${effectiveOrder} style="${placement}">
