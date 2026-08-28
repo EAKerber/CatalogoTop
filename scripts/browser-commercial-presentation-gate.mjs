@@ -131,10 +131,11 @@ try {
   if (!initial.internalBackground || initial.internalBackground === 'rgba(0, 0, 0, 0)') throw new Error(`priceStyle block não destacou preço da tabela interna: ${initial.internalBackground}`);
 
   await page.click('.catalog-card[data-product-id="p1"]');
-  await page.waitForSelector('[data-commercial-card-price-style="p1"]');
-  const cardRadioCount = await page.locator('[data-commercial-card-price-style="p1"] [data-commercial-price-style]').count();
+  const cardEditor = '[data-commercial-card-price-editor][data-product-id="p1"]';
+  await page.waitForSelector(cardEditor);
+  const cardRadioCount = await page.locator(`${cardEditor} input[data-commercial-price-style]`).count();
   if (cardRadioCount !== 4) throw new Error(`inspector deveria oferecer 4 apresentações de preço no Card; recebeu ${cardRadioCount}`);
-  await page.click('[data-commercial-card-price-style="p1"] label:has(input[value="block"]) span');
+  await page.click(`${cardEditor} label:has(input[data-commercial-price-style][value="block"]) span`);
   await page.waitForSelector('.catalog-card[data-product-id="p1"].price-style-block');
   const afterCardChange = await page.evaluate(() => {
     const state = window.CatalogoTop.Core.getState();
@@ -143,11 +144,12 @@ try {
   if (afterCardChange.price !== 'R$ 54,90' || afterCardChange.style !== 'block') throw new Error(`inspector contaminou Product ou não persistiu presentation: ${JSON.stringify(afterCardChange)}`);
 
   await page.click('.catalog-table-block[data-table-block-id="table-commercial"] .catalog-table-heading');
-  await page.waitForSelector('#contextualInspector [data-commercial-table-price-style]');
-  const tableRadioCount = await page.locator('#contextualInspector [data-commercial-table-price-style] input[data-commercial-table-price-style]').count();
+  const tableEditor = '#contextualInspector [data-commercial-table-price-editor]';
+  await page.waitForSelector(tableEditor);
+  const tableRadioCount = await page.locator(`${tableEditor} input[data-commercial-table-price-style]`).count();
   if (tableRadioCount !== 4) throw new Error(`Table deveria oferecer 4 apresentações de preço; recebeu ${tableRadioCount}`);
   for (const style of ['standard', 'red', 'label', 'block']) {
-    await page.check(`#contextualInspector [data-commercial-table-price-style] input[value="${style}"]`);
+    await page.click(`${tableEditor} label:has(input[data-commercial-table-price-style][value="${style}"]) span`);
     await page.waitForFunction(({ style }) => window.CatalogoTop.Core.getState().catalog.presentation.blocks.find(block => block.id === 'table-commercial')?.priceStyle === style, { style });
     await page.waitForSelector(`.catalog-table-block[data-table-block-id="table-commercial"].price-style-${style}`);
   }
