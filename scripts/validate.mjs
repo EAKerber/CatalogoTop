@@ -64,7 +64,7 @@ const checks = [
   ['ações/seleção carregam antes da aplicação e inspector depois', html.indexOf('src/product-actions.js') < html.indexOf('src/app.js') && html.indexOf('src/composer-selection.js') < html.indexOf('src/app.js') && html.indexOf('src/presentation-actions.js') < html.indexOf('src/app.js') && html.indexOf('src/contextual-inspector.js') > html.indexOf('src/app.js')],
   ['renderer canônico carrega após helpers', html.indexOf('src/collection-render.js') < html.indexOf('src/catalog-renderer.js') && html.indexOf('src/table-render.js') < html.indexOf('src/catalog-renderer.js')],
   ['logo canônica preserva viewBox oficial', logo.includes('viewBox="0 0 481 270"')],
-  ['estado local migra para schema v5', core.includes('SCHEMA_VERSION = 5') && core.includes('order: []') && core.includes('blocks: []')],
+  ['estado local migra para schema v6', core.includes('SCHEMA_VERSION = 6') && core.includes('order: []') && core.includes('blocks: []')],
   ['Composition preserva order/blocks/imageFrames', composition.includes('order: uniqueIds(source.order)') && composition.includes('blocks: normalizeBlocks(source.blocks)') && composition.includes('imageFrames: normalizeImageFrames(source.imageFrames)')],
   ['CatalogOrder separa membership de ordem editorial', catalogOrder.includes('function effectiveIds') && catalogOrder.includes('function moveUnit') && catalogOrder.includes('source.category !== target.category') && !catalogOrder.includes('CatalogDocument')],
   ['largura por slots continua independente da ênfase', composition.includes('function slotSpanFor') && composition.includes('WIDTH_PRESETS') && !composition.includes('function emphasisRank')],
