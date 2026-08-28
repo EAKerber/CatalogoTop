@@ -1,4 +1,4 @@
-/* v0.5 — shell compacto, workspace sem scroll externo no desktop e breakpoints explícitos. */
+/* Shell compacto e breakpoints explícitos. */
 :root { --app-shell-height: 64px; }
 
 .app-shell-header {
@@ -18,7 +18,7 @@
 .app-brand { gap: 10px; min-width: 0; }
 .app-brand img { width: 68px; height: 42px; }
 .app-brand h1 { font-size: 19px; line-height: 1; }
-.app-brand p { margin-top: 3px; font-size: 10px; white-space: nowrap; }
+.app-brand p { margin: 4px 0 0; color: #aeb3bb; font-size: 10px; white-space: nowrap; }
 
 .app-primary-tools {
   min-width: 0;
@@ -92,21 +92,10 @@
 .app-header-actions .secondary { background: #20242b; border-color: #3b414b; color: #fff; }
 .app-header-actions .secondary:hover { background: #292e37; }
 
-.product-section-heading {
-  align-items: center;
-  margin-bottom: 10px;
-}
+.product-section-heading { align-items: center; margin-bottom: 10px; }
 .product-section-heading .eyebrow { margin-bottom: 3px; font-size: 9px; }
-.product-section-heading h2 {
-  margin: 0;
-  font-size: 20px;
-  line-height: 1.05;
-  letter-spacing: -.02em;
-}
-.product-section-heading .muted {
-  margin: 4px 0 0;
-  font-size: 11px;
-}
+.product-section-heading h2 { margin: 0; font-size: 20px; line-height: 1.05; letter-spacing: -.02em; }
+.product-section-heading .muted { margin: 4px 0 0; font-size: 11px; }
 .form-head-actions { display: flex; align-items: center; gap: 6px; }
 
 .shell-import-report {
@@ -117,10 +106,7 @@
   background: #fff;
   box-shadow: 0 8px 28px rgba(22, 25, 31, .06);
 }
-.shell-import-report .import-summary {
-  grid-template-columns: minmax(180px, 1.35fr) 1fr 1fr auto;
-  gap: 9px;
-}
+.shell-import-report .import-summary { grid-template-columns: minmax(180px, 1.35fr) 1fr 1fr auto; gap: 9px; }
 .shell-import-report .import-summary span,
 .shell-import-report .import-warning,
 .shell-import-report .import-error { font-size: 10px; }
@@ -194,7 +180,7 @@
   .table-wrap { height: 100%; max-height: none; overflow: auto; }
 }
 
-/* Notebook / desktop estreito. Mantém duas colunas, reduz chrome e libera scroll do documento. */
+/* Notebook / desktop estreito: chrome menor e documento rolável. */
 @media (max-width: 1199px) {
   :root { --app-shell-height: 60px; }
   body { overflow: auto; }
@@ -209,9 +195,10 @@
   .app-main { padding: 14px 14px 56px; }
   .product-workspace { grid-template-columns: minmax(330px, 380px) minmax(0, 1fr); }
   .product-form { position: static; }
+  .product-list-card .table-wrap { overflow-x: hidden; }
 }
 
-/* Tablet: primeira linha de marca/utilidades; tabs + importação juntas na segunda linha. */
+/* Tablet: primeira linha de marca/utilidades; tabs na segunda linha. */
 @media (max-width: 959px) {
   :root { --app-shell-height: auto; }
   .app-shell-header {
@@ -246,7 +233,7 @@
   .shell-import-report .import-summary { grid-template-columns: 1fr 1fr; }
 }
 
-/* Mobile: shell estritamente em duas linhas e Produtos alterna Cadastro/Biblioteca por tabs + swipe. */
+/* Mobile: Produtos alterna Cadastro/Biblioteca e a biblioteca vira lista tabular visual. */
 @media (max-width: 639px) {
   .app-shell-header {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -317,23 +304,54 @@
   #products.mobile-workspace-enabled [data-mobile-workspace-panel] { display: none !important; }
   #products.mobile-workspace-enabled [data-mobile-workspace-panel].mobile-workspace-active { display: grid !important; }
   #products.mobile-workspace-enabled #productLibraryPanel.mobile-workspace-active {
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: start;
     min-height: calc(100dvh - 160px);
   }
 
   .list-toolbar { grid-template-columns: 1fr auto; }
   .list-toolbar #filterCategory { display: none; }
-  .product-library { grid-template-columns: 1fr; }
+  .product-library { grid-template-columns: 1fr; align-content: start; }
   .category-browser { overflow: hidden; border-right: 0; border-bottom: 1px solid var(--line); }
   .category-browser-head { display: none; }
-  .category-folders { display: flex; gap: 6px; overflow-x: auto; padding: 8px; scrollbar-width: none; }
+  .category-folders { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; overflow-y: hidden; padding: 8px; scrollbar-width: none; }
   .category-folders::-webkit-scrollbar { display: none; }
-  .category-folder { flex: 0 0 auto; width: auto; min-width: 132px; }
-  .product-table th:nth-child(1), .product-table td:nth-child(1),
+
+  .product-table-pane { align-self: start; width: 100%; }
+  .table-wrap { overflow-x: hidden; max-height: none; }
+  .product-table { display: block; width: 100%; }
+  .product-table thead,
+  .product-table tbody { display: block; width: 100%; }
+  .product-table tr {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 58px 72px minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  .product-table tbody tr { min-height: 92px; }
+  .product-table th,
+  .product-table td { min-width: 0; padding: 10px 7px; }
   .product-table th:nth-child(4), .product-table td:nth-child(4),
   .product-table th:nth-child(5), .product-table td:nth-child(5) { display: none; }
-  .product-table th, .product-table td { padding: 9px 8px; }
+  .product-table th:nth-child(1), .product-table td:nth-child(1) { grid-column: 1; }
+  .product-table th:nth-child(2), .product-table td:nth-child(2) { grid-column: 2; }
+  .product-table th:nth-child(3), .product-table td:nth-child(3) { grid-column: 3; }
+  .product-table th:nth-child(6), .product-table td:nth-child(6) { grid-column: 4; }
+  .product-table th:nth-child(1) { color: transparent; }
   .product-table td { font-size: 12px; }
+  .product-thumb { width: 50px; height: 50px; border-radius: 9px; }
+  .table-product-link {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    line-height: 1.25;
+    font-size: 12px;
+  }
+  .product-table td small { max-width: 100%; }
+  .product-row-actions { align-self: center; }
+
   .selection-toolbar { grid-template-columns: 1fr; }
   .select-product { grid-template-columns: 20px 46px minmax(0,1fr) auto; padding: 7px 5px; }
   .select-product img { width: 46px; height: 44px; }
