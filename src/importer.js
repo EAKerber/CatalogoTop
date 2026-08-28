@@ -10,6 +10,8 @@
     category: ['categoria', 'familia', 'grupo'],
     subcategory: ['subcategoria', 'subfamilia', 'subgrupo'],
     price: ['preco', 'valor', 'precodevenda', 'preco unitario', 'precounitario'],
+    quantityMin: ['quantidade minima', 'qtd minima', 'qtd desconto', 'quantidade para desconto', 'minimo quantidade'],
+    quantityPriceValue: ['preco quantidade', 'preco em quantidade', 'preco qtd', 'valor quantidade', 'valor em quantidade'],
     status: ['status', 'situacao', 'ativo'],
     image: ['imagem', 'foto', 'image', 'imageurl', 'urlimagem', 'urlfoto'],
     notes: ['observacoes', 'observacao', 'notas', 'nota']
@@ -115,7 +117,30 @@
         invalid.push({ row: rowIndex + 2, reason: `Preço “${String(product.price).trim()}” não reconhecido.` });
         return;
       }
-      products.push(Core().normalizeProduct(product));
+
+      const quantityMin = String(product.quantityMin || '').trim();
+      const quantityPriceValue = String(product.quantityPriceValue || '').trim();
+      if (Boolean(quantityMin) !== Boolean(quantityPriceValue)) {
+        invalid.push({ row: rowIndex + 2, reason: 'Quantidade mínima e preço em quantidade devem ser informados juntos.' });
+        return;
+      }
+      if (quantityMin) {
+        const minimum = Number(quantityMin);
+        if (!Number.isSafeInteger(minimum) || minimum < 2) {
+          invalid.push({ row: rowIndex + 2, reason: `Quantidade mínima “${quantityMin}” inválida.` });
+          return;
+        }
+        const parsed = NS.Money?.parse(quantityPriceValue);
+        if (!parsed?.ok || parsed.empty) {
+          invalid.push({ row: rowIndex + 2, reason: `Preço em quantidade “${quantityPriceValue}” não reconhecido.` });
+          return;
+        }
+        product.quantityPrice = { minQuantity: minimum, price: parsed.canonical };
+      }
+
+      const normalized = Core().normalizeProduct(product);
+      if (!quantityMin && !quantityPriceValue) delete normalized.quantityPrice;
+      products.push(normalized);
     });
 
     return {
