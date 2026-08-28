@@ -173,14 +173,14 @@ try {
 
   await page.click('#contextualInspector [data-inspector-open-table]');
   await page.waitForSelector(`#contextualInspector [data-inspector-table="${tableId}"]`);
-  await page.waitForSelector('#contextualInspector [data-commercial-table-price-style] input[value="block"]');
-  await page.check('#contextualInspector [data-commercial-table-price-style] input[value="block"]');
+  await page.waitForSelector('#contextualInspector input[data-commercial-table-price-style][value="block"]');
+  await page.check('#contextualInspector input[data-commercial-table-price-style][value="block"]');
   await page.waitForFunction(tableId => window.CatalogoTop.Core.getState().catalog.presentation.blocks.find(block => block.id === tableId)?.priceStyle === 'block', tableId);
   await page.waitForSelector(`#catalogPreview .catalog-table-block[data-table-block-id="${tableId}"].price-style-block`);
 
   await page.click(`#catalogPreview .catalog-collection[data-collection-id="${collectionId}"] .catalog-collection-item[data-product-id="p1"]`);
-  await page.waitForSelector('#contextualInspector [data-commercial-member-price-style] input[value="label"]');
-  await page.check('#contextualInspector [data-commercial-member-price-style] input[value="label"]');
+  await page.waitForSelector('#contextualInspector input[data-commercial-member-price-style][value="label"]');
+  await page.check('#contextualInspector input[data-commercial-member-price-style][value="label"]');
   await page.waitForFunction(collectionId => window.CatalogoTop.Core.getState().catalog.presentation.blocks.find(block => block.id === collectionId)?.itemStyles?.p1?.priceStyle === 'label', collectionId);
   await page.waitForSelector(`#catalogPreview .catalog-collection[data-collection-id="${collectionId}"] .catalog-collection-item[data-product-id="p1"].price-style-label .catalog-collection-price`);
 
