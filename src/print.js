@@ -11,7 +11,6 @@
     Object.freeze({ href: 'collection-block.css' }),
     Object.freeze({ href: 'table-block.css' }),
     Object.freeze({ href: 'commercial-presentation.css' }),
-    Object.freeze({ href: 'grouping-controls.css' }),
     Object.freeze({ href: 'print.css', media: 'print' })
   ]);
 
