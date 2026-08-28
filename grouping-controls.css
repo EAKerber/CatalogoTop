@@ -185,8 +185,9 @@
 @media (max-width: 639px) {
   .inspector-row-facts { grid-template-columns: 1fr; }
   #groupingActions .button { min-width: 84px; }
+  /* 34dvh mantém Tables grandes roláveis, mas reserva altura útil para a lista. */
   .contextual-inspector:not(.is-collapsed):not(.is-minimized) {
-    max-height: 38dvh;
+    max-height: 34dvh;
   }
   .editor-order-floater:not([hidden]) {
     position: fixed;
