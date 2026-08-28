@@ -3,7 +3,7 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const STORAGE_KEY = 'catalogotop:state:v1';
-  const SCHEMA_VERSION = 5;
+  const SCHEMA_VERSION = 6;
 
   const APP_CONFIG = Object.freeze({
     brandName: 'Top Mobili',
@@ -109,6 +109,14 @@
       return parsed.ok && (allowEmpty || !parsed.empty);
     }
   });
+
+  function normalizeQuantityPrice(value) {
+    if (!value || typeof value !== 'object') return null;
+    const minQuantity = Number(value.minQuantity ?? value.quantity ?? value.minimumQuantity);
+    const parsed = parseMoney(value.price ?? value.value);
+    if (!Number.isSafeInteger(minQuantity) || minQuantity < 2 || !parsed.ok || parsed.empty) return null;
+    return { minQuantity, price: parsed.canonical };
+  }
 
   function uuid() {
     if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
@@ -232,9 +240,10 @@
         variant: String(item.variant || item.color || item.finish || '').trim(),
         code: String(item.code || item.sku || item.reference || '').trim(),
         package: String(item.package || item.packaging || '').trim(),
-        price: normalizeMoney(item.price)
+        price: normalizeMoney(item.price),
+        quantityPrice: normalizeQuantityPrice(item.quantityPrice)
       };
-    }).filter(item => item.variant || item.code || item.package || item.price);
+    }).filter(item => item.variant || item.code || item.package || item.price || item.quantityPrice);
   }
 
   function parseTableRowsText(text) {
@@ -243,14 +252,28 @@
       .map(line => line.trim())
       .filter(Boolean)
       .map((line, index) => {
-        const [variant = '', code = '', packageValue = '', price = ''] = line.split('|').map(part => part.trim());
-        return { id: `row-${index + 1}`, variant, code, package: packageValue, price };
+        const [variant = '', code = '', packageValue = '', price = '', minQuantity = '', quantityPrice = ''] = line.split('|').map(part => part.trim());
+        return {
+          id: `row-${index + 1}`,
+          variant,
+          code,
+          package: packageValue,
+          price,
+          quantityPrice: minQuantity || quantityPrice ? { minQuantity, price: quantityPrice } : null
+        };
       }));
   }
 
   function tableRowsToText(rows) {
     return normalizeTableRows(rows)
-      .map(item => [item.variant, item.code, item.package, item.price].join(' | ').replace(/(?:\s*\|\s*)+$/g, ''))
+      .map(item => [
+        item.variant,
+        item.code,
+        item.package,
+        item.price,
+        item.quantityPrice?.minQuantity || '',
+        item.quantityPrice?.price || ''
+      ].join(' | ').replace(/(?:\s*\|\s*)+$/g, ''))
       .join('\n');
   }
 
@@ -263,6 +286,7 @@
       category,
       subcategory: String(product.subcategory || '').trim(),
       price: normalizeMoney(product.price),
+      quantityPrice: normalizeQuantityPrice(product.quantityPrice),
       status: product.status === 'Inativo' ? 'Inativo' : 'Ativo',
       notes: String(product.notes || '').trim(),
       image: String(product.image || '').trim(),
@@ -358,7 +382,12 @@
   }
 
   function mergeProducts(incoming, mode = 'merge') {
-    const normalized = incoming.map(normalizeProduct).filter(p => p.code && p.description);
+    const source = Array.isArray(incoming) ? incoming : [];
+    const explicitQuantityByCode = new Set(source
+      .filter(product => product && Object.prototype.hasOwnProperty.call(product, 'quantityPrice'))
+      .map(product => String(product.code || '').trim().toLowerCase())
+      .filter(Boolean));
+    const normalized = source.map(normalizeProduct).filter(p => p.code && p.description);
     return mutate(draft => {
       if (mode === 'replace') {
         draft.products = normalized;
@@ -382,6 +411,7 @@
             ...product,
             id: existing.id,
             image: product.image || existing.image,
+            quantityPrice: explicitQuantityByCode.has(key) ? product.quantityPrice : existing.quantityPrice,
             variants: product.variants.length ? product.variants : existing.variants,
             tableRows: product.tableRows.length ? product.tableRows : existing.tableRows,
             updatedAt: new Date().toISOString()
@@ -402,6 +432,7 @@
     resetCatalog,
     mergeProducts,
     normalizeProduct,
+    normalizeQuantityPrice,
     normalizeVariants,
     normalizeTableRows,
     parseSpecsText,
