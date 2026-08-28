@@ -7,6 +7,8 @@
 
   const $ = selector => document.querySelector(selector);
   const esc = value => Render.esc(value == null ? '' : value);
+  let inspectorMinimized = false;
+  let suppressClickUntil = 0;
 
   function state() { return Core.getState(); }
   function productById(id) { return state().products.find(product => String(product.id) === String(id)) || null; }
@@ -21,7 +23,7 @@
   }
 
   function inspectorHead(kind, title, subtitle) {
-    return `<div class="inspector-head"><div><span>${esc(kind)}</span><strong>${esc(title)}</strong>${subtitle ? `<small>${esc(subtitle)}</small>` : ''}</div><button class="inspector-clear" type="button" data-inspector-clear title="Fechar ajustes" aria-label="Fechar ajustes">×</button></div>`;
+    return `<div class="inspector-head"><div><span>${esc(kind)}</span><strong>${esc(title)}</strong>${subtitle ? `<small>${esc(subtitle)}</small>` : ''}</div><div class="inspector-head-actions"><button class="inspector-collapse" type="button" data-inspector-toggle title="Recolher ajustes" aria-label="Recolher ajustes" aria-expanded="true">⌃</button><button class="inspector-clear" type="button" data-inspector-clear title="Fechar ajustes" aria-label="Fechar ajustes">×</button></div></div>`;
   }
 
   function imageFrameMarkup(product, { available = true } = {}) {
@@ -137,24 +139,62 @@
       <button class="inspector-danger" type="button" data-inspector-dissolve-table="${esc(block.id)}">Desagrupar tabela</button>`;
   }
 
+  function tableRowMarkup(target) {
+    const raw = blockById(target.blockId);
+    const product = productById(target.productId);
+    if (!raw || !product || !TableBlock) return emptyMarkup();
+    const block = TableBlock.normalizeBlock(raw);
+    const members = block.memberIds.map(productById).filter(Boolean);
+    const row = TableBlock.rowsForBlock(block, members).find(item => String(item.rowId) === String(target.rowId));
+    if (!row) return tableMarkup({ kind: 'table', blockId: block.id });
+    return `${inspectorHead('Linha da Table', `${row.code || product.code} · ${row.description || product.description}`, block.title || 'Tabela')}
+      <div class="inspector-fields inspector-row-facts" data-inspector-table-row="${esc(row.rowId)}" data-block-id="${esc(block.id)}" data-product-id="${esc(product.id)}">
+        <div><span>Código</span><strong>${esc(row.code || product.code)}</strong></div>
+        ${row.variant ? `<div><span>Variação</span><strong>${esc(row.variant)}</strong></div>` : ''}
+        ${row.package ? `<div><span>Embalagem</span><strong>${esc(row.package)}</strong></div>` : ''}
+        ${row.price ? `<div><span>Preço</span><strong>${esc(row.price)}</strong></div>` : ''}
+      </div>
+      <div class="inspector-inline-actions"><button class="inspector-link" type="button" data-inspector-open-table="${esc(block.id)}">Ajustar tabela</button><button class="inspector-link" type="button" data-inspector-edit-product="${esc(product.id)}">Editar produto</button></div>`;
+  }
+
+  function targetSummary(target) {
+    if (!target) return { kind: 'Ajustes', title: 'Selecione um item' };
+    if (target.kind === 'card') { const p = productById(target.productId); return { kind: 'Card', title: p ? `${p.code} · ${p.description}` : target.productId }; }
+    if (target.kind === 'collection') { const b = blockById(target.blockId); return { kind: 'Collection', title: b?.title || 'Coleção' }; }
+    if (target.kind === 'collection-member') { const p = productById(target.productId); return { kind: 'Item da Collection', title: p ? `${p.code} · ${p.description}` : target.productId }; }
+    if (target.kind === 'table') { const b = blockById(target.blockId); return { kind: 'Table', title: b?.title || 'Tabela' }; }
+    if (target.kind === 'table-row') { const p = productById(target.productId); return { kind: 'Linha da Table', title: p ? `${p.code} · ${p.description}` : target.rowId }; }
+    return { kind: 'Ajustes', title: 'Item' };
+  }
+
+  function minimizedMarkup(target) {
+    const summary = targetSummary(target);
+    return `<div class="inspector-minimized-head"><div><span>${esc(summary.kind)}</span><strong>${esc(summary.title)}</strong></div><div class="inspector-head-actions"><button class="inspector-collapse" type="button" data-inspector-toggle title="Expandir ajustes" aria-label="Expandir ajustes" aria-expanded="false">⌄</button><button class="inspector-clear" type="button" data-inspector-clear title="Fechar ajustes" aria-label="Fechar ajustes">×</button></div></div>`;
+  }
+
   function renderInspector() {
     const root = $('#contextualInspector');
     if (!root) return;
     const target = ComposerSelection.get();
     root.classList.toggle('is-collapsed', !target);
+    root.classList.toggle('is-minimized', Boolean(target && inspectorMinimized));
     if (!target) { root.innerHTML = emptyMarkup(); return; }
+    if (inspectorMinimized) { root.innerHTML = minimizedMarkup(target); return; }
     if (target.kind === 'card') root.innerHTML = cardMarkup(target);
     else if (target.kind === 'collection') root.innerHTML = collectionMarkup(target);
     else if (target.kind === 'collection-member') root.innerHTML = collectionMemberMarkup(target);
     else if (target.kind === 'table') root.innerHTML = tableMarkup(target);
-    else {
-      root.classList.add('is-collapsed');
-      root.innerHTML = emptyMarkup();
-    }
+    else if (target.kind === 'table-row') root.innerHTML = tableRowMarkup(target);
+    else { root.classList.add('is-collapsed'); root.innerHTML = emptyMarkup(); }
   }
 
   function targetFromPreviewNode(node) {
     if (!node) return null;
+    const tableRow = node.closest('tr[data-table-row-id][data-product-id]');
+    if (tableRow) {
+      const table = tableRow.closest('.catalog-table-block[data-table-block-id]');
+      if (table) return { kind: 'table-row', blockId: table.dataset.tableBlockId, rowId: tableRow.dataset.tableRowId, productId: tableRow.dataset.productId };
+    }
     const member = node.closest('.catalog-collection-item[data-product-id]');
     if (member) {
       const collection = member.closest('.catalog-collection[data-collection-id]');
@@ -180,25 +220,31 @@
       return block?.querySelector(`.catalog-collection-item[data-product-id="${CSS.escape(target.productId)}"]`) || null;
     }
     if (target.kind === 'table') return root.querySelector(`.catalog-table-block[data-table-block-id="${CSS.escape(target.blockId)}"]`);
+    if (target.kind === 'table-row') {
+      const block = root.querySelector(`.catalog-table-block[data-table-block-id="${CSS.escape(target.blockId)}"]`);
+      return block?.querySelector(`tr[data-table-row-id="${CSS.escape(target.rowId)}"]`) || null;
+    }
     return null;
   }
 
-  function memberIdsForTarget(target) {
-    if (!target) return [];
-    if (target.productId) return [String(target.productId)];
-    const block = target.blockId ? blockById(target.blockId) : null;
-    return (Array.isArray(block?.memberIds) ? block.memberIds : []).map(String);
+  function previewNodesForProduct(productId) {
+    const root = $('#catalogPreview');
+    if (!root) return [];
+    const id = CSS.escape(String(productId));
+    return Array.from(root.querySelectorAll(`.catalog-card[data-product-id="${id}"],.catalog-collection-item[data-product-id="${id}"],.catalog-table-block tr[data-product-id="${id}"]`));
   }
 
   function applySelectionChrome({ locate = false } = {}) {
     const target = ComposerSelection.get();
+    const editorialIds = new Set(ComposerSelection.ids?.() || []);
     const preview = $('#catalogPreview');
     if (preview) {
-      preview.querySelectorAll('.editor-selected').forEach(node => node.classList.remove('editor-selected'));
-      preview.querySelectorAll('.catalog-card[data-product-id],.catalog-collection[data-collection-id],.catalog-collection-item[data-product-id],.catalog-table-block[data-table-block-id]').forEach(node => {
+      preview.querySelectorAll('.editor-selected,.editor-multi-selected').forEach(node => node.classList.remove('editor-selected', 'editor-multi-selected'));
+      preview.querySelectorAll('.catalog-card[data-product-id],.catalog-collection[data-collection-id],.catalog-collection-item[data-product-id],.catalog-table-block[data-table-block-id],.catalog-table-block tr[data-table-row-id]').forEach(node => {
         node.setAttribute('tabindex', '0');
         node.setAttribute('data-editor-target', '');
       });
+      editorialIds.forEach(id => previewNodesForProduct(id).forEach(node => node.classList.add('editor-multi-selected')));
       const node = previewNodeForTarget(target);
       if (node) {
         node.classList.add('editor-selected');
@@ -206,29 +252,62 @@
       }
     }
 
-    const selectedIds = new Set(memberIdsForTarget(target));
     document.querySelectorAll('#selectableProducts [data-product-row]').forEach(row => {
-      row.classList.toggle('editor-selected-row', selectedIds.has(String(row.dataset.productRow)));
+      const id = String(row.dataset.productRow || '');
+      row.setAttribute('tabindex', '0');
+      row.classList.toggle('editor-selected-row', editorialIds.has(id));
+      row.classList.toggle('editor-primary-row', Boolean(target?.productId && String(target.productId) === id));
     });
   }
 
-  function select(target, { locate = false } = {}) {
-    ComposerSelection.select(target);
+  function select(target, { locate = false, additive = false, range = false } = {}) {
+    if (target?.productId) ComposerSelection.selectProduct(state(), target.productId, { target, additive, range });
+    else ComposerSelection.select(target);
     renderInspector();
     applySelectionChrome({ locate });
   }
 
-  function selectProductFromList(productId) {
+  function selectProductFromList(productId, options = {}) {
     const target = ComposerSelection.targetForProduct(state(), productId);
-    if (target) select(target, { locate: true });
+    if (target) select(target, { locate: true, ...options });
+  }
+
+  function modifierOptions(event) {
+    return { additive: Boolean(event.ctrlKey || event.metaKey), range: Boolean(event.shiftKey) };
+  }
+
+  function bindLongPress(root, resolver) {
+    let press = null;
+    const cancel = () => {
+      if (press?.timer) clearTimeout(press.timer);
+      press = null;
+    };
+    root.addEventListener('pointerdown', event => {
+      if (event.pointerType !== 'touch' || event.button !== 0) return;
+      const target = resolver(event.target);
+      if (!target?.productId) return;
+      cancel();
+      press = { x: event.clientX, y: event.clientY, target, timer: setTimeout(() => {
+        suppressClickUntil = Date.now() + 650;
+        select(target, { additive: true });
+        press = null;
+      }, 450) };
+    }, { passive: true });
+    root.addEventListener('pointermove', event => {
+      if (!press) return;
+      if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 11) cancel();
+    }, { passive: true });
+    root.addEventListener('pointerup', cancel, { passive: true });
+    root.addEventListener('pointercancel', cancel, { passive: true });
   }
 
   function bindPreview() {
     const preview = $('#catalogPreview');
     if (!preview) return;
     preview.addEventListener('click', event => {
+      if (Date.now() < suppressClickUntil) { event.preventDefault(); return; }
       const target = targetFromPreviewNode(event.target);
-      if (target) select(target);
+      if (target) select(target, modifierOptions(event));
       else if (event.target.closest('.catalog-page')) ComposerSelection.clear();
     });
     preview.addEventListener('keydown', event => {
@@ -236,17 +315,30 @@
       const target = targetFromPreviewNode(event.target);
       if (!target) return;
       event.preventDefault();
-      select(target);
+      select(target, modifierOptions(event));
     });
+    bindLongPress(preview, targetFromPreviewNode);
   }
 
   function bindList() {
     const list = $('#selectableProducts');
     if (!list) return;
     list.addEventListener('click', event => {
+      if (Date.now() < suppressClickUntil) { event.preventDefault(); return; }
       if (event.target.closest('[data-select-product],[data-order-handle],button,select,input,a')) return;
       const row = event.target.closest('[data-product-row]');
-      if (row) selectProductFromList(row.dataset.productRow);
+      if (row) selectProductFromList(row.dataset.productRow, modifierOptions(event));
+    });
+    list.addEventListener('keydown', event => {
+      if (!['Enter', ' '].includes(event.key) || event.target.closest('button,input,select,a')) return;
+      const row = event.target.closest('[data-product-row]');
+      if (!row) return;
+      event.preventDefault();
+      selectProductFromList(row.dataset.productRow, modifierOptions(event));
+    });
+    bindLongPress(list, node => {
+      const row = node.closest?.('[data-product-row]');
+      return row ? ComposerSelection.targetForProduct(state(), row.dataset.productRow) : null;
     });
   }
 
@@ -264,6 +356,7 @@
 
     inspector.addEventListener('click', event => {
       if (event.target.closest('[data-inspector-clear]')) { ComposerSelection.clear(); return; }
+      if (event.target.closest('[data-inspector-toggle]')) { inspectorMinimized = !inspectorMinimized; renderInspector(); return; }
       const frameReset = event.target.closest('[data-image-frame-reset]');
       if (frameReset) { PresentationActions.resetImageFrame(frameReset.dataset.imageFrameReset); return; }
       const move = event.target.closest('[data-inspector-member-move]');
@@ -279,6 +372,8 @@
       }
       const openCollection = event.target.closest('[data-inspector-open-collection]');
       if (openCollection) { select({ kind: 'collection', blockId: openCollection.dataset.inspectorOpenCollection }); return; }
+      const openTable = event.target.closest('[data-inspector-open-table]');
+      if (openTable) { select({ kind: 'table', blockId: openTable.dataset.inspectorOpenTable }); return; }
       const dissolveCollection = event.target.closest('[data-inspector-dissolve-collection]');
       if (dissolveCollection) { ComposerSelection.clear(); PresentationActions.dissolveCollection(dissolveCollection.dataset.inspectorDissolveCollection); return; }
       const dissolveTable = event.target.closest('[data-inspector-dissolve-table]');
@@ -350,10 +445,7 @@
     bindPreview();
     bindList();
     bindInspector();
-    window.addEventListener('catalogotop:editor-selection-changed', () => {
-      renderInspector();
-      applySelectionChrome();
-    });
+    window.addEventListener('catalogotop:editor-selection-changed', () => { renderInspector(); applySelectionChrome(); });
     window.addEventListener('catalogotop:catalog-rendered', syncUi);
     window.addEventListener('catalogotop:selection-rendered', () => applySelectionChrome());
     window.addEventListener('keydown', event => {
@@ -368,7 +460,9 @@
     previewNodeForTarget,
     applySelectionChrome,
     select,
-    selectProductFromList
+    selectProductFromList,
+    isMinimized: () => inspectorMinimized,
+    setMinimized: value => { inspectorMinimized = Boolean(value); renderInspector(); }
   };
 
   init();
