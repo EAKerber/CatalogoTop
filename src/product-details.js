@@ -42,11 +42,14 @@
   };
 
   function setQuantityEnabled(enabled) {
-    quantityToggle.checked = Boolean(enabled);
-    quantityFields.classList.toggle('hidden', !enabled);
-    quantityMinField.disabled = !enabled;
-    quantityPriceField.disabled = !enabled;
-    if (!enabled) {
+    const active = Boolean(enabled);
+    quantityToggle.checked = active;
+    quantityFields.classList.toggle('hidden', !active);
+    quantityMinField.disabled = !active;
+    quantityPriceField.disabled = !active;
+    quantityMinField.required = active;
+    quantityPriceField.required = active;
+    if (!active) {
       quantityMinField.setCustomValidity('');
       quantityPriceField.setCustomValidity('');
     }
@@ -155,11 +158,12 @@
   });
   quantityToggle.addEventListener('change', () => setQuantityEnabled(quantityToggle.checked));
   quantityMinField.addEventListener('input', () => quantityMinField.setCustomValidity(''));
+  quantityMinField.addEventListener('blur', () => {
+    if (quantityToggle.checked) normalizeQuantityPriceFields();
+  });
   quantityPriceField.addEventListener('input', () => quantityPriceField.setCustomValidity(''));
   quantityPriceField.addEventListener('blur', () => {
-    if (!quantityToggle.checked || !quantityPriceField.value.trim()) return;
-    const parsed = Money?.parse(quantityPriceField.value);
-    if (parsed?.ok && !parsed.empty) quantityPriceField.value = parsed.canonical;
+    if (quantityToggle.checked) normalizeQuantityPriceFields();
   });
   tableRowsField.addEventListener('input', () => tableRowsField.setCustomValidity(''));
   tableRowsField.addEventListener('blur', normalizeCommercialRowsField);
