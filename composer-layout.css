@@ -54,14 +54,7 @@
   overflow: visible;
 }
 
-/* Em desktop largo a rolagem vertical pertence ao painel/página, não a uma janela estreita do PDF. */
-.preview-column .catalog-preview-viewport {
-  min-height: 0;
-  max-height: none;
-  overflow-y: visible;
-  overflow-x: hidden;
-  overscroll-behavior-y: auto;
-}
+/* Overflow e touch do A4 pertencem exclusivamente a preview-viewport.css. */
 
 .catalog-panel-toggle,
 .catalog-panel-backdrop {
@@ -127,10 +120,6 @@
     background: rgba(18,22,28,.18);
     backdrop-filter: blur(1px);
   }
-
-  .preview-column .catalog-preview-viewport {
-    overflow-y: visible;
-  }
 }
 
 /* Mobile/tablet: painel em fluxo; configuração pode crescer e a lista tem sua própria janela útil. */
@@ -160,13 +149,6 @@
     max-height: none;
     display: block;
     overflow: visible;
-  }
-
-  /* Touch vertical no A4 continua pertencendo à página. */
-  .preview-column .catalog-preview-viewport {
-    max-height: none;
-    overflow-y: visible;
-    overflow-x: hidden;
   }
 }
 
