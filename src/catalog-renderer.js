@@ -65,6 +65,7 @@
 
   function finalizePresentation(root, state) {
     NS.CommercialPresentation?.apply?.(root, state);
+    NS.ImageFraming?.applyImageFrames?.(root, state);
     NS.TextFit?.fitCatalog?.(root);
   }
 

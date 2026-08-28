@@ -3,6 +3,12 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
 
+  const IMAGE_FRAME_FITS = Object.freeze([
+    { id: 'contain', name: 'Conter' },
+    { id: 'cover', name: 'Preencher' }
+  ]);
+  const DEFAULT_IMAGE_FRAME = Object.freeze({ fit: 'contain', zoom: 1, x: 50, y: 50 });
+
   function notify() {
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));
   }
@@ -18,6 +24,37 @@
     return result;
   }
 
+  function clampNumber(value, min, max, fallback) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    return Math.min(max, Math.max(min, number));
+  }
+
+  function normalizeImageFrame(value) {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const fit = IMAGE_FRAME_FITS.some(item => item.id === source.fit) ? source.fit : DEFAULT_IMAGE_FRAME.fit;
+    return {
+      fit,
+      zoom: Math.round(clampNumber(source.zoom, 1, 2.4, DEFAULT_IMAGE_FRAME.zoom) * 100) / 100,
+      x: Math.round(clampNumber(source.x, 0, 100, DEFAULT_IMAGE_FRAME.x)),
+      y: Math.round(clampNumber(source.y, 0, 100, DEFAULT_IMAGE_FRAME.y))
+    };
+  }
+
+  function imageFrameFor(presentation, productId) {
+    const id = String(productId || '');
+    const frames = presentation?.imageFrames && typeof presentation.imageFrames === 'object' ? presentation.imageFrames : {};
+    return normalizeImageFrame(frames[id]);
+  }
+
+  function isDefaultImageFrame(frame) {
+    const normalized = normalizeImageFrame(frame);
+    return normalized.fit === DEFAULT_IMAGE_FRAME.fit
+      && normalized.zoom === DEFAULT_IMAGE_FRAME.zoom
+      && normalized.x === DEFAULT_IMAGE_FRAME.x
+      && normalized.y === DEFAULT_IMAGE_FRAME.y;
+  }
+
   function setCardStyle(productId, patch) {
     const id = String(productId);
     return mutatePresentation(presentation => {
@@ -26,6 +63,83 @@
         ...(patch || {})
       };
     });
+  }
+
+  function setImageFrame(productId, patch) {
+    const id = String(productId || '');
+    if (!id) return null;
+    return mutatePresentation(presentation => {
+      presentation.imageFrames = presentation.imageFrames && typeof presentation.imageFrames === 'object'
+        ? { ...presentation.imageFrames }
+        : {};
+      const next = normalizeImageFrame({ ...imageFrameFor(presentation, id), ...(patch || {}) });
+      if (isDefaultImageFrame(next)) delete presentation.imageFrames[id];
+      else presentation.imageFrames[id] = next;
+    });
+  }
+
+  function resetImageFrame(productId) {
+    const id = String(productId || '');
+    if (!id) return null;
+    return mutatePresentation(presentation => {
+      if (!presentation.imageFrames || typeof presentation.imageFrames !== 'object') return;
+      delete presentation.imageFrames[id];
+    });
+  }
+
+  function primaryImageForEditorTarget(node) {
+    if (node.matches('.catalog-card[data-product-id]')) {
+      return node.querySelector('.catalog-card-visuals.single > img');
+    }
+    if (node.matches('.catalog-collection-item[data-product-id]')) {
+      return node.querySelector('.catalog-collection-image > img');
+    }
+    return null;
+  }
+
+  function applyImageFrames(root, state) {
+    if (!root?.querySelectorAll || !state) return;
+    const presentation = NS.Composition?.normalizePresentation(state.catalog?.presentation) || { imageFrames: {} };
+    root.querySelectorAll('.catalog-card[data-product-id],.catalog-collection-item[data-product-id]').forEach(node => {
+      const image = primaryImageForEditorTarget(node);
+      if (!image) return;
+      const frame = imageFrameFor(presentation, node.dataset.productId);
+      const holder = image.parentElement;
+      if (holder) holder.style.overflow = 'hidden';
+      image.dataset.imageFrameTarget = 'primary';
+      image.dataset.imageFrameFit = frame.fit;
+      image.dataset.imageFrameZoom = String(frame.zoom);
+      image.dataset.imageFrameX = String(frame.x);
+      image.dataset.imageFrameY = String(frame.y);
+      image.style.objectFit = frame.fit;
+      image.style.objectPosition = `${frame.x}% ${frame.y}%`;
+      image.style.transform = `scale(${frame.zoom})`;
+      image.style.transformOrigin = `${frame.x}% ${frame.y}%`;
+    });
+  }
+
+  function ensureImageFramingStyles() {
+    if (typeof document === 'undefined' || document.getElementById('catalogotop-image-framing-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'catalogotop-image-framing-styles';
+    style.textContent = `
+      .inspector-image-frame{margin-top:9px;padding-top:8px;border-top:1px solid #eceef0;display:grid;gap:7px}
+      .inspector-image-frame.is-unavailable{gap:4px}
+      .inspector-image-frame.is-unavailable>small{color:var(--muted);font-size:8px;line-height:1.35}
+      .inspector-frame-fit{margin:0;padding:5px;display:grid;grid-template-columns:1fr 1fr;gap:4px;border:1px solid #e5e7e9;border-radius:8px}
+      .inspector-frame-fit legend{padding:0 3px;color:var(--muted);font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+      .inspector-frame-fit label{min-height:28px;display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:6px;background:#f7f8f9;color:var(--ink-2);font-size:9px;font-weight:700}
+      .inspector-frame-fit input{accent-color:var(--brand)}
+      .inspector-frame-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+      .inspector-frame-range{display:grid;gap:4px;color:var(--muted);font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+      .inspector-frame-range>span{display:flex;justify-content:space-between;gap:8px;align-items:center}
+      .inspector-frame-range output{color:var(--ink);font-size:8px;font-variant-numeric:tabular-nums}
+      .inspector-frame-range input[type=range]{width:100%;min-height:20px;padding:0;accent-color:var(--brand)}
+      .inspector-frame-reset{margin-top:0!important}
+      @media(max-width:639px){.inspector-frame-grid{grid-template-columns:1fr}}
+      @media print{.inspector-image-frame{display:none!important}}
+    `;
+    document.head.appendChild(style);
   }
 
   function blockIndex(presentation, blockId, type) {
@@ -102,9 +216,20 @@
     return mutatePresentation(presentation => { presentation.order = nextOrder; });
   }
 
+  NS.ImageFraming = {
+    IMAGE_FRAME_FITS,
+    DEFAULT_IMAGE_FRAME,
+    normalizeImageFrame,
+    imageFrameFor,
+    isDefaultImageFrame,
+    applyImageFrames
+  };
+
   NS.PresentationActions = {
     mutatePresentation,
     setCardStyle,
+    setImageFrame,
+    resetImageFrame,
     updateCollection,
     setCollectionMemberStyle,
     updateTable,
@@ -114,4 +239,6 @@
     moveOrderUnitRelative,
     moveBlockMember
   };
+
+  ensureImageFramingStyles();
 })();

@@ -24,6 +24,30 @@
     return `<div class="inspector-head"><div><span>${esc(kind)}</span><strong>${esc(title)}</strong>${subtitle ? `<small>${esc(subtitle)}</small>` : ''}</div><button class="inspector-clear" type="button" data-inspector-clear title="Fechar ajustes" aria-label="Fechar ajustes">×</button></div>`;
   }
 
+  function imageFrameMarkup(product, { available = true } = {}) {
+    const framing = NS.ImageFraming;
+    if (!framing || !product) return '';
+    if (!product.image) {
+      return `<section class="inspector-image-frame is-unavailable"><div class="inspector-subhead"><strong>Enquadramento</strong><span>Imagem principal</span></div><small>Adicione uma imagem principal ao produto para ajustar o enquadramento.</small></section>`;
+    }
+    if (!available) {
+      return `<section class="inspector-image-frame is-unavailable"><div class="inspector-subhead"><strong>Enquadramento</strong><span>Imagem principal</span></div><small>Este Card usa uma grade de imagens de variações. O enquadramento individual dessas fotos fica fora deste recorte.</small></section>`;
+    }
+    const presentation = Composition.normalizePresentation(state().catalog.presentation);
+    const frame = framing.imageFrameFor(presentation, product.id);
+    const zoomPercent = Math.round(frame.zoom * 100);
+    return `<section class="inspector-image-frame" data-image-frame-editor="${esc(product.id)}">
+      <div class="inspector-subhead"><strong>Enquadramento</strong><span>Imagem principal</span></div>
+      <fieldset class="inspector-frame-fit"><legend>Ajuste</legend>${framing.IMAGE_FRAME_FITS.map(item => `<label><input type="radio" name="image-fit-${esc(product.id)}" value="${esc(item.id)}" data-image-frame-field="fit"${item.id === frame.fit ? ' checked' : ''} />${esc(item.name)}</label>`).join('')}</fieldset>
+      <label class="inspector-frame-range"><span>Zoom <output data-image-frame-output="zoom">${zoomPercent}%</output></span><input type="range" min="1" max="2.4" step="0.05" value="${frame.zoom}" data-image-frame-field="zoom" /></label>
+      <div class="inspector-frame-grid">
+        <label class="inspector-frame-range"><span>Horizontal <output data-image-frame-output="x">${frame.x}%</output></span><input type="range" min="0" max="100" step="1" value="${frame.x}" data-image-frame-field="x" /></label>
+        <label class="inspector-frame-range"><span>Vertical <output data-image-frame-output="y">${frame.y}%</output></span><input type="range" min="0" max="100" step="1" value="${frame.y}" data-image-frame-field="y" /></label>
+      </div>
+      <button class="inspector-link inspector-frame-reset" type="button" data-image-frame-reset="${esc(product.id)}">Redefinir enquadramento</button>
+    </section>`;
+  }
+
   function effectiveBlockMemberIds(blockId, fallback = []) {
     const unit = NS.CatalogOrder?.allUnits?.(state())?.find(item => ['collection', 'table'].includes(item.type) && String(item.blockId) === String(blockId));
     return (unit?.memberIds || fallback || []).map(String);
@@ -53,12 +77,14 @@
     if (!product) return emptyMarkup();
     const presentation = Composition.normalizePresentation(state().catalog.presentation);
     const style = Composition.styleFor(presentation, product.id);
+    const hasVariantImages = Array.isArray(product.variants) && product.variants.some(entry => entry?.image);
     return `${inspectorHead('Card', `${product.code} · ${product.description}`, product.category)}
       <div class="inspector-fields" data-inspector-card="${esc(product.id)}">
         <label>Conteúdo<select data-inspector-card-field="contentPreset">${options(Composition.CONTENT_PRESETS, style.contentPreset)}</select></label>
         <label>Ênfase<select data-inspector-card-field="emphasis">${options(Composition.EMPHASIS_PRESETS, style.emphasis)}</select></label>
         <label>Largura<select data-inspector-card-field="width">${options(Composition.WIDTH_PRESETS, style.width)}</select></label>
       </div>
+      ${imageFrameMarkup(product, { available: !hasVariantImages })}
       <button class="inspector-link" type="button" data-inspector-edit-product="${esc(product.id)}">Editar dados do produto</button>`;
   }
 
@@ -91,6 +117,7 @@
         <label>Ênfase<select data-inspector-member-field="emphasis"><option value="normal"${style.emphasis === 'normal' ? ' selected' : ''}>Normal</option><option value="feature"${style.emphasis === 'feature' ? ' selected' : ''}>Destaque</option></select></label>
         <label>Largura local<select data-inspector-member-field="width"><option value="simple"${style.width === 'simple' ? ' selected' : ''}>Simples</option><option value="wide"${style.width === 'wide' ? ' selected' : ''}>Largo</option><option value="full"${style.width === 'full' ? ' selected' : ''}>Linha inteira</option></select></label>
       </div>
+      ${imageFrameMarkup(product)}
       <div class="inspector-inline-actions"><button class="inspector-link" type="button" data-inspector-open-collection="${esc(block.id)}">Ajustar coleção</button><button class="inspector-link" type="button" data-inspector-edit-product="${esc(product.id)}">Editar produto</button></div>`;
   }
 
@@ -237,6 +264,8 @@
 
     inspector.addEventListener('click', event => {
       if (event.target.closest('[data-inspector-clear]')) { ComposerSelection.clear(); return; }
+      const frameReset = event.target.closest('[data-image-frame-reset]');
+      if (frameReset) { PresentationActions.resetImageFrame(frameReset.dataset.imageFrameReset); return; }
       const move = event.target.closest('[data-inspector-member-move]');
       if (move && !move.disabled) {
         PresentationActions.moveBlockMember(move.dataset.blockId, move.dataset.productId, Number(move.dataset.inspectorMemberMove));
@@ -256,7 +285,26 @@
       if (dissolveTable) { ComposerSelection.clear(); PresentationActions.dissolveTable(dissolveTable.dataset.inspectorDissolveTable); }
     });
 
+    inspector.addEventListener('input', event => {
+      const frameField = event.target.closest('[data-image-frame-field]');
+      if (!frameField || frameField.type !== 'range') return;
+      const editor = frameField.closest('[data-image-frame-editor]');
+      const output = editor?.querySelector(`[data-image-frame-output="${frameField.dataset.imageFrameField}"]`);
+      if (!output) return;
+      output.value = frameField.dataset.imageFrameField === 'zoom'
+        ? `${Math.round(Number(frameField.value) * 100)}%`
+        : `${Math.round(Number(frameField.value))}%`;
+    });
+
     inspector.addEventListener('change', event => {
+      const frameField = event.target.closest('[data-image-frame-field]');
+      if (frameField) {
+        const editor = frameField.closest('[data-image-frame-editor]');
+        const key = frameField.dataset.imageFrameField;
+        const value = key === 'fit' ? frameField.value : Number(frameField.value);
+        PresentationActions.setImageFrame(editor.dataset.imageFrameEditor, { [key]: value });
+        return;
+      }
       const cardField = event.target.closest('[data-inspector-card-field]');
       if (cardField) {
         const editor = cardField.closest('[data-inspector-card]');
