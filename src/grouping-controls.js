@@ -2,24 +2,19 @@
   'use strict';
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
-  const { Core, Composition, CatalogOrder, PresentationActions } = NS;
-  const ComposerSelection = NS.ComposerSelection;
+  const { Core, Composition, ComposerSelection, CatalogOrder, PresentationActions } = NS;
   if (!Core || !Composition || !ComposerSelection || !CatalogOrder || !PresentationActions) return;
   const $ = selector => document.querySelector(selector);
 
-  const state = () => Core.getState();
+  function state() { return Core.getState(); }
 
   function uniqueIds(values) {
     const seen = new Set();
-    return (Array.isArray(values) ? values : []).map(String).filter(id => id && !seen.has(id) && seen.add(id));
-  }
-
-  function editorialIds() {
-    return NS.ComposerSelection?.ids?.().map(String) || [];
-  }
-
-  function effectiveIds(current = state()) {
-    return CatalogOrder.effectiveIds(current).map(String);
+    return (Array.isArray(values) ? values : []).map(String).filter(id => {
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
   }
 
   function productMap(current = state()) {
@@ -28,6 +23,14 @@
 
   function categoryOf(product) {
     return String(product?.category || '').trim() || 'Sem categoria';
+  }
+
+  function effectiveIds(current = state()) {
+    return CatalogOrder.effectiveIds(current).map(String);
+  }
+
+  function editorialIds() {
+    return ComposerSelection?.ids?.().map(String) || [];
   }
 
   function blockMemberIds(current = state()) {
@@ -167,130 +170,8 @@
     return true;
   }
 
-  const canMoveSelection = delta => Boolean(selectedMovePlan(delta));
-
-  function installSelectionPrimaryPreservation() {
-    if (ComposerSelection.__v01123PrimaryPreservation) return;
-    const original = ComposerSelection.selectProduct.bind(ComposerSelection);
-    ComposerSelection.selectProduct = function (current, productId, options = {}) {
-      const id = String(productId || '');
-      const currentTarget = ComposerSelection.get();
-      const selected = ComposerSelection.ids().map(String);
-      const productTargetActive = currentTarget && !['collection', 'table'].includes(currentTarget.kind);
-      if (!options.additive && !options.range && productTargetActive && selected.length > 1 && selected.includes(id)) {
-        const target = ComposerSelection.normalize(options.target) || ComposerSelection.targetForProduct(current, id);
-        return ComposerSelection.select(target, { preserveProducts: true });
-      }
-      return original(current, productId, options);
-    };
-    ComposerSelection.__v01123PrimaryPreservation = true;
-  }
-
-  function collectionPatch(patch) {
-    const allowed = new Set(['emphasis', 'width', 'priceStyle']);
-    return Object.fromEntries(Object.entries(patch || {}).filter(([key]) => allowed.has(key)));
-  }
-
-  function applyBulkStylePatch(originProductId, patch) {
-    const selected = uniqueIds(ComposerSelection.ids());
-    if (selected.length < 2 || !selected.includes(String(originProductId))) return false;
-    PresentationActions.mutatePresentation((presentation, draft) => {
-      const blocks = Array.isArray(presentation.blocks) ? presentation.blocks : [];
-      selected.forEach(id => {
-        const blockIndex = blocks.findIndex(block => (block?.memberIds || []).map(String).includes(id));
-        const block = blockIndex >= 0 ? blocks[blockIndex] : null;
-        if (block?.type === 'collection' && NS.Collection) {
-          const compatible = collectionPatch(patch);
-          if (!Object.keys(compatible).length) return;
-          const normalized = NS.Collection.normalizeBlock(block);
-          normalized.itemStyles[id] = { ...NS.Collection.memberStyleFor(normalized, id), ...compatible };
-          blocks[blockIndex] = NS.Collection.normalizeBlock(normalized);
-          return;
-        }
-        if (block) return;
-        presentation.itemStyles[id] = { ...Composition.styleFor(presentation, id), ...(patch || {}) };
-      });
-      presentation.blocks = blocks;
-      draft.catalog.presentation = presentation;
-    });
-    return true;
-  }
-
-  function installBulkPresentationActions() {
-    if (PresentationActions.__v01123Bulk) return;
-    const originalCard = PresentationActions.setCardStyle.bind(PresentationActions);
-    const originalMember = PresentationActions.setCollectionMemberStyle.bind(PresentationActions);
-    const originalFrame = PresentationActions.setImageFrame.bind(PresentationActions);
-    const originalResetFrame = PresentationActions.resetImageFrame.bind(PresentationActions);
-    const originalMoveMember = PresentationActions.moveBlockMember.bind(PresentationActions);
-
-    PresentationActions.setCardStyle = (productId, patch) => applyBulkStylePatch(productId, patch) || originalCard(productId, patch);
-    PresentationActions.setCollectionMemberStyle = (blockId, productId, patch) => applyBulkStylePatch(productId, patch) || originalMember(blockId, productId, patch);
-
-    PresentationActions.setImageFrame = function (productId, patch) {
-      const selected = uniqueIds(ComposerSelection.ids());
-      if (selected.length < 2 || !selected.includes(String(productId)) || !NS.ImageFraming) return originalFrame(productId, patch);
-      return PresentationActions.mutatePresentation(presentation => {
-        presentation.imageFrames = presentation.imageFrames && typeof presentation.imageFrames === 'object' ? { ...presentation.imageFrames } : {};
-        selected.forEach(id => {
-          const next = NS.ImageFraming.normalizeImageFrame({ ...NS.ImageFraming.imageFrameFor(presentation, id), ...(patch || {}) });
-          if (NS.ImageFraming.isDefaultImageFrame(next)) delete presentation.imageFrames[id];
-          else presentation.imageFrames[id] = next;
-        });
-      });
-    };
-
-    PresentationActions.resetImageFrame = function (productId) {
-      const selected = uniqueIds(ComposerSelection.ids());
-      if (selected.length < 2 || !selected.includes(String(productId))) return originalResetFrame(productId);
-      return PresentationActions.mutatePresentation(presentation => {
-        if (!presentation.imageFrames || typeof presentation.imageFrames !== 'object') return;
-        selected.forEach(id => { delete presentation.imageFrames[id]; });
-      });
-    };
-
-    PresentationActions.moveBlockMember = function (blockId, productId, delta) {
-      const current = state();
-      const unit = CatalogOrder.allUnits(current).find(item => ['collection', 'table'].includes(item.type)
-        && String(item.blockId) === String(blockId)
-        && item.memberIds.includes(String(productId)));
-      if (!unit) return originalMoveMember(blockId, productId, delta);
-      const sourceIndex = unit.memberIds.indexOf(String(productId));
-      const targetIndex = sourceIndex + (Number(delta) < 0 ? -1 : 1);
-      if (sourceIndex < 0 || targetIndex < 0 || targetIndex >= unit.memberIds.length) return current;
-      const targetProductId = String(unit.memberIds[targetIndex]);
-      const nextOrder = CatalogOrder.moveBlockMember(current, blockId, productId, delta);
-      return PresentationActions.mutatePresentation(presentation => {
-        presentation.order = nextOrder;
-        const index = presentation.blocks.findIndex(block => block?.type === 'collection' && String(block.id) === String(blockId));
-        if (index < 0 || !NS.Collection) return;
-        const block = NS.Collection.normalizeBlock(presentation.blocks[index]);
-        const sourceStyle = NS.Collection.memberStyleFor(block, productId);
-        const targetStyle = NS.Collection.memberStyleFor(block, targetProductId);
-        block.itemStyles[String(productId)] = targetStyle;
-        block.itemStyles[targetProductId] = sourceStyle;
-        presentation.blocks[index] = NS.Collection.normalizeBlock(block);
-      });
-    };
-    PresentationActions.__v01123Bulk = true;
-  }
-
-  function installCanonicalTextFit() {
-    if (!NS.TextFit?.fitCatalog || NS.TextFit.__v01123CanonicalScale) return;
-    const original = NS.TextFit.fitCatalog.bind(NS.TextFit);
-    NS.TextFit.fitCatalog = function (root) {
-      if (!root?.style) return original(root);
-      const previous = root.style.getPropertyValue('--preview-scale');
-      const priority = root.style.getPropertyPriority('--preview-scale');
-      root.style.setProperty('--preview-scale', '1');
-      void root.offsetWidth;
-      try { return original(root); }
-      finally {
-        if (previous) root.style.setProperty('--preview-scale', previous, priority);
-        else root.style.removeProperty('--preview-scale');
-      }
-    };
-    NS.TextFit.__v01123CanonicalScale = true;
+  function canMoveSelection(delta) {
+    return Boolean(selectedMovePlan(delta));
   }
 
   function styleValueForProduct(productId, key) {
@@ -305,7 +186,7 @@
   }
 
   function mixedValues(key) {
-    const values = uniqueIds(ComposerSelection.ids()).map(id => styleValueForProduct(id, key)).filter(value => value != null);
+    const values = uniqueIds(editorialIds()).map(id => styleValueForProduct(id, key)).filter(value => value != null);
     return { count: values.length, values: new Set(values) };
   }
 
@@ -341,7 +222,7 @@
   function augmentEditorUi() {
     const root = $('#contextualInspector');
     const target = ComposerSelection.get();
-    const ids = uniqueIds(ComposerSelection.ids());
+    const ids = uniqueIds(editorialIds());
     if (root && target) {
       root.querySelectorAll('[data-inspector-card-field]').forEach(select => augmentMixedSelect(select, select.dataset.inspectorCardField));
       root.querySelectorAll('[data-inspector-member-field]').forEach(select => augmentMixedSelect(select, select.dataset.inspectorMemberField));
@@ -446,9 +327,6 @@
     });
   }
 
-  installSelectionPrimaryPreservation();
-  installBulkPresentationActions();
-  installCanonicalTextFit();
   bindGroupingPreparation();
   bindOrderCommands();
 
