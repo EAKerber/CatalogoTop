@@ -88,6 +88,19 @@
 .catalog-card.price-style-block .catalog-card-quantity-price strong { font-size: 4.35mm; }
 
 .catalog-card.price-style-red .catalog-card-table .internal-unit-price-cell { color: var(--brand-deep); font-weight: 800; }
+.catalog-card.price-style-label .catalog-card-table:not(.has-quantity-price-column) .internal-unit-price-cell {
+  color: var(--brand-deep);
+  font-weight: 900;
+  box-shadow: inset 0 0 0 .22mm var(--brand);
+}
+.catalog-card.price-style-block .catalog-card-table:not(.has-quantity-price-column) .internal-unit-price-cell {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+  font-weight: 950;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 .catalog-card.price-style-red .catalog-card-table .internal-quantity-price-cell {
   color: var(--brand-deep);
   font-weight: 950;
@@ -105,6 +118,9 @@
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
+.catalog-card.price-style-red .catalog-card-table .internal-unit-price-head,
+.catalog-card.price-style-label .catalog-card-table .internal-unit-price-head,
+.catalog-card.price-style-block .catalog-card-table .internal-unit-price-head,
 .catalog-card.price-style-red .catalog-card-table .internal-quantity-price-head,
 .catalog-card.price-style-label .catalog-card-table .internal-quantity-price-head,
 .catalog-card.price-style-block .catalog-card-table .internal-quantity-price-head { color: var(--brand-deep); }
@@ -255,6 +271,7 @@
 
 @media print {
   .catalog-card.price-style-block .catalog-card-quantity-price,
+  .catalog-card.price-style-block .catalog-card-table .internal-unit-price-cell,
   .catalog-card.price-style-block .catalog-card-table .internal-quantity-price-cell,
   .catalog-table-block.commercial-prices .table-cell-price {
     -webkit-print-color-adjust: exact;
