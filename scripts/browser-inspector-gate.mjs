@@ -127,7 +127,7 @@ try {
     });
     return { schemaVersion: migrated.schemaVersion, order: migrated.catalog.presentation.order };
   });
-  if (migration.schemaVersion !== 5 || migration.order.join(',') !== 'p2,p1') throw new Error(`migração v4→v5 não preservou ordem legada: ${JSON.stringify(migration)}`);
+  if (migration.schemaVersion !== 6 || migration.order.join(',') !== 'p2,p1') throw new Error(`migração legada→v6 não preservou ordem: ${JSON.stringify(migration)}`);
 
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#catalogPreview .catalog-card[data-product-id="p1"]');
