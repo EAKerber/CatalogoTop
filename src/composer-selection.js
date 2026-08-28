@@ -62,8 +62,8 @@
   }
 
   function productsForBlock(state, block) {
-    const ids = new Set((Array.isArray(block?.memberIds) ? block.memberIds : []).map(String));
-    return (Array.isArray(state?.products) ? state.products : []).filter(product => ids.has(String(product.id)));
+    const memberIds = new Set((Array.isArray(block?.memberIds) ? block.memberIds : []).map(String));
+    return (Array.isArray(state?.products) ? state.products : []).filter(product => memberIds.has(String(product.id)));
   }
 
   function productIdsForTarget(state, target) {
@@ -77,8 +77,7 @@
   function targetForProduct(state, productId) {
     const id = String(productId || '');
     if (!id) return null;
-    const membership = blockMembership(state);
-    const block = membership.get(id);
+    const block = blockMembership(state).get(id);
     if (block?.type === 'collection') return { kind: 'collection-member', blockId: String(block.id), productId: id };
     if (block?.type === 'table') {
       const normalized = NS.TableBlock?.normalizeBlock?.(block) || block;
@@ -108,13 +107,26 @@
     return get();
   }
 
+  function shouldPreserveExistingSelection(productId, options = {}) {
+    if (options.additive || options.range || selectedProductIds.size < 2 || !selectedProductIds.has(String(productId))) return false;
+    return Boolean(current && !['collection', 'table'].includes(current.kind));
+  }
+
   function selectProduct(state, productId, { target = null, additive = false, range = false } = {}) {
     const id = String(productId || '');
     const included = new Set((Array.isArray(state?.selectedIds) ? state.selectedIds : []).map(String));
     if (!id || !included.has(id)) return get();
     const nextTarget = normalize(target) || targetForProduct(state, id);
-    const next = new Set(selectedProductIds);
 
+    if (shouldPreserveExistingSelection(id, { additive, range })) {
+      const changed = !equal(nextTarget, current);
+      current = nextTarget;
+      anchorProductId = id;
+      if (changed) emit();
+      return get();
+    }
+
+    const next = new Set(selectedProductIds);
     if (range && anchorProductId) {
       const ordered = orderedCatalogIds(state);
       const start = ordered.indexOf(anchorProductId);
