@@ -132,7 +132,7 @@
 .catalog-card-table .internal-unit-price-cell { text-align: right; }
 .catalog-card-table.has-quantity-price-column { font-size: 1.75mm; }
 
-/* A Table não presume mais que a última coluna é preço. */
+/* Semântica base da Table. Os quatro estilos comerciais ficam em grouping-controls.css. */
 .catalog-table-block td:last-child { font-weight: 650; }
 .catalog-table-block .table-column-price,
 .catalog-table-block .table-cell-price {
@@ -143,22 +143,6 @@
 .catalog-table-block .table-cell-min-quantity { text-align: center; }
 .catalog-table-block .table-cell-price { font-weight: 850; }
 .catalog-table-block .table-cell-quantity-price { font-weight: 950; }
-.catalog-table-block.commercial-prices .table-column-price {
-  border-left: .35mm solid var(--brand);
-  color: var(--brand-deep);
-}
-.catalog-table-block.commercial-prices .table-cell-price {
-  border-left: .35mm solid var(--brand);
-  background: #fff7f7;
-  color: var(--brand-deep);
-  font-size: 2.5mm;
-  font-weight: 950;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
-.catalog-table-block.commercial-prices .table-cell-quantity-price { background: #ffecec; font-size: 2.65mm; }
-.catalog-table-block.commercial-prices.density-compact .table-cell-price { font-size: 2.35mm; }
-.catalog-table-block.commercial-prices.density-compact .table-cell-quantity-price { font-size: 2.45mm; }
 
 .quantity-price-editor {
   display: grid;
@@ -243,27 +227,6 @@
   outline: 2px solid rgba(22, 25, 31, .4);
   outline-offset: 1px;
 }
-.inspector-commercial-toggle {
-  min-height: 31px;
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center;
-  gap: 7px !important;
-  padding: 6px 7px;
-  border: 1px solid #e5e7e9;
-  border-radius: 8px;
-  color: var(--ink-2) !important;
-  font-size: 9px !important;
-  font-weight: 750 !important;
-  letter-spacing: normal !important;
-  text-transform: none !important;
-}
-.inspector-commercial-toggle input {
-  width: 15px !important;
-  min-height: 15px !important;
-  padding: 0 !important;
-  accent-color: var(--brand);
-}
 
 @media(max-width:639px) {
   .quantity-price-fields { grid-template-columns: 1fr 1fr; }
@@ -272,8 +235,7 @@
 @media print {
   .catalog-card.price-style-block .catalog-card-quantity-price,
   .catalog-card.price-style-block .catalog-card-table .internal-unit-price-cell,
-  .catalog-card.price-style-block .catalog-card-table .internal-quantity-price-cell,
-  .catalog-table-block.commercial-prices .table-cell-price {
+  .catalog-card.price-style-block .catalog-card-table .internal-quantity-price-cell {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
