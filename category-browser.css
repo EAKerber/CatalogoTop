@@ -21,41 +21,87 @@
 .category-picker-option > small { font-size: 9px; white-space: nowrap; }
 .category-picker-empty { padding: 10px; color: var(--muted); font-size: 11px; }
 
-.product-library { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 320px; }
+.product-library {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 320px;
+  min-width: 0;
+  align-content: start;
+}
 .category-browser { border-right: 1px solid var(--line); background: #fbfbfc; min-width: 0; }
 .category-browser-head { padding: 12px 12px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 10px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
-.category-folders { padding: 4px 8px 12px; display: grid; gap: 3px; }
-.category-folder-row { display: grid; grid-template-columns: minmax(0, 1fr) 30px; gap: 3px; align-items: center; }
+.category-folders { padding: 4px 8px 12px; display: grid; gap: 4px; }
+
+/* Pasta + contador + lixeira formam uma única superfície visual, mantendo botões irmãos acessíveis. */
+.category-folder-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  gap: 0;
+  align-items: stretch;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  overflow: hidden;
+  background: transparent;
+}
 .category-folder-row.all { grid-template-columns: 1fr; }
-.category-folder { width: 100%; min-height: 36px; padding: 7px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink-2); display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 7px; align-items: center; text-align: left; }
-.category-folder:hover { background: #fff; border-color: var(--line); }
-.category-folder.active { background: #fff; border-color: #f1b5b7; color: var(--brand-deep); box-shadow: 0 1px 0 rgba(0,0,0,.03); }
+.category-folder-row:hover { background: #fff; border-color: var(--line); }
+.category-folder-row:has(.category-folder.active) {
+  background: #fff;
+  border-color: #f1b5b7;
+  box-shadow: 0 1px 0 rgba(0,0,0,.03);
+}
+.category-folder {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-2);
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+  text-align: left;
+}
+.category-folder:hover { background: rgba(255,255,255,.7); }
+.category-folder.active { background: transparent; color: var(--brand-deep); box-shadow: none; }
 .category-folder svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .category-folder-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 730; }
 .category-folder-count { min-width: 22px; padding: 2px 6px; border-radius: 999px; background: #eceef0; color: var(--muted); font-size: 10px; text-align: center; }
 .category-folder.active .category-folder-count { background: #fff0f0; color: var(--brand-deep); }
-.category-delete-button { width: 30px; height: 30px; padding: 5px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #a7191d; opacity: .42; }
+.category-delete-button {
+  width: 32px;
+  min-height: 38px;
+  height: 100%;
+  padding: 5px;
+  border: 0;
+  border-left: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #a7191d;
+  opacity: .42;
+}
+.category-folder-row:hover .category-delete-button,
+.category-folder-row:has(.category-folder.active) .category-delete-button { border-left-color: #eceef0; }
 .category-delete-button:hover,
-.category-delete-button:focus-visible { opacity: 1; border-color: rgba(167,25,29,.18); background: #fff2f2; outline: 0; }
+.category-delete-button:focus-visible { opacity: 1; background: #fff2f2; outline: 0; }
 .category-delete-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; }
 .category-browser-empty { padding: 10px 9px; color: var(--muted); font-size: 11px; line-height: 1.45; }
-.product-table-pane { min-width: 0; }
+.product-table-pane { min-width: 0; align-self: start; }
 
 @media (hover: none) {
   .category-delete-button { opacity: .75; }
 }
 
+/* Antes de a tabela precisar de scroll lateral, as pastas viram rail superior. */
 @media (max-width: 1180px) {
-  .product-library { grid-template-columns: 190px minmax(0, 1fr); }
-}
-
-@media (max-width: 860px) {
   .product-library { grid-template-columns: 1fr; }
-  .category-browser { border-right: 0; border-bottom: 1px solid var(--line); }
-  .category-folders { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
-}
-
-@media (max-width: 639px) {
+  .category-browser {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }
   .category-browser-head { display: none; }
   .category-folders {
     display: flex;
@@ -72,17 +118,20 @@
     flex: 0 0 auto;
     width: max-content;
     min-width: 0;
-    grid-template-columns: minmax(138px, auto) 30px;
+    grid-template-columns: minmax(142px, auto) 32px;
     scroll-snap-align: start;
   }
-  .category-folder-row.all {
-    grid-template-columns: minmax(138px, auto);
-  }
-  .category-folder {
-    width: auto;
-    min-width: 138px;
-    max-width: 210px;
-  }
+  .category-folder-row.all { grid-template-columns: minmax(142px, auto); }
+  .category-folder { width: auto; min-width: 142px; max-width: 230px; }
+  .category-folder-label { max-width: 148px; }
+  .product-table-pane { width: 100%; }
+}
+
+@media (max-width: 639px) {
+  .category-folders { padding: 8px 10px 10px; }
+  .category-folder-row { grid-template-columns: minmax(138px, auto) 32px; }
+  .category-folder-row.all { grid-template-columns: minmax(138px, auto); }
+  .category-folder { min-width: 138px; max-width: 210px; }
   .category-folder-label { max-width: 128px; }
   .category-browser-empty { min-width: min(82vw, 320px); }
 }
