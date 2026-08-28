@@ -243,53 +243,32 @@ try {
     throw new Error(`lista deve atingir o limite e deixar chaining nativo desbloqueado: ${JSON.stringify({ listEdgeBefore, listEdgeAfter })}`);
   }
 
-  const preview = page.locator('#catalogPreviewViewport');
-  await page.evaluate(() => { window.scrollTo(0, 0); const node = document.querySelector('#catalogPreviewViewport'); node.scrollTop = 0; });
-  await preview.hover();
-  const previewBefore = await page.evaluate(() => ({
-    inner: document.querySelector('#catalogPreviewViewport').scrollTop,
-    client: document.querySelector('#catalogPreviewViewport').clientHeight,
-    total: document.querySelector('#catalogPreviewViewport').scrollHeight,
-    outer: window.scrollY,
-    overscroll: getComputedStyle(document.querySelector('#catalogPreviewViewport')).overscrollBehaviorY
-  }));
-  if (!(previewBefore.total > previewBefore.client + 50) || previewBefore.overscroll !== 'auto') throw new Error(`preview não formou viewport vertical rolável: ${JSON.stringify(previewBefore)}`);
-  await page.mouse.wheel(0, 620);
-  await page.waitForTimeout(120);
-  const previewAfter = await page.evaluate(() => ({ inner: document.querySelector('#catalogPreviewViewport').scrollTop, outer: window.scrollY }));
-  if (!(previewAfter.inner > previewBefore.inner + 20)) throw new Error(`wheel não rolou páginas A4 internamente: ${JSON.stringify({ previewBefore, previewAfter })}`);
-  if (Math.abs(previewAfter.outer - previewBefore.outer) > 3) throw new Error(`preview em meio de curso moveu a página externa: ${JSON.stringify({ previewBefore, previewAfter })}`);
-
-  const previewEdgeBefore = await page.evaluate(() => {
+  const previewFlow = await page.evaluate(() => {
     const node = document.querySelector('#catalogPreviewViewport');
-    node.scrollTop = node.scrollHeight;
+    const style = getComputedStyle(node);
+    const scrolling = document.scrollingElement;
     return {
       top: node.scrollTop,
-      max: Math.max(0, node.scrollHeight - node.clientHeight),
-      overscroll: getComputedStyle(node).overscrollBehaviorY
+      range: Math.max(0, node.scrollHeight - node.clientHeight),
+      overflowY: style.overflowY,
+      touchAction: style.touchAction,
+      documentRange: Math.max(0, scrolling.scrollHeight - scrolling.clientHeight)
     };
   });
-  await preview.hover();
-  await page.mouse.wheel(0, 650);
-  await page.waitForTimeout(120);
-  const previewEdgeAfter = await page.evaluate(() => {
-    const node = document.querySelector('#catalogPreviewViewport');
-    return {
-      top: node.scrollTop,
-      max: Math.max(0, node.scrollHeight - node.clientHeight),
-      overscroll: getComputedStyle(node).overscrollBehaviorY
-    };
-  });
-  if (Math.abs(previewEdgeBefore.top - previewEdgeBefore.max) > 2 || Math.abs(previewEdgeAfter.top - previewEdgeAfter.max) > 2 || previewEdgeAfter.overscroll !== 'auto') {
-    throw new Error(`preview deve atingir o limite e deixar chaining nativo desbloqueado: ${JSON.stringify({ previewEdgeBefore, previewEdgeAfter })}`);
+  if (previewFlow.top > 2 || previewFlow.range > 2 || previewFlow.overflowY !== 'clip' || !previewFlow.touchAction.includes('pan-y') || previewFlow.documentRange < 200) {
+    throw new Error(`preview não delegou o eixo vertical ao documento: ${JSON.stringify(previewFlow)}`);
   }
+  await page.evaluate(() => { window.scrollTo(0, 0); window.scrollBy(0, 620); });
+  await page.waitForTimeout(80);
+  const documentScroll = await page.evaluate(() => ({ outer: window.scrollY, inner: document.querySelector('#catalogPreviewViewport').scrollTop }));
+  if (documentScroll.outer < 20 || documentScroll.inner > 2) throw new Error(`documento não assumiu o scroll vertical do A4: ${JSON.stringify(documentScroll)}`);
 
   await page.evaluate(() => {
     window.__fidelityPrintFrame?.remove();
     document.querySelector('#scroll-gate-spacer')?.remove();
   });
 
-  console.log('PASS browser render fidelity/scroll gate: CSS e fitting preview→PDF, colunas semânticas e scroll interno com chaining nativo desbloqueado');
+  console.log('PASS browser render fidelity/scroll gate: CSS e fitting preview→PDF, colunas semânticas, lista rolável e preview no fluxo vertical do documento');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
