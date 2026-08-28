@@ -10,8 +10,9 @@ if(html.indexOf('src/catalog-document.js')>html.indexOf('src/render.js')) fail('
 if(html.indexOf('src/catalog-renderer.js')<html.indexOf('src/render.js')) fail('renderer canônico deve carregar depois do renderer base');
 if(adapter.includes('renderCatalog =')) fail('adapter legado não pode voltar a substituir renderCatalog');
 if(mobileHeader.includes('bulk-presentation-controls')||mobileHeader.includes('catalog-title-block')||mobileHeader.includes('@media print')) fail('mobile-header.css não pode carregar regras de compositor ou impressão');
-if(!composer.includes('container-type: inline-size')||!composer.includes('grid-template-columns: minmax(0, 1fr) auto')) fail('compositor deve responder à largura real do painel');
+if(!composer.includes('container-type: inline-size')||!composer.includes('@container catalog-selection-panel')||!composer.includes('grid-template-columns: repeat(2, minmax(0, 1fr))')) fail('compositor deve responder à largura real do painel sem reservar slot para Agrupar');
+if(composer.includes('#btnEnterGrouping')) fail('layout não pode manter espaço para botão Agrupar aposentado');
 if(!printCss.includes('.catalog-page + .catalog-page')||printCss.includes('break-after: page !important')) fail('print deve quebrar antes das páginas subsequentes');
 if(!printJs.includes("querySelectorAll('.catalog-page')")||!printJs.includes('buildPrintableHtml')) fail('print deve materializar somente páginas A4');
 if(printJs.includes('window.print()')) fail('print não pode voltar a imprimir a aplicação inteira');
-console.log('PASS document boundary fixture: canonical document + renderer');
+console.log('PASS document boundary fixture: canonical document + renderer + container-aware composer');
