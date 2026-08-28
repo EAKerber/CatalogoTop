@@ -24,7 +24,7 @@
   function createCollection() {
     const ids = candidateIds();
     if (ids.length < 2) {
-      alert('Selecione de 2 a 12 produtos contíguos da mesma categoria, já incluídos no catálogo e ainda fora de outro bloco.');
+      alert('Selecione de 2 a 12 produtos da mesma categoria, já incluídos no catálogo e ainda fora de outro bloco. Itens separados serão reunidos automaticamente.');
       return;
     }
     const byId = new Map(state().products.map(product => [String(product.id), product]));
@@ -51,8 +51,8 @@
     button.textContent = count ? `Coleção (${Math.min(count, Collection.MAX_MEMBERS)})` : 'Criar coleção';
     button.disabled = ids.length < 2 || ids.length > Collection.MAX_MEMBERS;
     button.title = button.disabled
-      ? 'Selecione um trecho contíguo de 2 a 12 produtos do catálogo, da mesma categoria e fora de outro bloco.'
-      : `Agrupar ${ids.length} produtos em coleção`;
+      ? 'Selecione de 2 a 12 produtos do catálogo, da mesma categoria e fora de outro bloco.'
+      : `Agrupar ${ids.length} produtos em coleção${NS.GroupingControls?.isContiguousSameCategory?.(ids) ? '' : ' · itens separados serão reunidos'}`;
   }
 
   function init() {
