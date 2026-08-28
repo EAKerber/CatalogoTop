@@ -12,7 +12,11 @@
 
   function collectionLineBudget(item) {
     const width = item?.dataset.memberWidth || 'simple';
-    return width === 'full' ? 5 : width === 'wide' ? 4 : 3;
+    if (width === 'full') return 5;
+    if (width === 'wide') return 4;
+    const collection = item?.closest?.('.catalog-collection');
+    const columns = Number(collection?.style?.getPropertyValue('--collection-cols')) || 0;
+    return columns >= 4 ? 4 : 3;
   }
 
   function lineBudgetFor(element) {
