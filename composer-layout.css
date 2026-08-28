@@ -1,4 +1,4 @@
-/* v0.8.1 — layout do compositor responde à largura real do painel, não ao viewport. */
+/* v0.11.1.7 — compositor responde à largura real do painel. */
 
 .selection-layout {
   grid-template-columns: clamp(370px, 28vw, 430px) minmax(0, 1fr);
@@ -9,79 +9,30 @@
   container-name: catalog-selection-panel;
 }
 
-.bulk-presentation-controls {
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 7px 8px;
-  align-items: end;
-  padding: 9px 10px;
-}
-
-.bulk-presentation-controls > strong {
-  grid-column: 1 / -1;
-  width: 100%;
-  white-space: normal;
-  font-size: 10px;
-}
-
-.bulk-presentation-controls label {
-  grid-column: 1;
-  min-width: 0;
-}
-
-.bulk-presentation-controls .button {
-  grid-column: 2;
-  min-width: 104px;
-  width: 104px;
-  max-width: 104px;
-}
-
-.bulk-presentation-controls select {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.selection-presentation-controls {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.selection-presentation-controls label,
-.selection-presentation-controls select {
-  min-width: 0;
-  max-width: 100%;
-}
-
 .select-product {
   min-width: 0;
   overflow: hidden;
 }
 
-@container catalog-selection-panel (max-width: 340px) {
-  .bulk-presentation-controls {
-    grid-template-columns: 1fr;
+@container catalog-selection-panel (max-width: 400px) {
+  #selectionBrowseActions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
-  .bulk-presentation-controls > strong,
-  .bulk-presentation-controls label,
-  .bulk-presentation-controls .button {
+  #selectionBrowseActions #btnSelectVisible {
+    grid-column: 1 / -1;
+  }
+  #selectionBrowseActions #btnClearSelection {
     grid-column: 1;
   }
-  .bulk-presentation-controls .button {
-    width: 100%;
-    max-width: none;
+  #selectionBrowseActions #btnEnterGrouping {
+    grid-column: 2;
+    margin-left: 0;
   }
 }
 
 @media (max-width: 959px) {
   .selection-layout {
     grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 639px) {
-  .bulk-presentation-controls .button {
-    min-width: 96px;
-    width: 96px;
-    max-width: 96px;
   }
 }

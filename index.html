@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="table-block.css" />
   <link rel="stylesheet" href="product-actions.css" />
   <link rel="stylesheet" href="contextual-inspector.css" />
+  <link rel="stylesheet" href="grouping-controls.css" />
   <link rel="stylesheet" href="commercial-presentation.css" />
   <link rel="stylesheet" href="catalog-date.css" />
   <link rel="stylesheet" href="print.css" media="print" />
@@ -125,8 +126,18 @@
       <div class="selection-layout">
         <aside class="card selection-panel">
           <div class="selection-toolbar"><input id="searchSelection" type="search" placeholder="Filtrar produtos" /><select id="selectionCategory"><option value="">Todas as categorias</option></select></div>
-          <div id="contextualInspector" class="contextual-inspector" aria-live="polite"><div class="inspector-empty"><strong>Ajustes</strong><span>Clique em um item do A4 ou da lista.</span></div></div>
-          <div class="selection-actions"><button class="button secondary compact" id="btnSelectVisible">Selecionar visíveis</button><button class="button secondary compact" id="btnClearSelection">Limpar</button></div>
+          <div id="contextualInspector" class="contextual-inspector is-collapsed" aria-live="polite"><div class="inspector-compact-hint"><strong>Ajustes</strong><span>Selecione um item no A4 ou na lista</span></div></div>
+          <div class="selection-actions" id="selectionBrowseActions">
+            <button class="button secondary compact" id="btnSelectVisible">Incluir visíveis no catálogo</button>
+            <button class="button secondary compact" id="btnClearSelection">Esvaziar catálogo</button>
+            <button class="button secondary compact" id="btnEnterGrouping" type="button">Agrupar</button>
+          </div>
+          <div class="selection-actions" id="groupingActions" hidden>
+            <span class="grouping-status" id="blockSelectionStatus">Selecione um trecho contíguo</span>
+            <button class="button secondary compact" id="btnCreateCollection" type="button" disabled>Criar coleção</button>
+            <button class="button secondary compact" id="btnCreateTableBlock" type="button" disabled>Criar tabela</button>
+            <button class="button secondary compact" id="btnCancelGrouping" type="button">Cancelar</button>
+          </div>
           <div id="selectableProducts" class="selectable-products"></div>
         </aside>
         <section class="preview-column">
@@ -176,6 +187,7 @@
   <script defer src="src/catalog-selection-order.js"></script>
   <script defer src="src/app.js"></script>
   <script defer src="src/header-data-menu.js"></script>
+  <script defer src="src/grouping-controls.js"></script>
   <script defer src="src/collection-controls.js"></script>
   <script defer src="src/table-controls.js"></script>
   <script defer src="src/contextual-inspector.js"></script>

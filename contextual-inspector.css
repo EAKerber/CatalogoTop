@@ -1,7 +1,7 @@
-/* v0.11.1 — seleção contextual, inspector e reorder restrito à lista. */
+/* v0.11.1.7 — seleção contextual compacta e reorder interno no inspector. */
 
 .selection-panel {
-  grid-template-rows: auto auto auto auto minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto minmax(0, 1fr) !important;
 }
 
 .contextual-inspector {
@@ -10,15 +10,26 @@
   border-bottom: 1px solid var(--line);
   background: #fff;
 }
-
-.inspector-empty {
-  min-height: 54px;
-  display: grid;
-  align-content: center;
-  gap: 3px;
+.contextual-inspector.is-collapsed {
+  padding: 0;
 }
-.inspector-empty strong { font-size: 11px; color: var(--ink); }
-.inspector-empty span { font-size: 10px; color: var(--muted); }
+
+.inspector-compact-hint {
+  min-height: 34px;
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+}
+.inspector-compact-hint strong { font-size: 10px; color: var(--ink); }
+.inspector-compact-hint span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+}
 
 .inspector-head {
   display: flex;
@@ -135,6 +146,74 @@
   accent-color: var(--brand);
 }
 
+.inspector-member-order {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid #eceef0;
+}
+.inspector-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.inspector-subhead strong {
+  font-size: 9px;
+  color: var(--ink);
+}
+.inspector-subhead span {
+  font-size: 8px;
+  color: var(--muted);
+}
+.inspector-member-order-list {
+  max-height: 154px;
+  overflow: auto;
+  display: grid;
+  gap: 3px;
+}
+.inspector-member-order-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+  padding: 4px 5px;
+  border-radius: 7px;
+  background: #f8f9fa;
+}
+.inspector-member-order-row > span {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.inspector-member-order-row > span strong,
+.inspector-member-order-row > span small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inspector-member-order-row > span strong { font-size: 9px; }
+.inspector-member-order-row > span small { font-size: 8px; color: var(--muted); }
+.inspector-member-order-actions {
+  display: inline-flex;
+  gap: 3px;
+}
+.inspector-member-order-actions button {
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 1px solid #dfe2e6;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.inspector-member-order-actions button:disabled {
+  opacity: .28;
+  cursor: not-allowed;
+}
+
 .inspector-link,
 .inspector-danger {
   margin-top: 8px;
@@ -153,8 +232,13 @@
 }
 
 .select-product {
-  grid-template-columns: 18px 24px 48px minmax(0, 1fr) auto !important;
+  grid-template-columns: 22px 24px 48px minmax(0, 1fr) auto !important;
   cursor: default !important;
+}
+.select-product > input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
 }
 .select-product img {
   width: 48px !important;
@@ -218,10 +302,10 @@
 }
 
 @media (max-width: 639px) {
-  .contextual-inspector { padding: 9px 10px; }
+  .contextual-inspector:not(.is-collapsed) { padding: 9px 10px; }
   .inspector-grid-two { grid-template-columns: 1fr; }
   .select-product {
-    grid-template-columns: 18px 22px 42px minmax(0, 1fr) auto !important;
+    grid-template-columns: 22px 22px 42px minmax(0, 1fr) auto !important;
     gap: 7px !important;
   }
   .select-product img {

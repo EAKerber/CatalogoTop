@@ -17,11 +17,35 @@
   }
 
   function emptyMarkup() {
-    return '<div class="inspector-empty"><strong>Ajustes</strong><span>Clique em um item do A4 ou da lista.</span></div>';
+    return '<div class="inspector-compact-hint"><strong>Ajustes</strong><span>Selecione um item no A4 ou na lista</span></div>';
   }
 
   function inspectorHead(kind, title, subtitle) {
     return `<div class="inspector-head"><div><span>${esc(kind)}</span><strong>${esc(title)}</strong>${subtitle ? `<small>${esc(subtitle)}</small>` : ''}</div><button class="inspector-clear" type="button" data-inspector-clear title="Fechar ajustes" aria-label="Fechar ajustes">×</button></div>`;
+  }
+
+  function effectiveBlockMemberIds(blockId, fallback = []) {
+    const unit = NS.CatalogOrder?.allUnits?.(state())?.find(item => ['collection', 'table'].includes(item.type) && String(item.blockId) === String(blockId));
+    return (unit?.memberIds || fallback || []).map(String);
+  }
+
+  function blockMemberOrderMarkup(blockId, memberIds, label) {
+    const ordered = effectiveBlockMemberIds(blockId, memberIds);
+    if (ordered.length < 2) return '';
+    return `<section class="inspector-member-order" data-inspector-member-order="${esc(blockId)}">
+      <div class="inspector-subhead"><strong>Ordem interna</strong><span>${esc(label)}</span></div>
+      <div class="inspector-member-order-list">${ordered.map((id, index) => {
+        const product = productById(id);
+        const title = product ? `${product.code} · ${product.description}` : id;
+        return `<div class="inspector-member-order-row" data-inspector-order-product="${esc(id)}">
+          <span title="${esc(title)}"><strong>${esc(product?.code || id)}</strong><small>${esc(product?.description || '')}</small></span>
+          <div class="inspector-member-order-actions">
+            <button type="button" data-inspector-member-move="-1" data-block-id="${esc(blockId)}" data-product-id="${esc(id)}"${index === 0 ? ' disabled' : ''} aria-label="Subir ${esc(product?.code || id)} dentro do bloco">↑</button>
+            <button type="button" data-inspector-member-move="1" data-block-id="${esc(blockId)}" data-product-id="${esc(id)}"${index === ordered.length - 1 ? ' disabled' : ''} aria-label="Descer ${esc(product?.code || id)} dentro do bloco">↓</button>
+          </div>
+        </div>`;
+      }).join('')}</div>
+    </section>`;
   }
 
   function cardMarkup(target) {
@@ -52,6 +76,7 @@
         </div>
         <label>Apresentação<select data-inspector-collection-field="itemPreset">${options(Collection.COLLECTION_PRESETS, block.itemPreset)}</select></label>
       </div>
+      ${blockMemberOrderMarkup(block.id, block.memberIds, 'Coleção')}
       <button class="inspector-danger" type="button" data-inspector-dissolve-collection="${esc(block.id)}">Desagrupar coleção</button>`;
   }
 
@@ -81,6 +106,7 @@
         <div class="inspector-grid-two"><label>Linhas<select data-inspector-table-field="rowSource">${options(TableBlock.TABLE_SOURCES, block.rowSource)}</select></label><label>Densidade<select data-inspector-table-field="density">${options(TableBlock.TABLE_DENSITIES, block.density)}</select></label></div>
         <fieldset class="inspector-columns"><legend>Colunas</legend>${columns.map(column => `<label><input type="checkbox" data-inspector-table-column="${esc(column.id)}"${block.columns.includes(column.id) ? ' checked' : ''} />${esc(column.name)}</label>`).join('')}</fieldset>
       </div>
+      ${blockMemberOrderMarkup(block.id, block.memberIds, 'Tabela')}
       <button class="inspector-danger" type="button" data-inspector-dissolve-table="${esc(block.id)}">Desagrupar tabela</button>`;
   }
 
@@ -88,12 +114,16 @@
     const root = $('#contextualInspector');
     if (!root) return;
     const target = ComposerSelection.get();
+    root.classList.toggle('is-collapsed', !target);
     if (!target) { root.innerHTML = emptyMarkup(); return; }
     if (target.kind === 'card') root.innerHTML = cardMarkup(target);
     else if (target.kind === 'collection') root.innerHTML = collectionMarkup(target);
     else if (target.kind === 'collection-member') root.innerHTML = collectionMemberMarkup(target);
     else if (target.kind === 'table') root.innerHTML = tableMarkup(target);
-    else root.innerHTML = emptyMarkup();
+    else {
+      root.classList.add('is-collapsed');
+      root.innerHTML = emptyMarkup();
+    }
   }
 
   function targetFromPreviewNode(node) {
@@ -207,6 +237,11 @@
 
     inspector.addEventListener('click', event => {
       if (event.target.closest('[data-inspector-clear]')) { ComposerSelection.clear(); return; }
+      const move = event.target.closest('[data-inspector-member-move]');
+      if (move && !move.disabled) {
+        PresentationActions.moveBlockMember(move.dataset.blockId, move.dataset.productId, Number(move.dataset.inspectorMemberMove));
+        return;
+      }
       const edit = event.target.closest('[data-inspector-edit-product]');
       if (edit) {
         NS.App?.switchTab?.('products');

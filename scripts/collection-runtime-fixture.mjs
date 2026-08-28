@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
-const runtimeFiles=['src/collection.js','src/collection-document.js','src/collection-render.js','src/collection-controls.js','src/contextual-inspector.js','src/catalog-renderer.js'];
+const runtimeFiles=['src/collection.js','src/collection-document.js','src/collection-render.js','src/grouping-controls.js','src/collection-controls.js','src/contextual-inspector.js','src/catalog-renderer.js'];
 for(const file of runtimeFiles){const result=spawnSync(process.execPath,['--check',file],{encoding:'utf8'});if(result.status!==0){process.stderr.write(result.stderr||`Falha de sintaxe em ${file}\n`);process.exit(result.status||1);}}
-const [html,core,composition,model,documentAdapter,renderer,controls,inspector,orderBootstrap,catalogDocument,catalogRenderer,css,docs]=await Promise.all([
-'index.html','src/core.js','src/composition.js','src/collection.js','src/collection-document.js','src/collection-render.js','src/collection-controls.js','src/contextual-inspector.js','src/catalog-selection-order.js','src/catalog-document.js','src/catalog-renderer.js','collection-block.css','docs/collection-block-v0.10.1.md'].map(readFileUtf8));
+const [html,core,composition,model,documentAdapter,renderer,grouping,controls,inspector,orderBootstrap,catalogDocument,catalogRenderer,css,docs]=await Promise.all([
+'index.html','src/core.js','src/composition.js','src/collection.js','src/collection-document.js','src/collection-render.js','src/grouping-controls.js','src/collection-controls.js','src/contextual-inspector.js','src/catalog-selection-order.js','src/catalog-document.js','src/catalog-renderer.js','collection-block.css','docs/collection-block-v0.10.1.md'].map(readFileUtf8));
 function readFileUtf8(file){return readFile(file,'utf8');}
 const checks=[
 ['estado local preserva blocks e ordem',core.includes('SCHEMA_VERSION = 6')&&core.includes('blocks: []')&&core.includes('order: []')],
@@ -14,8 +14,8 @@ const checks=[
 ['adapter Collection é compatibilidade sem override',documentAdapter.includes('CollectionDocument')&&!documentAdapter.includes('CatalogDocument.build =')],
 ['renderer Collection é helper puro',renderer.includes('catalog-collection')&&!renderer.includes('renderCatalog =')],
 ['renderer canônico é único dispatch',catalogRenderer.includes("item.type === 'collection'")&&catalogRenderer.includes('Render.renderCatalog = renderDocument')],
-['UI de criação Collection não usa MutationObserver nem manager paralelo',controls.includes('Agrupar em coleção')&&!controls.includes('MutationObserver')&&!controls.includes('collection-manager')],
-['override de membro migrou para inspector',inspector.includes('data-inspector-member-field="width"')&&inspector.includes('setCollectionMemberStyle')],
+['UI de criação Collection é creation-only e agrupamento fica efêmero',controls.includes('createCollection')&&controls.includes('GroupingControls?.candidateIds')&&!controls.includes('MutationObserver')&&!controls.includes('collection-manager')&&grouping.includes('const markedIds = new Set()')&&!grouping.includes('Core.mutate')],
+['override e reorder de membro ficam no inspector',inspector.includes('data-inspector-member-field="width"')&&inspector.includes('setCollectionMemberStyle')&&inspector.includes('data-inspector-member-move')&&inspector.includes('moveBlockMember')],
 ['CSS Collection mantém temas e grade',css.includes('.catalog-collection.theme-dark')&&css.includes('repeat(var(--collection-cols)')],
 ['documentação preserva vocabulário',docs.includes('Card')&&docs.includes('Collection')&&docs.includes('Table')]
 ];

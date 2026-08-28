@@ -1,0 +1,110 @@
+/* v0.11.1.7 — modo de agrupamento explícito e temporário. */
+
+.selection-actions[hidden] { display: none !important; }
+
+#selectionBrowseActions,
+#groupingActions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#selectionBrowseActions #btnEnterGrouping {
+  margin-left: auto;
+}
+
+#groupingActions {
+  gap: 6px;
+  background: #fff7f7;
+  border-bottom-color: #f3c7c9;
+}
+
+#groupingActions .grouping-status {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+#groupingActions .grouping-status::before {
+  content: 'Agrupar';
+  color: var(--brand-deep);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+#groupingActions .button {
+  flex: 1 1 0;
+  min-width: 92px;
+}
+
+.selection-panel.is-grouping .contextual-inspector.is-collapsed {
+  display: none;
+}
+
+.selectable-products.is-grouping .select-product {
+  transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+}
+
+.selectable-products.is-grouping .select-product > input[type="checkbox"] {
+  opacity: .28;
+  cursor: not-allowed;
+}
+
+.selectable-products.is-grouping .select-product .order-handle,
+.selectable-products.is-grouping .select-product .order-handle-spacer {
+  opacity: .18;
+  pointer-events: none;
+}
+
+.select-product.grouping-eligible {
+  cursor: pointer !important;
+}
+.select-product.grouping-eligible > span {
+  cursor: pointer;
+}
+.select-product.grouping-eligible:hover,
+.select-product.grouping-eligible:focus-visible {
+  background: #fff8f8;
+  border-color: #f4c9cb;
+  outline: none;
+}
+
+.select-product.grouping-marked {
+  cursor: pointer !important;
+  background: #fff0f1 !important;
+  border-color: rgba(239, 23, 27, .58) !important;
+  box-shadow: inset 3px 0 0 var(--brand), 0 0 0 2px rgba(239, 23, 27, .07);
+}
+.select-product.grouping-marked .selection-order {
+  background: var(--ink);
+}
+
+.select-product.grouping-ineligible {
+  opacity: .42;
+}
+.select-product.grouping-ineligible > span {
+  cursor: not-allowed;
+}
+
+@media (max-width: 639px) {
+  #selectionBrowseActions,
+  #groupingActions { gap: 5px; }
+  #selectionBrowseActions .button,
+  #groupingActions .button {
+    min-height: 32px;
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+  #groupingActions .button { min-width: 78px; }
+}
+
+@media print {
+  #selectionBrowseActions,
+  #groupingActions { display: none !important; }
+}

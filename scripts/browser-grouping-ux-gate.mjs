@@ -54,7 +54,8 @@ function installFixture() {
     specs: [],
     variants: [],
     tableRows: [],
-    updatedAt: '2026-08-27T00:00:00.000Z'
+    quantityPrice: null,
+    updatedAt: '2026-08-28T00:00:00.000Z'
   }));
   NS.Core.setState({
     schemaVersion: NS.Core.SCHEMA_VERSION,
@@ -64,7 +65,7 @@ function installFixture() {
       title: 'Grouping UX gate',
       templateId: 'technical',
       showPrices: true,
-      createdAt: '2026-08-27T00:00:00.000Z',
+      createdAt: '2026-08-28T00:00:00.000Z',
       presentation: NS.Composition.normalizePresentation({
         order: products.map(product => product.id),
         blocks: [],
@@ -93,75 +94,133 @@ try {
     window.CatalogoTop?.Core
     && window.CatalogoTop?.CatalogOrder
     && window.CatalogoTop?.PresentationActions
+    && window.CatalogoTop?.GroupingControls
     && window.CatalogoTop?.BlockSelection
     && window.CatalogoTop?.CollectionControls
     && window.CatalogoTop?.TableControls
+    && window.CatalogoTop?.ContextualInspector
   ));
 
   await page.evaluate(installFixture);
   await page.click('[data-tab="catalog"]');
-  await page.waitForSelector('#selectableProducts [data-product-row="p1"] [data-block-pick]');
+  await page.waitForSelector('#selectableProducts [data-product-row="p1"]');
 
   const membership = ['p1', 'p2', 'p3', 'p4'];
-  const membershipLabels = await page.evaluate(() => ({
+  const browse = await page.evaluate(() => ({
     include: document.querySelector('#btnSelectVisible')?.textContent?.trim(),
     clear: document.querySelector('#btnClearSelection')?.textContent?.trim(),
-    checked: [...document.querySelectorAll('#selectableProducts [data-select-product]')].every(input => input.checked)
+    group: document.querySelector('#btnEnterGrouping')?.textContent?.trim(),
+    browseHidden: document.querySelector('#selectionBrowseActions')?.hidden,
+    groupingHidden: document.querySelector('#groupingActions')?.hidden,
+    legacyPicks: document.querySelectorAll('[data-block-pick]').length,
+    legacyMoves: document.querySelectorAll('[data-block-member-delta]').length,
+    inspectorCollapsed: document.querySelector('#contextualInspector')?.classList.contains('is-collapsed')
   }));
-  if (membershipLabels.include !== 'Incluir visíveis no catálogo' || membershipLabels.clear !== 'Esvaziar catálogo' || !membershipLabels.checked) {
-    throw new Error(`membership não ficou semanticamente explícito: ${JSON.stringify(membershipLabels)}`);
+  if (browse.include !== 'Incluir visíveis no catálogo' || browse.clear !== 'Esvaziar catálogo' || browse.group !== 'Agrupar') {
+    throw new Error(`barra normal não ficou explícita: ${JSON.stringify(browse)}`);
+  }
+  if (browse.browseHidden || !browse.groupingHidden || browse.legacyPicks || browse.legacyMoves || !browse.inspectorCollapsed) {
+    throw new Error(`chrome normal ainda contém controles antigos ou inspector expandido: ${JSON.stringify(browse)}`);
   }
 
-  await page.click('#selectableProducts [data-product-row="p1"] [data-block-pick]');
-  await page.click('#selectableProducts [data-product-row="p2"] [data-block-pick]');
-  const marked = await page.evaluate(() => ({
+  await page.click('#selectableProducts [data-product-row="p1"] > span strong');
+  await page.waitForFunction(() => window.CatalogoTop.ComposerSelection.get()?.productId === 'p1');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !window.CatalogoTop.ComposerSelection.get());
+
+  await page.click('#btnEnterGrouping');
+  await page.waitForFunction(() => window.CatalogoTop.GroupingControls.mode() === 'grouping');
+  const groupingStart = await page.evaluate(() => ({
+    browseHidden: document.querySelector('#selectionBrowseActions')?.hidden,
+    groupingHidden: document.querySelector('#groupingActions')?.hidden,
+    checkboxesDisabled: [...document.querySelectorAll('[data-select-product]')].every(input => input.disabled),
+    handlesDisabled: [...document.querySelectorAll('[data-order-handle]')].every(handle => handle.disabled),
+    inspectorHidden: getComputedStyle(document.querySelector('#contextualInspector')).display === 'none'
+  }));
+  if (!groupingStart.browseHidden || groupingStart.groupingHidden || !groupingStart.checkboxesDisabled || !groupingStart.handlesDisabled || !groupingStart.inspectorHidden) {
+    throw new Error(`modo Agrupar não isolou a intenção corretamente: ${JSON.stringify(groupingStart)}`);
+  }
+
+  await page.click('#selectableProducts [data-product-row="p1"] > span strong');
+  await page.click('#selectableProducts [data-product-row="p2"] > span strong');
+  let marked = await page.evaluate(() => ({
     ids: window.CatalogoTop.BlockSelection.ids(),
     collectionDisabled: document.querySelector('#btnCreateCollection')?.disabled,
     tableDisabled: document.querySelector('#btnCreateTableBlock')?.disabled,
-    p1Checked: document.querySelector('[data-select-product="p1"]')?.checked,
-    p2Checked: document.querySelector('[data-select-product="p2"]')?.checked
+    p4Ineligible: document.querySelector('[data-product-row="p4"]')?.classList.contains('grouping-ineligible')
   }));
-  if (marked.ids.join(',') !== 'p1,p2' || marked.collectionDisabled || marked.tableDisabled || !marked.p1Checked || !marked.p2Checked) {
-    throw new Error(`marcação estrutural conflitou com membership: ${JSON.stringify(marked)}`);
+  if (marked.ids.join(',') !== 'p1,p2' || marked.collectionDisabled || marked.tableDisabled || !marked.p4Ineligible) {
+    throw new Error(`seleção estrutural não ficou contígua/operável: ${JSON.stringify(marked)}`);
   }
-  await assertMembershipUnchanged(page, membership, 'marcar produtos para bloco');
+  await assertMembershipUnchanged(page, membership, 'marcar no modo Agrupar');
 
+  await page.fill('#searchSelection', 'Corrediça');
+  await page.waitForFunction(() => window.CatalogoTop.BlockSelection.ids().length === 0);
+  if (await page.evaluate(() => window.CatalogoTop.GroupingControls.mode()) !== 'grouping') throw new Error('buscar deve limpar a marcação sem sair do modo Agrupar');
+  await page.fill('#searchSelection', '');
+  await page.click('#selectableProducts [data-product-row="p1"] > span strong');
+  await page.click('#selectableProducts [data-product-row="p2"] > span strong');
   await page.click('#btnCreateCollection');
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.blocks.some(block => block.type === 'collection'));
-  const collectionState = await page.evaluate(() => {
+
+  let blockState = await page.evaluate(() => {
     const NS = window.CatalogoTop;
     const block = NS.Core.getState().catalog.presentation.blocks.find(item => item.type === 'collection');
-    return { id: block?.id, members: block?.memberIds || [], marked: NS.BlockSelection.ids() };
+    return {
+      id: block?.id,
+      members: block?.memberIds || [],
+      marked: NS.BlockSelection.ids(),
+      mode: NS.GroupingControls.mode(),
+      selection: NS.ComposerSelection.get()
+    };
   });
-  if (!collectionState.id || collectionState.members.join(',') !== 'p1,p2' || collectionState.marked.length) {
-    throw new Error(`Collection criada com estado inesperado: ${JSON.stringify(collectionState)}`);
+  if (!blockState.id || blockState.members.join(',') !== 'p1,p2' || blockState.marked.length || blockState.mode !== 'browse' || blockState.selection?.kind !== 'collection') {
+    throw new Error(`Collection criada com fechamento de modo inesperado: ${JSON.stringify(blockState)}`);
   }
   await assertMembershipUnchanged(page, membership, 'criar Collection');
 
-  await page.waitForSelector('#selectableProducts [data-product-row="p2"] [data-block-member-delta="-1"]:not(:disabled)');
-  await page.click('#selectableProducts [data-product-row="p2"] [data-block-member-delta="-1"]');
+  await page.waitForSelector(`#contextualInspector [data-inspector-member-order="${blockState.id}"]`);
+  await page.click(`#contextualInspector [data-block-id="${blockState.id}"][data-product-id="p2"][data-inspector-member-move="-1"]`);
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.order.join(',') === 'p2,p1,p3,p4');
-  const collectionOrder = await page.evaluate(() => ({
-    order: window.CatalogoTop.Core.getState().catalog.presentation.order.slice(),
-    documentOrder: window.CatalogoTop.CatalogDocument.build(window.CatalogoTop.Core.getState()).orderedIds
-  }));
-  if (collectionOrder.order.join(',') !== 'p2,p1,p3,p4' || collectionOrder.documentOrder.join(',') !== 'p2,p1,p3,p4') {
-    throw new Error(`reorder interno da Collection não chegou ao documento: ${JSON.stringify(collectionOrder)}`);
-  }
-  await assertMembershipUnchanged(page, membership, 'reorder interno da Collection');
+  let documentOrder = await page.evaluate(() => window.CatalogoTop.CatalogDocument.build(window.CatalogoTop.Core.getState()).orderedIds);
+  if (documentOrder.join(',') !== 'p2,p1,p3,p4') throw new Error(`reorder interno da Collection não chegou ao documento: ${documentOrder.join(',')}`);
+  await assertMembershipUnchanged(page, membership, 'reorder interno da Collection pelo inspector');
 
-  await page.click('#selectableProducts [data-product-row="p3"] [data-block-pick]');
-  await page.click('#selectableProducts [data-product-row="p4"] [data-block-pick]');
+  await page.click('#btnEnterGrouping');
+  await page.click('#selectableProducts [data-product-row="p3"] > span strong');
+  await page.click('#selectableProducts [data-product-row="p4"] > span strong');
   await page.click('#btnCreateTableBlock');
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.blocks.some(block => block.type === 'table'));
-  await page.waitForSelector('#selectableProducts [data-product-row="p4"] [data-block-member-delta="-1"]:not(:disabled)');
-  await page.click('#selectableProducts [data-product-row="p4"] [data-block-member-delta="-1"]');
-  await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.order.join(',') === 'p2,p1,p4,p3');
-  const tableOrder = await page.evaluate(() => window.CatalogoTop.CatalogDocument.build(window.CatalogoTop.Core.getState()).orderedIds);
-  if (tableOrder.join(',') !== 'p2,p1,p4,p3') throw new Error(`reorder interno da Table não chegou ao documento: ${tableOrder.join(',')}`);
-  await assertMembershipUnchanged(page, membership, 'reorder interno da Table');
 
-  console.log('PASS browser grouping UX gate: membership, marcação estrutural e reorder interno permanecem separados');
+  blockState = await page.evaluate(() => {
+    const NS = window.CatalogoTop;
+    const block = NS.Core.getState().catalog.presentation.blocks.find(item => item.type === 'table');
+    return { id: block?.id, members: block?.memberIds || [], mode: NS.GroupingControls.mode(), selection: NS.ComposerSelection.get() };
+  });
+  if (!blockState.id || blockState.members.join(',') !== 'p3,p4' || blockState.mode !== 'browse' || blockState.selection?.kind !== 'table') {
+    throw new Error(`Table criada com estado inesperado: ${JSON.stringify(blockState)}`);
+  }
+
+  await page.waitForSelector(`#contextualInspector [data-inspector-member-order="${blockState.id}"]`);
+  await page.click(`#contextualInspector [data-block-id="${blockState.id}"][data-product-id="p4"][data-inspector-member-move="-1"]`);
+  await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.order.join(',') === 'p2,p1,p4,p3');
+  documentOrder = await page.evaluate(() => window.CatalogoTop.CatalogDocument.build(window.CatalogoTop.Core.getState()).orderedIds);
+  if (documentOrder.join(',') !== 'p2,p1,p4,p3') throw new Error(`reorder interno da Table não chegou ao documento: ${documentOrder.join(',')}`);
+  await assertMembershipUnchanged(page, membership, 'reorder interno da Table pelo inspector');
+
+  await page.click('#btnEnterGrouping');
+  await page.click('#btnCancelGrouping');
+  const cancelled = await page.evaluate(() => ({
+    mode: window.CatalogoTop.GroupingControls.mode(),
+    marked: window.CatalogoTop.BlockSelection.ids(),
+    browseHidden: document.querySelector('#selectionBrowseActions')?.hidden,
+    groupingHidden: document.querySelector('#groupingActions')?.hidden
+  }));
+  if (cancelled.mode !== 'browse' || cancelled.marked.length || cancelled.browseHidden || !cancelled.groupingHidden) {
+    throw new Error(`Cancelar não restaurou o modo normal: ${JSON.stringify(cancelled)}`);
+  }
+
+  console.log('PASS browser grouping UX gate: modo explícito, membership separado, inspector compacto e reorder interno contextual');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
