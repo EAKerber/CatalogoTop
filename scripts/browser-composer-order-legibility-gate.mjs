@@ -193,7 +193,7 @@ try {
     throw new Error(`consolidação antes do agrupamento incorreta: ${JSON.stringify(collection)}`);
   }
 
-  // Reorder interno preserva o estilo relativo à posição.
+  // Reorder interno preserva o estilo relativo à posição e agora vive em Ordenação.
   await page.evaluate(collectionId => window.CatalogoTop.PresentationActions.mutatePresentation(presentation => {
     const block = presentation.blocks.find(item => item.id === collectionId);
     block.itemStyles = {
@@ -204,6 +204,7 @@ try {
   }), collection.id);
   await page.click(`#catalogPreview .catalog-collection[data-collection-id="${collection.id}"] .catalog-collection-item[data-product-id="p2"]`);
   await page.waitForSelector('#contextualInspector [data-inspector-collection-member="p2"]');
+  await page.click('#contextualInspector [data-inspector-mode="order"]');
   await page.waitForSelector('#contextualInspector [data-editor-move="1"]');
   await page.click('#contextualInspector [data-editor-move="1"]');
   await page.waitForFunction(collectionId => {
@@ -219,9 +220,10 @@ try {
     throw new Error(`estilo não permaneceu na posição após reorder: ${JSON.stringify(relativeStyles)}`);
   }
 
-  // Selecionar o bloco e usar a mesma seta move a Collection inteira.
+  // Selecionar o bloco e usar a mesma seta move a Collection inteira pela aba Ordenação.
   await page.click(`#catalogPreview .catalog-collection[data-collection-id="${collection.id}"] .catalog-collection-header`);
   await page.waitForFunction(collectionId => window.CatalogoTop.ComposerSelection.get()?.kind === 'collection' && window.CatalogoTop.ComposerSelection.get()?.blockId === collectionId, collection.id);
+  await page.click('#contextualInspector [data-inspector-mode="order"]');
   await page.waitForSelector('#contextualInspector [data-editor-move="1"]:not([disabled])');
   await page.click('#contextualInspector [data-editor-move="1"]');
   const blockMoved = await effectiveOrder(page);
@@ -299,29 +301,35 @@ try {
   mobileOrder = await effectiveOrder(mobilePage);
   if (mobileOrder.join(',') !== 'p1,p4,p2,p3,p5,p6,p7,p8') throw new Error(`seta flutuante não moveu agrupamento inteiro: ${mobileOrder.join(',')}`);
 
-  // Inspector grande rola dentro de si e mantém ações/lista dentro do painel mobile.
+  // Configuração geral não cria scroll próprio; Ordenação concentra o scroll quando necessário.
   await setFixture(mobilePage, 'table');
   await mobilePage.click('#catalogPreview .catalog-table-block[data-table-block-id="table-fixture"] .catalog-table-heading');
   await mobilePage.waitForSelector('#contextualInspector [data-inspector-table="table-fixture"]');
-  const containment = await mobilePage.evaluate(() => {
-    const panel = document.querySelector('.selection-panel');
+  const generalContainment = await mobilePage.evaluate(() => {
     const inspector = document.querySelector('#contextualInspector');
-    const browse = document.querySelector('#selectionBrowseActions');
-    const grouping = document.querySelector('#groupingActions');
     const list = document.querySelector('#selectableProducts');
-    const panelRect = panel.getBoundingClientRect();
     return {
+      mode: inspector.dataset.inspectorMode,
       overflowY: getComputedStyle(inspector).overflowY,
-      inspectorHeight: inspector.clientHeight,
-      inspectorScrollHeight: inspector.scrollHeight,
       listHeight: list.clientHeight,
-      browseBottom: browse.getBoundingClientRect().bottom,
-      groupingBottom: grouping.getBoundingClientRect().bottom,
-      panelBottom: panelRect.bottom
+      orderVisible: getComputedStyle(inspector.querySelector('.inspector-member-order')).display !== 'none'
     };
   });
-  if (containment.overflowY !== 'auto' || containment.inspectorScrollHeight <= containment.inspectorHeight || containment.listHeight < 40 || containment.browseBottom > containment.panelBottom + 1 || containment.groupingBottom > containment.panelBottom + 1) {
-    throw new Error(`inspector mobile ainda empurra controles para fora: ${JSON.stringify(containment)}`);
+  if (generalContainment.mode !== 'general' || generalContainment.overflowY !== 'visible' || generalContainment.listHeight < 280 || generalContainment.orderVisible) {
+    throw new Error(`Configuração mobile ainda compete por scroll/espaço: ${JSON.stringify(generalContainment)}`);
+  }
+  await mobilePage.click('#contextualInspector [data-inspector-mode="order"]');
+  const orderContainment = await mobilePage.evaluate(() => {
+    const inspector = document.querySelector('#contextualInspector');
+    const memberOrder = inspector.querySelector('.inspector-member-order');
+    return {
+      mode: inspector.dataset.inspectorMode,
+      overflowY: getComputedStyle(inspector).overflowY,
+      memberVisible: getComputedStyle(memberOrder).display !== 'none'
+    };
+  });
+  if (orderContainment.mode !== 'order' || orderContainment.overflowY !== 'auto' || !orderContainment.memberVisible) {
+    throw new Error(`Ordenação mobile não concentrou o scroll: ${JSON.stringify(orderContainment)}`);
   }
 
   // Re-renderizar já em Fit mobile não pode mudar as palavras escolhidas pelo TextFit.
