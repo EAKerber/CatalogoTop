@@ -51,6 +51,8 @@
     }
     const byId = new Map(state().products.map(product => [String(product.id), product]));
     const category = byId.get(ids[0])?.category || 'Tabela';
+    const columns = TableBlock.defaultColumns('products').slice();
+    if (ids.some(id => Core.normalizeQuantityPrice(byId.get(id)?.quantityPrice))) columns.push('minQuantity', 'quantityPrice');
     const block = TableBlock.normalizeBlock({
       id: `table-${Date.now()}`,
       type: 'table',
@@ -59,7 +61,7 @@
       subtitle: '',
       rowSource: 'products',
       density: 'compact',
-      columns: TableBlock.defaultColumns('products')
+      columns
     });
     NS.BlockSelection?.clear?.(false);
     mutateBlocks(blocks => blocks.push(block));
