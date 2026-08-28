@@ -89,20 +89,6 @@ function installFixture(longDescription) {
   NS.App.renderAll();
 }
 
-function styleSnapshot(doc, selector) {
-  const element = doc.querySelector(selector);
-  if (!element) return null;
-  const style = doc.defaultView.getComputedStyle(element);
-  return {
-    text: element.textContent.trim(),
-    color: style.color,
-    backgroundColor: style.backgroundColor,
-    fontSize: style.fontSize,
-    fontWeight: style.fontWeight,
-    lineHeight: style.lineHeight
-  };
-}
-
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const address = server.address();
 const baseUrl = `http://127.0.0.1:${address.port}/`;
@@ -164,10 +150,19 @@ try {
   });
 
   const parity = await page.evaluate(() => {
+    const snapshot = (doc, selector) => {
+      const element = doc.querySelector(selector);
+      if (!element) return null;
+      const style = doc.defaultView.getComputedStyle(element);
+      return {
+        text: element.textContent.trim(), color: style.color, backgroundColor: style.backgroundColor,
+        fontSize: style.fontSize, fontWeight: style.fontWeight, lineHeight: style.lineHeight
+      };
+    };
     const frame = window.__fidelityPrintFrame;
     const printDoc = frame.contentDocument;
-    const previewPrice = styleSnapshot(document, '.catalog-table-block[data-table-block-id="table-1"] .table-cell-price');
-    const printPrice = styleSnapshot(printDoc, '.catalog-table-block[data-table-block-id="table-1"] .table-cell-price');
+    const previewPrice = snapshot(document, '.catalog-table-block[data-table-block-id="table-1"] .table-cell-price');
+    const printPrice = snapshot(printDoc, '.catalog-table-block[data-table-block-id="table-1"] .table-cell-price');
     const previewDescription = document.querySelector('.catalog-collection[data-collection-id="collection-1"] .catalog-collection-item[data-product-id="p8"] .catalog-collection-copy b');
     const printDescription = printDoc.querySelector('.catalog-collection[data-collection-id="collection-1"] .catalog-collection-item[data-product-id="p8"] .catalog-collection-copy b');
     const ratioFor = doc => {
