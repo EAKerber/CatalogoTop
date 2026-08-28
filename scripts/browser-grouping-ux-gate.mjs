@@ -139,18 +139,36 @@ try {
   await assertMembership(page, 'criar Table');
 
   await page.waitForSelector(`#catalogPreview .catalog-table-block[data-table-block-id="${tableId}"] tr[data-product-id="p3"]`);
-  const fragmentWidths = await page.evaluate(tableId => Array.from(document.querySelectorAll(`#catalogPreview .catalog-table-block[data-table-block-id="${CSS.escape(tableId)}"]`)).map(block => ({
-    widths: Array.from(block.querySelectorAll('col[data-table-column-width]')).map(col => ({ id: col.dataset.tableColumnWidth, width: parseFloat(col.style.width) })),
-    total: Array.from(block.querySelectorAll('col[data-table-column-width]')).reduce((sum, col) => sum + parseFloat(col.style.width || '0'), 0)
-  })), tableId);
-  if (fragmentWidths.length < 2) throw new Error(`fixture deveria fragmentar a Table, recebeu ${fragmentWidths.length} fragmento(s)`);
-  const signature = JSON.stringify(fragmentWidths[0].widths);
-  if (fragmentWidths.some(fragment => Math.abs(fragment.total - 100) > .05 || JSON.stringify(fragment.widths) !== signature)) {
-    throw new Error(`fragmentos não compartilham plano adaptativo de 100%: ${JSON.stringify(fragmentWidths)}`);
+  const widthContract = await page.evaluate(tableId => {
+    const NS = window.CatalogoTop;
+    const state = NS.Core.getState();
+    const block = state.catalog.presentation.blocks.find(item => item.id === tableId);
+    const byId = new Map(state.products.map(product => [String(product.id), product]));
+    const members = block.memberIds.map(id => byId.get(String(id))).filter(Boolean);
+    const fragmented = NS.TableBlock.fragmentTable(block, members);
+    const expected = NS.TableBlock.planColumnWidths(fragmented.block.columns, fragmented.columnDemand).map(item => ({ id: item.id, width: item.percent }));
+    const logicalItems = NS.CatalogDocument.build(state).pages.flatMap(item => item.items).filter(item => item.type === 'table' && item.blockId === tableId);
+    const rendered = Array.from(document.querySelectorAll(`#catalogPreview .catalog-table-block[data-table-block-id="${CSS.escape(tableId)}"]`)).map(table => Array.from(table.querySelectorAll('col[data-table-column-width]')).map(col => ({ id: col.dataset.tableColumnWidth, width: parseFloat(col.style.width) })));
+    return {
+      rawFragments: fragmented.fragments.length,
+      expected,
+      logicalDemands: logicalItems.map(item => item.columnDemand || {}),
+      rendered
+    };
+  }, tableId);
+  if (widthContract.rawFragments < 2) throw new Error(`fixture deveria produzir fragmentação lógica, recebeu ${widthContract.rawFragments}`);
+  if (!widthContract.rendered.length) throw new Error('Table não foi materializada no preview');
+  const expectedSignature = JSON.stringify(widthContract.expected);
+  if (widthContract.rendered.some(widths => JSON.stringify(widths) !== expectedSignature)) {
+    throw new Error(`Table renderizada divergiu do plano adaptativo único: ${JSON.stringify(widthContract)}`);
   }
-  const firstWidths = Object.fromEntries(fragmentWidths[0].widths.map(item => [item.id, item.width]));
-  if (!(firstWidths.description > firstWidths.code && firstWidths.description > firstWidths.price)) {
-    throw new Error(`Produto não recebeu largura dominante: ${JSON.stringify(firstWidths)}`);
+  if (widthContract.logicalDemands.some(demand => JSON.stringify(demand) !== JSON.stringify(widthContract.logicalDemands[0]))) {
+    throw new Error(`itens lógicos da mesma Table não compartilharam demanda: ${JSON.stringify(widthContract.logicalDemands)}`);
+  }
+  const firstWidths = Object.fromEntries(widthContract.expected.map(item => [item.id, item.width]));
+  const totalWidth = widthContract.expected.reduce((sum, item) => sum + item.width, 0);
+  if (Math.abs(totalWidth - 100) > .05 || !(firstWidths.description > firstWidths.code && firstWidths.description > firstWidths.price)) {
+    throw new Error(`plano adaptativo não ocupou 100% com Produto dominante: ${JSON.stringify(widthContract.expected)}`);
   }
 
   await page.click(`#catalogPreview .catalog-table-block[data-table-block-id="${tableId}"] tr[data-product-id="p3"] td`);
