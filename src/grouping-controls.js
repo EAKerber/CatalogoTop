@@ -485,7 +485,7 @@
         syncDrawerUi();
         return;
       }
-      const mode = event.target.closest('[data-inspector-mode]');
+      const mode = event.target.closest('.inspector-mode-tabs button[data-inspector-mode]');
       if (mode && isCatalogActive()) {
         event.preventDefault();
         setInspectorMode(mode.dataset.inspectorMode, { focus: false });
