@@ -155,7 +155,6 @@ try {
 
   await page.click('[data-tab="products"]');
   await page.click('[data-edit-product="p1"]');
-  await page.waitForSelector('#hasQuantityPrice');
   await page.click('[data-form-step-target="2"]');
   await page.waitForSelector('[data-form-step="2"].active #hasQuantityPrice');
   const loaded = await page.evaluate(() => ({
