@@ -12,6 +12,7 @@
 }
 
 .selection-layout {
+  --composer-available-height: calc(100dvh - 94px);
   grid-template-columns: clamp(370px, 28vw, 430px) minmax(0, 1fr);
   align-items: start;
 }
@@ -19,8 +20,8 @@
 .selection-panel {
   container-type: inline-size;
   container-name: catalog-selection-panel;
-  height: calc(100dvh - 94px);
-  max-height: calc(100dvh - 94px);
+  height: var(--composer-available-height);
+  max-height: var(--composer-available-height);
   min-height: 0;
   grid-template-rows: auto auto auto auto minmax(0, 1fr);
 }
@@ -43,15 +44,17 @@
   top: 72px;
   min-width: 0;
   min-height: 0;
-  height: calc(100dvh - 94px);
-  max-height: calc(100dvh - 94px);
+  height: var(--composer-available-height);
+  max-height: var(--composer-available-height);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
 }
 
 .preview-column .catalog-preview-viewport {
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -79,12 +82,14 @@
     height: auto;
     max-height: none;
     display: block;
+    overflow: visible;
   }
 
   /* Touch vertical no A4 permanece scroll da página; não capturamos o gesto. */
   .preview-column .catalog-preview-viewport {
     max-height: none;
     overflow-y: visible;
+    overflow-x: hidden;
   }
 }
 
