@@ -3,12 +3,12 @@ import { spawnSync } from 'node:child_process';
 
 const requiredFiles = [
   'index.html','styles.css','cards.css','category-browser.css','shell-responsive.css','mobile-header.css',
-  'editorial-composition.css','catalog-page.css','composer-layout.css','preview-viewport.css','contextual-inspector.css','print.css',
+  'editorial-composition.css','catalog-page.css','composer-layout.css','preview-viewport.css','contextual-inspector.css','grouping-controls.css','print.css',
   'collection-block.css','table-block.css','product-actions.css',
   'src/composition.js','src/core.js','src/catalog-order.js','src/collection.js','src/table-block.js','src/catalog-document.js',
   'src/collection-document.js','src/table-document.js','src/render.js','src/collection-render.js','src/table-render.js',
   'src/catalog-renderer.js','src/render-document-adapter.js','src/print.js','src/app.js','src/catalog-selection-order.js',
-  'src/composer-selection.js','src/presentation-actions.js','src/contextual-inspector.js',
+  'src/composer-selection.js','src/presentation-actions.js','src/contextual-inspector.js','src/grouping-controls.js',
   'src/collection-controls.js','src/table-controls.js','src/product-actions.js','src/product-delete-ui.js','src/block-overlap-guard.js',
   'src/indexed-cache.js','src/asset-client.js','src/product-store.js','src/importer.js','src/templates.js','src/icons.js',
   'src/form-steps.js','src/mobile-workspace.js','src/preview-zoom.js','src/product-details.js','src/category-browser.js',
@@ -16,7 +16,7 @@ const requiredFiles = [
   'netlify.toml','docs/netlify.md','docs/reuse-from-gerador-v1.md','docs/card-model.md','docs/category-browser.md',
   'docs/responsive-shell.md','docs/editorial-composition-v0.8.md','docs/document-pipeline-v0.8.1.md',
   'docs/card-span-model-v0.9.md','docs/collection-block-v0.10.1.md','docs/table-block-v0.10.2.md',
-  'docs/editor-runtime-boundaries-v0.11.0.md','docs/contextual-inspector-v0.11.1.md'
+  'docs/editor-runtime-boundaries-v0.11.0.md','docs/contextual-inspector-v0.11.1.md','docs/grouping-mode-compact-inspector-v0.11.1.7.md'
 ];
 for (const file of requiredFiles) await access(file);
 
@@ -30,8 +30,8 @@ for (const file of srcJs) {
 }
 
 const names = [
-  'index.html','shell-responsive.css','mobile-header.css','editorial-composition.css','catalog-page.css','composer-layout.css','preview-viewport.css','contextual-inspector.css','print.css','collection-block.css','table-block.css',
-  'src/composition.js','src/core.js','src/catalog-order.js','src/collection.js','src/table-block.js','src/catalog-document.js','src/collection-document.js','src/table-document.js','src/render.js','src/collection-render.js','src/table-render.js','src/catalog-renderer.js','src/render-document-adapter.js','src/print.js','src/app.js','src/catalog-selection-order.js','src/composer-selection.js','src/presentation-actions.js','src/contextual-inspector.js','src/collection-controls.js','src/table-controls.js','src/product-actions.js','src/product-delete-ui.js','src/block-overlap-guard.js','src/importer.js','src/templates.js','src/icons.js','src/form-steps.js','src/mobile-workspace.js','src/preview-zoom.js','src/product-details.js','src/category-browser.js','examples/card-cases.js','netlify.toml','assets/logo-top-mobili.svg','docs/editor-runtime-boundaries-v0.11.0.md','docs/contextual-inspector-v0.11.1.md'
+  'index.html','shell-responsive.css','mobile-header.css','editorial-composition.css','catalog-page.css','composer-layout.css','preview-viewport.css','contextual-inspector.css','grouping-controls.css','print.css','collection-block.css','table-block.css',
+  'src/composition.js','src/core.js','src/catalog-order.js','src/collection.js','src/table-block.js','src/catalog-document.js','src/collection-document.js','src/table-document.js','src/render.js','src/collection-render.js','src/table-render.js','src/catalog-renderer.js','src/render-document-adapter.js','src/print.js','src/app.js','src/catalog-selection-order.js','src/composer-selection.js','src/presentation-actions.js','src/contextual-inspector.js','src/grouping-controls.js','src/collection-controls.js','src/table-controls.js','src/product-actions.js','src/product-delete-ui.js','src/block-overlap-guard.js','src/importer.js','src/templates.js','src/icons.js','src/form-steps.js','src/mobile-workspace.js','src/preview-zoom.js','src/product-details.js','src/category-browser.js','examples/card-cases.js','netlify.toml','assets/logo-top-mobili.svg','docs/editor-runtime-boundaries-v0.11.0.md','docs/contextual-inspector-v0.11.1.md','docs/grouping-mode-compact-inspector-v0.11.1.7.md'
 ];
 const files = Object.fromEntries(await Promise.all(names.map(async file => [file, await readFile(file, 'utf8')])));
 const html = files['index.html'];
@@ -52,6 +52,7 @@ const order = files['src/catalog-selection-order.js'];
 const composerSelection = files['src/composer-selection.js'];
 const presentationActions = files['src/presentation-actions.js'];
 const inspector = files['src/contextual-inspector.js'];
+const groupingControls = files['src/grouping-controls.js'];
 const collectionControls = files['src/collection-controls.js'];
 const tableControls = files['src/table-controls.js'];
 const deleteUi = files['src/product-delete-ui.js'];
@@ -60,8 +61,8 @@ const printJs = files['src/print.js'];
 const logo = files['assets/logo-top-mobili.svg'];
 const checks = [
   ['shell possui três abas primárias', ['products','catalog','templates'].every(tab => html.includes(`data-tab="${tab}"`))],
-  ['runtime editorial é bootstrap estático', html.includes('collection-block.css') && html.includes('table-block.css') && html.includes('contextual-inspector.css') && html.indexOf('src/catalog-order.js') < html.indexOf('src/catalog-document.js') && html.indexOf('src/collection.js') < html.indexOf('src/catalog-document.js') && html.indexOf('src/table-block.js') < html.indexOf('src/catalog-document.js')],
-  ['ações/seleção carregam antes da aplicação e inspector depois', html.indexOf('src/product-actions.js') < html.indexOf('src/app.js') && html.indexOf('src/composer-selection.js') < html.indexOf('src/app.js') && html.indexOf('src/presentation-actions.js') < html.indexOf('src/app.js') && html.indexOf('src/contextual-inspector.js') > html.indexOf('src/app.js')],
+  ['runtime editorial é bootstrap estático', html.includes('collection-block.css') && html.includes('table-block.css') && html.includes('contextual-inspector.css') && html.includes('grouping-controls.css') && html.indexOf('src/catalog-order.js') < html.indexOf('src/catalog-document.js') && html.indexOf('src/collection.js') < html.indexOf('src/catalog-document.js') && html.indexOf('src/table-block.js') < html.indexOf('src/catalog-document.js')],
+  ['ações/seleção carregam antes da aplicação e modos/inspector depois', html.indexOf('src/product-actions.js') < html.indexOf('src/app.js') && html.indexOf('src/composer-selection.js') < html.indexOf('src/app.js') && html.indexOf('src/presentation-actions.js') < html.indexOf('src/app.js') && html.indexOf('src/grouping-controls.js') > html.indexOf('src/app.js') && html.indexOf('src/grouping-controls.js') < html.indexOf('src/collection-controls.js') && html.indexOf('src/contextual-inspector.js') > html.indexOf('src/app.js')],
   ['renderer canônico carrega após helpers', html.indexOf('src/collection-render.js') < html.indexOf('src/catalog-renderer.js') && html.indexOf('src/table-render.js') < html.indexOf('src/catalog-renderer.js')],
   ['logo canônica preserva viewBox oficial', logo.includes('viewBox="0 0 481 270"')],
   ['estado local migra para schema v6', core.includes('SCHEMA_VERSION = 6') && core.includes('order: []') && core.includes('blocks: []')],
@@ -75,12 +76,13 @@ const checks = [
   ['adapters de documento não substituem build', !collectionDocument.includes('CatalogDocument.build =') && !tableDocument.includes('CatalogDocument.build =')],
   ['helpers de render não substituem renderCatalog', !collectionRender.includes('renderCatalog =') && !tableRender.includes('renderCatalog =') && !renderAdapter.includes('renderCatalog =')],
   ['somente renderer canônico instala renderCatalog uma vez', (catalogRenderer.match(/Render\.renderCatalog\s*=/g) || []).length === 1 && catalogRenderer.includes("item.type === 'collection'") && catalogRenderer.includes("item.type === 'table'")],
-  ['lista é renderizada explicitamente sem observers de decoração', app.includes('function blockMembership') && app.includes('data-order-handle') && app.includes('catalogotop:selection-rendered') && !order.includes('MutationObserver') && !collectionControls.includes('MutationObserver') && !tableControls.includes('MutationObserver')],
+  ['lista é renderizada explicitamente sem observers de decoração', app.includes('function blockMembership') && app.includes('data-order-handle') && app.includes('catalogotop:selection-rendered') && !order.includes('MutationObserver') && !groupingControls.includes('MutationObserver') && !collectionControls.includes('MutationObserver') && !tableControls.includes('MutationObserver')],
   ['SelectionOrder não depende do CatalogDocument', !order.includes('CatalogDocument') && !order.includes('loadScript(') && !order.includes('ensureStyle(') && order.includes('CatalogOrder?.effectiveIds')],
   ['ComposerSelection é efêmero e reconcilia targets', composerSelection.includes('let current = null') && composerSelection.includes('targetForProduct') && composerSelection.includes('reconcile') && !composerSelection.includes('Core.mutate')],
-  ['PresentationActions centraliza mutações editoriais', presentationActions.includes('setCardStyle') && presentationActions.includes('setCollectionMemberStyle') && presentationActions.includes('updateTable') && presentationActions.includes('moveOrderUnit')],
-  ['inspector contextual seleciona preview sem capturar touch', inspector.includes('targetFromPreviewNode') && inspector.includes('catalogotop:editor-selection-changed') && inspector.includes('data-inspector-card-field') && !inspector.includes('touchstart') && !inspector.includes('pointerdown')],
-  ['Collection/Table list controls são creation-only', collectionControls.includes('Agrupar em coleção') && tableControls.includes('Agrupar em tabela') && !collectionControls.includes('collection-manager') && !tableControls.includes('table-block-manager')],
+  ['PresentationActions centraliza mutações editoriais', presentationActions.includes('setCardStyle') && presentationActions.includes('setCollectionMemberStyle') && presentationActions.includes('updateTable') && presentationActions.includes('moveOrderUnit') && presentationActions.includes('moveBlockMember')],
+  ['inspector contextual seleciona preview sem capturar touch', inspector.includes('targetFromPreviewNode') && inspector.includes('catalogotop:editor-selection-changed') && inspector.includes('data-inspector-card-field') && inspector.includes('data-inspector-member-move') && inspector.includes('PresentationActions.moveBlockMember') && !inspector.includes('touchstart') && !inspector.includes('pointerdown')],
+  ['GroupingControls mantém seleção estrutural efêmera fora do domínio', groupingControls.includes("let mode = 'browse'") && groupingControls.includes('const markedIds = new Set()') && groupingControls.includes('candidateIds') && groupingControls.includes('catalogotop:grouping-selection-changed') && !groupingControls.includes('Core.mutate')],
+  ['Collection/Table list controls são creation-only', collectionControls.includes('createCollection') && tableControls.includes('createTable') && collectionControls.includes('GroupingControls?.candidateIds') && tableControls.includes('GroupingControls?.candidateIds') && !collectionControls.includes('data-block-pick') && !tableControls.includes('data-block-pick') && !collectionControls.includes('data-block-member-delta') && !tableControls.includes('data-block-member-delta') && !collectionControls.includes('collection-manager') && !tableControls.includes('table-block-manager')],
   ['exclusão direta nasce no render e usa operação de domínio', app.includes('data-delete-product-direct') && app.includes('NS.ProductActions.deleteProduct') && files['src/product-actions.js'].includes('cleanupDraftForDeletedProduct') && files['src/product-actions.js'].includes('presentation.order')],
   ['compatibilidade de delete/overlap não observa DOM', !deleteUi.includes('MutationObserver') && !overlapGuard.includes('MutationObserver')],
   ['print continua isolado e com CSS dos blocos', printJs.includes("querySelectorAll('.catalog-page')") && printJs.includes('collection-block.css') && printJs.includes('table-block.css')],
@@ -88,12 +90,12 @@ const checks = [
   ['preview mantém Fit/zoom e pan vertical', html.includes('id="catalogPreviewViewport"') && files['src/preview-zoom.js'].includes('210 * 96 / 25.4') && files['preview-viewport.css'].includes('overscroll-behavior-y: auto')],
   ['chrome do inspector é editor-only', files['contextual-inspector.css'].includes('#catalogPreview .editor-selected') && files['contextual-inspector.css'].includes('@media print')],
   ['mobile não incorpora print/compositor', !files['mobile-header.css'].includes('@media print') && !files['mobile-header.css'].includes('bulk-presentation-controls')],
-  ['compositor segue container-aware', files['composer-layout.css'].includes('container-type: inline-size')],
+  ['compositor segue container-aware sem painel bulk legado', files['composer-layout.css'].includes('container-type: inline-size') && !files['composer-layout.css'].includes('bulk-presentation-controls')],
   ['templates técnico/compacto/showcase permanecem', ['technical','compact','showcase'].every(id => files['src/templates.js'].includes(`id: '${id}'`))],
   ['importador continua exigindo código/descrição', files['src/importer.js'].includes('Código e descrição são obrigatórios.')],
   ['ícones institucionais incluem WhatsApp', files['src/icons.js'].includes('whatsapp')],
   ['Netlify continua executando npm test', files['netlify.toml'].includes('command = "npm test"')],
-  ['documentação registra fronteiras v0.11.0/v0.11.1', files['docs/editor-runtime-boundaries-v0.11.0.md'].includes('CatalogDocument') && files['docs/editor-runtime-boundaries-v0.11.0.md'].includes('MutationObserver') && files['docs/contextual-inspector-v0.11.1.md'].includes('Browser Inspector Gate')]
+  ['documentação registra fronteiras v0.11.0/v0.11.1/v0.11.1.7', files['docs/editor-runtime-boundaries-v0.11.0.md'].includes('CatalogDocument') && files['docs/editor-runtime-boundaries-v0.11.0.md'].includes('MutationObserver') && files['docs/contextual-inspector-v0.11.1.md'].includes('Browser Inspector Gate') && files['docs/grouping-mode-compact-inspector-v0.11.1.7.md'].includes('BlockSelection')]
 ];
 const failed = checks.filter(([, ok]) => !ok);
 if (failed.length) {
