@@ -176,7 +176,10 @@
   function preferredWidth(definition, demand) {
     const base = Number(definition?.weight) || 16;
     if (!definition || definition.id === 'image') return base;
-    const adjustment = (Number(demand) - Number(definition.reference || 0)) * Number(definition.factor || 0);
+    const reference = Number(definition.reference || 0);
+    const measured = Number(demand);
+    const effectiveDemand = Number.isFinite(measured) ? measured : reference;
+    const adjustment = (effectiveDemand - reference) * Number(definition.factor || 0);
     return clamp(base + adjustment, Number(definition.min || 1), Number(definition.max || 100));
   }
 
@@ -242,13 +245,14 @@
     const ids = (Array.isArray(columnIds) ? columnIds : []).map(String);
     const items = ids.map(id => {
       const definition = columnDefinition(id) || { id, weight: 16, min: 8, max: 48, reference: 12, factor: .5, flex: 1 };
+      const hasDemand = Object.prototype.hasOwnProperty.call(demand || {}, id);
       return {
         id,
         min: Number(definition.min || 1),
         max: Number(definition.max || 100),
         flex: Number(definition.flex || 1),
-        demand: Number(demand?.[id] || 0),
-        preferred: preferredWidth(definition, demand?.[id])
+        demand: hasDemand ? Number(demand[id]) : null,
+        preferred: preferredWidth(definition, hasDemand ? demand[id] : undefined)
       };
     });
     elasticBounds(items);
