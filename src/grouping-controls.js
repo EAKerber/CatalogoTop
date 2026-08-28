@@ -6,6 +6,15 @@
   if (!Core || !Composition) return;
   const $ = selector => document.querySelector(selector);
 
+  function ensureStylesheet() {
+    if (typeof document === 'undefined' || document.querySelector('link[data-editorial-selection-table]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'editorial-selection-table.css';
+    link.dataset.editorialSelectionTable = 'true';
+    document.head.appendChild(link);
+  }
+
   function state() { return Core.getState(); }
 
   function blockMemberIds(current = state()) {
@@ -117,6 +126,7 @@
     exit: () => {}
   };
 
+  ensureStylesheet();
   bind();
   refresh();
 })();
