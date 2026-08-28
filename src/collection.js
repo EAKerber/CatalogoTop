@@ -32,9 +32,11 @@
 
   function normalizeMemberStyle(style) {
     const source = style && typeof style === 'object' ? style : {};
+    const priceStyles = Composition?.PRICE_STYLES || [{ id: 'standard' }];
     return {
       emphasis: source.emphasis === 'feature' ? 'feature' : 'normal',
-      width: ['simple', 'wide', 'full'].includes(source.width) ? source.width : 'simple'
+      width: ['simple', 'wide', 'full'].includes(source.width) ? source.width : 'simple',
+      priceStyle: choice(source.priceStyle, priceStyles, 'standard')
     };
   }
 
