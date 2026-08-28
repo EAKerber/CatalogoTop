@@ -226,51 +226,6 @@
     return pages;
   }
 
-  function optionsMarkup(items, selected) {
-    return items.map(item => `<option value="${item.id}"${item.id === selected ? ' selected' : ''}>${item.name}</option>`).join('');
-  }
-
-  function setupBulkControls() {
-    if (typeof document === 'undefined' || document.getElementById('bulkPresentationControls')) return;
-    const anchor = document.querySelector('.selection-actions');
-    if (!anchor) return;
-    const panel = document.createElement('div');
-    panel.id = 'bulkPresentationControls';
-    panel.className = 'bulk-presentation-controls';
-    panel.innerHTML = `
-      <strong>Aplicar a todos os selecionados</strong>
-      <label>Conteúdo<select id="bulkContentPreset">${optionsMarkup(CONTENT_PRESETS, 'visual')}</select></label>
-      <button class="button secondary compact" id="btnApplyBulkContent" type="button">Aplicar conteúdo</button>
-      <label>Ênfase<select id="bulkEmphasis">${optionsMarkup(EMPHASIS_PRESETS, 'normal')}</select></label>
-      <button class="button secondary compact" id="btnApplyBulkEmphasis" type="button">Aplicar ênfase</button>
-      <label>Largura<select id="bulkWidth">${optionsMarkup(WIDTH_PRESETS, 'simple')}</select></label>
-      <button class="button secondary compact" id="btnApplyBulkWidth" type="button">Aplicar largura</button>`;
-    anchor.insertAdjacentElement('afterend', panel);
-
-    const apply = patch => {
-      const Core = NS.Core;
-      if (!Core) return;
-      const current = Core.getState();
-      const ids = Array.isArray(current.selectedIds) ? current.selectedIds.slice() : [];
-      if (!ids.length) {
-        window.alert?.('Selecione ao menos um produto para aplicar o ajuste em lote.');
-        return;
-      }
-      Core.mutate(draft => {
-        const presentation = normalizePresentation(draft.catalog?.presentation);
-        ids.forEach(id => {
-          presentation.itemStyles[id] = { ...styleFor(presentation, id), ...patch };
-        });
-        draft.catalog.presentation = presentation;
-      });
-      window.dispatchEvent(new Event('catalogotop:products-updated'));
-    };
-
-    panel.querySelector('#btnApplyBulkContent')?.addEventListener('click', () => apply({ contentPreset: panel.querySelector('#bulkContentPreset').value }));
-    panel.querySelector('#btnApplyBulkEmphasis')?.addEventListener('click', () => apply({ emphasis: panel.querySelector('#bulkEmphasis').value }));
-    panel.querySelector('#btnApplyBulkWidth')?.addEventListener('click', () => apply({ width: panel.querySelector('#bulkWidth').value }));
-  }
-
   NS.Composition = {
     CONTENT_PRESETS,
     EMPHASIS_PRESETS,
@@ -290,9 +245,6 @@
     orderProductsForLayout,
     packRows,
     planProducts,
-    paginateProducts,
-    setupBulkControls
+    paginateProducts
   };
-
-  if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', setupBulkControls, { once: true });
 })();
