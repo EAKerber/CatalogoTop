@@ -165,17 +165,25 @@ try {
   if (!loaded.checked || loaded.min !== '10' || loaded.price !== 'R$ 49,90') throw new Error(`editor não carregou quantityPrice: ${JSON.stringify(loaded)}`);
 
   await page.uncheck('#hasQuantityPrice');
-  await page.evaluate(() => document.getElementById('productForm').requestSubmit());
+  await page.click('[data-form-step-target="3"]');
+  await page.waitForSelector('[data-form-step="3"].active #commercialRows');
+  await page.click('#btnSaveProduct');
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().products.find(product => product.id === 'p1')?.quantityPrice === null);
 
   await page.click('[data-edit-product="p1"]');
   await page.click('[data-form-step-target="2"]');
+  await page.waitForSelector('[data-form-step="2"].active #hasQuantityPrice');
   await page.check('#hasQuantityPrice');
   await page.fill('#quantityMin', '1');
   await page.fill('#quantityPrice', '40');
-  await page.evaluate(() => document.getElementById('productForm').requestSubmit());
-  const invalid = await page.evaluate(() => ({ valid: document.getElementById('quantityMin').checkValidity(), message: document.getElementById('quantityMin').validationMessage }));
-  if (invalid.valid || !invalid.message) throw new Error(`quantidade mínima inválida não foi bloqueada: ${JSON.stringify(invalid)}`);
+  await page.click('[data-form-step-target="3"]');
+  const invalid = await page.evaluate(() => ({
+    valid: document.getElementById('quantityMin').checkValidity(),
+    message: document.getElementById('quantityMin').validationMessage,
+    step2Active: document.querySelector('[data-form-step="2"]')?.classList.contains('active') || false,
+    savedValue: window.CatalogoTop.Core.getState().products.find(product => product.id === 'p1')?.quantityPrice
+  }));
+  if (invalid.valid || !invalid.message || !invalid.step2Active || invalid.savedValue !== null) throw new Error(`quantidade mínima inválida não bloqueou avanço/salvamento: ${JSON.stringify(invalid)}`);
 
   await page.evaluate(() => {
     const NS = window.CatalogoTop;
