@@ -277,7 +277,7 @@ try {
     throw new Error(`tipografia da Table insuficiente ou divergente no print: ${JSON.stringify(tableTypography)}`);
   }
 
-  // Mobile: as duas setas flutuantes usam o mesmo comando de reorder.
+  // Mobile: ↑ / Ajustes / ↓ usam o mesmo contexto editorial sem alterar a semântica de reorder.
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
   const mobilePage = await mobile.newPage();
   await mobilePage.goto(baseUrl, { waitUntil: 'domcontentloaded' });
@@ -286,7 +286,8 @@ try {
   await clickProduct(mobilePage, 'p2');
   await mobilePage.waitForSelector('#editorOrderFloater:not([hidden])');
   const floatingButtons = await mobilePage.locator('#editorOrderFloater button').count();
-  if (floatingButtons !== 2) throw new Error(`mobile não expôs exatamente duas setas flutuantes: ${floatingButtons}`);
+  const settingsButtons = await mobilePage.locator('#editorOrderFloater [data-editor-settings]').count();
+  if (floatingButtons !== 3 || settingsButtons !== 1) throw new Error(`mobile deveria expor ↑ / Ajustes / ↓: ${JSON.stringify({ floatingButtons, settingsButtons })}`);
   await mobilePage.click('#editorOrderFloater [data-editor-move="1"]');
   let mobileOrder = await effectiveOrder(mobilePage);
   if (mobileOrder.join(',') !== 'p1,p3,p2,p4,p5,p6,p7,p8') throw new Error(`seta flutuante não moveu item: ${mobileOrder.join(',')}`);
