@@ -2,19 +2,24 @@
   'use strict';
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
-  const { Core, Composition, ComposerSelection, CatalogOrder, PresentationActions } = NS;
+  const { Core, Composition, CatalogOrder, PresentationActions } = NS;
+  const ComposerSelection = NS.ComposerSelection;
   if (!Core || !Composition || !ComposerSelection || !CatalogOrder || !PresentationActions) return;
   const $ = selector => document.querySelector(selector);
 
-  function state() { return Core.getState(); }
+  const state = () => Core.getState();
 
   function uniqueIds(values) {
     const seen = new Set();
-    return (Array.isArray(values) ? values : []).map(String).filter(id => {
-      if (!id || seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
+    return (Array.isArray(values) ? values : []).map(String).filter(id => id && !seen.has(id) && seen.add(id));
+  }
+
+  function editorialIds() {
+    return NS.ComposerSelection?.ids?.().map(String) || [];
+  }
+
+  function effectiveIds(current = state()) {
+    return CatalogOrder.effectiveIds(current).map(String);
   }
 
   function productMap(current = state()) {
@@ -25,24 +30,12 @@
     return String(product?.category || '').trim() || 'Sem categoria';
   }
 
-  function includedSet(current = state()) {
-    return new Set((current.selectedIds || []).map(String));
-  }
-
-  function effectiveIds(current = state()) {
-    return CatalogOrder.effectiveIds(current).map(String);
-  }
-
   function blockMemberIds(current = state()) {
     const ids = new Set();
     (current.catalog?.presentation?.blocks || []).forEach(block => {
       (Array.isArray(block?.memberIds) ? block.memberIds : []).forEach(id => ids.add(String(id)));
     });
     return ids;
-  }
-
-  function editorialIds() {
-    return ComposerSelection.ids().map(String);
   }
 
   function orderedEditorial(current = state()) {
@@ -64,7 +57,7 @@
     const current = state();
     const raw = uniqueIds(editorialIds());
     if (raw.length < 2 || raw.length > maxMembers) return [];
-    const included = includedSet(current);
+    const included = new Set((current.selectedIds || []).map(String));
     const occupied = blockMemberIds(current);
     const byId = productMap(current);
     if (raw.some(id => !included.has(id) || occupied.has(id) || !byId.has(id))) return [];
@@ -93,11 +86,7 @@
     const current = state();
     const nextOrder = consolidatedOrder(current, ids);
     if (JSON.stringify(nextOrder) !== JSON.stringify(effectiveIds(current))) {
-      Core.mutate(draft => {
-        const presentation = Composition.normalizePresentation(draft.catalog.presentation);
-        presentation.order = nextOrder;
-        draft.catalog.presentation = presentation;
-      });
+      PresentationActions.mutatePresentation(presentation => { presentation.order = nextOrder; });
     }
     return ids;
   }
@@ -122,8 +111,7 @@
     if (!target || !selectedIds.length) return null;
 
     if (target.kind === 'collection' || target.kind === 'table') {
-      const unitId = `${target.kind}:${target.blockId}`;
-      const nextOrder = CatalogOrder.moveUnitRelative(current, unitId, direction);
+      const nextOrder = CatalogOrder.moveUnitRelative(current, `${target.kind}:${target.blockId}`, direction);
       return JSON.stringify(nextOrder) === JSON.stringify(effectiveIds(current)) ? null : { type: 'order', nextOrder };
     }
 
@@ -133,16 +121,14 @@
         && item.memberIds.includes(String(target.productId)));
       if (!unit) return null;
       const index = unit.memberIds.indexOf(String(target.productId));
-      const targetIndex = index + direction;
-      if (index < 0 || targetIndex < 0 || targetIndex >= unit.memberIds.length) return null;
+      if (index < 0 || index + direction < 0 || index + direction >= unit.memberIds.length) return null;
       return { type: 'member', blockId: String(target.blockId), productId: String(target.productId), delta: direction };
     }
 
     const selected = new Set(selectedIds);
-    const allUnits = CatalogOrder.allUnits(current);
     const touched = [];
     let category = '';
-    for (const unit of allUnits) {
+    for (const unit of CatalogOrder.allUnits(current)) {
       const hits = unit.memberIds.filter(id => selected.has(String(id)));
       if (!hits.length) continue;
       if (hits.length !== unit.memberIds.length) return null;
@@ -151,6 +137,7 @@
       touched.push(unit.id);
     }
     if (!touched.length || !category) return null;
+
     const selectedUnits = new Set(touched);
     const units = CatalogOrder.unitsForCategory(current, category).map(unit => ({ ...unit, memberIds: unit.memberIds.slice() }));
     let changed = false;
@@ -169,60 +156,28 @@
         }
       }
     }
-    if (!changed) return null;
-    return { type: 'order', nextOrder: categoryOrderFromUnits(current, category, units) };
+    return changed ? { type: 'order', nextOrder: categoryOrderFromUnits(current, category, units) } : null;
   }
 
   function moveSelectionRelative(delta) {
     const plan = selectedMovePlan(delta);
     if (!plan) return false;
-    if (plan.type === 'member') {
-      PresentationActions.moveBlockMember(plan.blockId, plan.productId, plan.delta);
-      return true;
-    }
-    PresentationActions.mutatePresentation(presentation => { presentation.order = plan.nextOrder; });
+    if (plan.type === 'member') PresentationActions.moveBlockMember(plan.blockId, plan.productId, plan.delta);
+    else PresentationActions.mutatePresentation(presentation => { presentation.order = plan.nextOrder; });
     return true;
   }
 
-  function canMoveSelection(delta) {
-    return Boolean(selectedMovePlan(delta));
-  }
-
-  function refreshToolbar() {
-    const selected = editorialIds();
-    const valid = candidateIds(Number.POSITIVE_INFINITY);
-    const context = $('#groupingActions');
-    if (context) context.hidden = selected.length < 2;
-    const status = $('#blockSelectionStatus');
-    if (status) {
-      if (valid.length) {
-        status.textContent = isContiguousSameCategory(valid) ? `${valid.length} produtos selecionados` : `${valid.length} selecionados · serão reunidos ao agrupar`;
-      } else if (selected.length >= 2) status.textContent = `${selected.length} selecionados · agrupamento indisponível`;
-      else status.textContent = '';
-    }
-    NS.CollectionControls?.refreshButton?.();
-    NS.TableControls?.refreshButton?.();
-    scheduleEditorAugment();
-  }
-
-  function emit() {
-    window.dispatchEvent(new CustomEvent('catalogotop:grouping-selection-changed', {
-      detail: { ids: editorialIds(), candidates: candidateIds(Number.POSITIVE_INFINITY) }
-    }));
-  }
-
-  function refreshAndEmit() {
-    refreshToolbar();
-    emit();
-  }
+  const canMoveSelection = delta => Boolean(selectedMovePlan(delta));
 
   function installSelectionPrimaryPreservation() {
     if (ComposerSelection.__v01123PrimaryPreservation) return;
     const original = ComposerSelection.selectProduct.bind(ComposerSelection);
     ComposerSelection.selectProduct = function (current, productId, options = {}) {
       const id = String(productId || '');
-      const ids = ComposerSelection.ids().map(String);
-      if (!options.additive && !options.range && ids.length > 1 && ids.includes(id)) {
+      const currentTarget = ComposerSelection.get();
+      const selected = ComposerSelection.ids().map(String);
+      const productTargetActive = currentTarget && !['collection', 'table'].includes(currentTarget.kind);
+      if (!options.additive && !options.range && productTargetActive && selected.length > 1 && selected.includes(id)) {
         const target = ComposerSelection.normalize(options.target) || ComposerSelection.targetForProduct(current, id);
         return ComposerSelection.select(target, { preserveProducts: true });
       }
@@ -231,9 +186,9 @@
     ComposerSelection.__v01123PrimaryPreservation = true;
   }
 
-  function stylePatchForCollection(patch) {
-    const allowed = ['emphasis', 'width', 'priceStyle'];
-    return Object.fromEntries(Object.entries(patch || {}).filter(([key]) => allowed.includes(key)));
+  function collectionPatch(patch) {
+    const allowed = new Set(['emphasis', 'width', 'priceStyle']);
+    return Object.fromEntries(Object.entries(patch || {}).filter(([key]) => allowed.has(key)));
   }
 
   function applyBulkStylePatch(originProductId, patch) {
@@ -242,10 +197,10 @@
     PresentationActions.mutatePresentation((presentation, draft) => {
       const blocks = Array.isArray(presentation.blocks) ? presentation.blocks : [];
       selected.forEach(id => {
-        const blockIndex = blocks.findIndex(block => (Array.isArray(block?.memberIds) ? block.memberIds : []).map(String).includes(id));
+        const blockIndex = blocks.findIndex(block => (block?.memberIds || []).map(String).includes(id));
         const block = blockIndex >= 0 ? blocks[blockIndex] : null;
         if (block?.type === 'collection' && NS.Collection) {
-          const compatible = stylePatchForCollection(patch);
+          const compatible = collectionPatch(patch);
           if (!Object.keys(compatible).length) return;
           const normalized = NS.Collection.normalizeBlock(block);
           normalized.itemStyles[id] = { ...NS.Collection.memberStyleFor(normalized, id), ...compatible };
@@ -269,14 +224,9 @@
     const originalResetFrame = PresentationActions.resetImageFrame.bind(PresentationActions);
     const originalMoveMember = PresentationActions.moveBlockMember.bind(PresentationActions);
 
-    PresentationActions.setCardStyle = function (productId, patch) {
-      if (applyBulkStylePatch(productId, patch)) return true;
-      return originalCard(productId, patch);
-    };
-    PresentationActions.setCollectionMemberStyle = function (blockId, productId, patch) {
-      if (applyBulkStylePatch(productId, patch)) return true;
-      return originalMember(blockId, productId, patch);
-    };
+    PresentationActions.setCardStyle = (productId, patch) => applyBulkStylePatch(productId, patch) || originalCard(productId, patch);
+    PresentationActions.setCollectionMemberStyle = (blockId, productId, patch) => applyBulkStylePatch(productId, patch) || originalMember(blockId, productId, patch);
+
     PresentationActions.setImageFrame = function (productId, patch) {
       const selected = uniqueIds(ComposerSelection.ids());
       if (selected.length < 2 || !selected.includes(String(productId)) || !NS.ImageFraming) return originalFrame(productId, patch);
@@ -289,6 +239,7 @@
         });
       });
     };
+
     PresentationActions.resetImageFrame = function (productId) {
       const selected = uniqueIds(ComposerSelection.ids());
       if (selected.length < 2 || !selected.includes(String(productId))) return originalResetFrame(productId);
@@ -297,6 +248,7 @@
         selected.forEach(id => { delete presentation.imageFrames[id]; });
       });
     };
+
     PresentationActions.moveBlockMember = function (blockId, productId, delta) {
       const current = state();
       const unit = CatalogOrder.allUnits(current).find(item => ['collection', 'table'].includes(item.type)
@@ -325,16 +277,15 @@
 
   function installCanonicalTextFit() {
     if (!NS.TextFit?.fitCatalog || NS.TextFit.__v01123CanonicalScale) return;
-    const originalFitCatalog = NS.TextFit.fitCatalog.bind(NS.TextFit);
+    const original = NS.TextFit.fitCatalog.bind(NS.TextFit);
     NS.TextFit.fitCatalog = function (root) {
-      if (!root?.style) return originalFitCatalog(root);
+      if (!root?.style) return original(root);
       const previous = root.style.getPropertyValue('--preview-scale');
       const priority = root.style.getPropertyPriority('--preview-scale');
       root.style.setProperty('--preview-scale', '1');
       void root.offsetWidth;
-      try {
-        return originalFitCatalog(root);
-      } finally {
+      try { return original(root); }
+      finally {
         if (previous) root.style.setProperty('--preview-scale', previous, priority);
         else root.style.removeProperty('--preview-scale');
       }
@@ -348,27 +299,14 @@
     if (!target) return null;
     const presentation = Composition.normalizePresentation(current.catalog.presentation);
     if (target.kind === 'card') return Composition.styleFor(presentation, productId)?.[key] ?? null;
-    if (target.kind === 'collection-member' && NS.Collection) {
-      const block = presentation.blocks.find(item => item?.type === 'collection' && String(item.id) === String(target.blockId));
-      if (!block) return null;
-      if (!['emphasis', 'width', 'priceStyle'].includes(key)) return null;
-      return NS.Collection.memberStyleFor(block, productId)?.[key] ?? null;
-    }
-    return null;
+    if (target.kind !== 'collection-member' || !NS.Collection || !['emphasis', 'width', 'priceStyle'].includes(key)) return null;
+    const block = presentation.blocks.find(item => item?.type === 'collection' && String(item.id) === String(target.blockId));
+    return block ? NS.Collection.memberStyleFor(block, productId)?.[key] ?? null : null;
   }
 
   function mixedValues(key) {
     const values = uniqueIds(ComposerSelection.ids()).map(id => styleValueForProduct(id, key)).filter(value => value != null);
     return { count: values.length, values: new Set(values) };
-  }
-
-  let augmentFrame = 0;
-  function scheduleEditorAugment() {
-    if (augmentFrame) cancelAnimationFrame(augmentFrame);
-    augmentFrame = requestAnimationFrame(() => {
-      augmentFrame = 0;
-      augmentEditorUi();
-    });
   }
 
   function augmentMixedSelect(select, key) {
@@ -384,14 +322,20 @@
     select.prepend(option);
   }
 
-  function orderLabel() {
-    const target = ComposerSelection.get();
-    const count = uniqueIds(ComposerSelection.ids()).length;
+  function orderLabel(target, count) {
     if (target?.kind === 'collection') return 'Mover coleção';
     if (target?.kind === 'table') return 'Mover tabela';
     if (count > 1) return `Mover ${count} selecionados`;
-    if (target?.kind === 'collection-member' || target?.kind === 'table-row') return 'Mover item';
     return 'Mover item';
+  }
+
+  let augmentFrame = 0;
+  function scheduleEditorAugment() {
+    if (augmentFrame) cancelAnimationFrame(augmentFrame);
+    augmentFrame = requestAnimationFrame(() => {
+      augmentFrame = 0;
+      augmentEditorUi();
+    });
   }
 
   function augmentEditorUi() {
@@ -410,16 +354,14 @@
           head.appendChild(badge);
         }
         const priceMixed = mixedValues('priceStyle');
-        if (priceMixed.count >= 2 && priceMixed.values.size > 1) {
-          const fieldset = root.querySelector('[data-commercial-card-price-editor],[data-commercial-member-price-editor]');
-          if (fieldset) {
-            fieldset.querySelectorAll('input[type="radio"]').forEach(input => { input.checked = false; });
-            if (!fieldset.querySelector('.inspector-bulk-mixed')) {
-              const note = document.createElement('small');
-              note.className = 'inspector-bulk-mixed';
-              note.textContent = 'Valores mistos · escolha uma opção para aplicar aos itens compatíveis.';
-              fieldset.appendChild(note);
-            }
+        const fieldset = root.querySelector('[data-commercial-card-price-editor],[data-commercial-member-price-editor]');
+        if (fieldset && priceMixed.count >= 2 && priceMixed.values.size > 1) {
+          fieldset.querySelectorAll('input[type="radio"]').forEach(input => { input.checked = false; });
+          if (!fieldset.querySelector('.inspector-bulk-mixed')) {
+            const note = document.createElement('small');
+            note.className = 'inspector-bulk-mixed';
+            note.textContent = 'Valores mistos · escolha uma opção para aplicar aos itens compatíveis.';
+            fieldset.appendChild(note);
           }
         }
       }
@@ -427,7 +369,7 @@
         const section = document.createElement('section');
         section.className = 'inspector-selection-order';
         section.dataset.editorOrderControls = 'true';
-        section.innerHTML = `<div class="inspector-subhead"><strong>Ordem no catálogo</strong><span>${orderLabel()}</span></div><div class="inspector-selection-order-actions"><button type="button" data-editor-move="-1" aria-label="Mover para cima">↑</button><button type="button" data-editor-move="1" aria-label="Mover para baixo">↓</button></div>`;
+        section.innerHTML = `<div class="inspector-subhead"><strong>Ordem no catálogo</strong><span>${orderLabel(target, ids.length)}</span></div><div class="inspector-selection-order-actions"><button type="button" data-editor-move="-1" aria-label="Mover para cima">↑</button><button type="button" data-editor-move="1" aria-label="Mover para baixo">↓</button></div>`;
         root.appendChild(section);
       }
       const up = root.querySelector('[data-editor-move="-1"]');
@@ -445,16 +387,43 @@
       floater.innerHTML = '<button type="button" data-editor-move="-1" aria-label="Mover seleção para cima">↑</button><button type="button" data-editor-move="1" aria-label="Mover seleção para baixo">↓</button>';
       document.body.appendChild(floater);
     }
-    const catalogActive = $('#catalog')?.classList.contains('active');
-    floater.hidden = !catalogActive || !target || !ids.length;
+    floater.hidden = !$('#catalog')?.classList.contains('active') || !target || !ids.length;
     const floatUp = floater.querySelector('[data-editor-move="-1"]');
     const floatDown = floater.querySelector('[data-editor-move="1"]');
     if (floatUp) floatUp.disabled = !canMoveSelection(-1);
     if (floatDown) floatDown.disabled = !canMoveSelection(1);
   }
 
-  function isEditableKeyTarget(node) {
-    return Boolean(node?.closest?.('input,textarea,select,button,a,[contenteditable="true"]'));
+  function refreshToolbar() {
+    const selected = editorialIds();
+    const valid = candidateIds(Number.POSITIVE_INFINITY);
+    const context = $('#groupingActions');
+    if (context) context.hidden = selected.length < 2;
+    const status = $('#blockSelectionStatus');
+    if (status) {
+      if (valid.length) status.textContent = isContiguousSameCategory(valid) ? `${valid.length} produtos selecionados` : `${valid.length} selecionados · serão reunidos ao agrupar`;
+      else if (selected.length >= 2) status.textContent = `${selected.length} selecionados · agrupamento indisponível`;
+      else status.textContent = '';
+    }
+    NS.CollectionControls?.refreshButton?.();
+    NS.TableControls?.refreshButton?.();
+    scheduleEditorAugment();
+  }
+
+  function refreshAndEmit() {
+    refreshToolbar();
+    window.dispatchEvent(new CustomEvent('catalogotop:grouping-selection-changed', {
+      detail: { ids: editorialIds(), candidates: candidateIds(Number.POSITIVE_INFINITY) }
+    }));
+  }
+
+  function bindGroupingPreparation() {
+    document.addEventListener('click', event => {
+      const button = event.target.closest('#btnCreateCollection,#btnCreateTableBlock');
+      if (!button || button.disabled) return;
+      const max = button.id === 'btnCreateCollection' ? (NS.Collection?.MAX_MEMBERS || 12) : (NS.TableBlock?.MAX_MEMBERS || 30);
+      prepareGrouping(max);
+    }, true);
   }
 
   function bindOrderCommands() {
@@ -466,24 +435,15 @@
     });
     window.addEventListener('keydown', event => {
       if (!['ArrowUp', 'ArrowDown'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-      if (!$('#catalog')?.classList.contains('active') || !ComposerSelection.get() || isEditableKeyTarget(event.target)) return;
+      if (!$('#catalog')?.classList.contains('active') || !ComposerSelection.get()) return;
+      if (event.target?.closest?.('input,textarea,select,button,a,[contenteditable="true"]')) return;
       const active = document.activeElement;
-      const inComposer = active === document.body || active?.closest?.('#selectableProducts,#catalogPreview,.contextual-inspector');
-      if (!inComposer) return;
+      if (!(active === document.body || active?.closest?.('#selectableProducts,#catalogPreview,.contextual-inspector'))) return;
       const delta = event.key === 'ArrowUp' ? -1 : 1;
       if (!canMoveSelection(delta)) return;
       event.preventDefault();
       moveSelectionRelative(delta);
     });
-  }
-
-  function bindGroupingPreparation() {
-    document.addEventListener('click', event => {
-      const button = event.target.closest('#btnCreateCollection,#btnCreateTableBlock');
-      if (!button || button.disabled) return;
-      const max = button.id === 'btnCreateCollection' ? (NS.Collection?.MAX_MEMBERS || 12) : (NS.TableBlock?.MAX_MEMBERS || 30);
-      prepareGrouping(max);
-    }, true);
   }
 
   installSelectionPrimaryPreservation();
@@ -502,12 +462,7 @@
     canMoveSelection,
     refresh: refreshToolbar
   };
-  NS.EditorOrder = {
-    consolidatedOrder,
-    moveSelectionRelative,
-    canMoveSelection,
-    selectedMovePlan
-  };
+  NS.EditorOrder = { consolidatedOrder, selectedMovePlan, moveSelectionRelative, canMoveSelection };
 
   window.addEventListener('catalogotop:editor-selection-changed', refreshAndEmit);
   window.addEventListener('catalogotop:selection-rendered', refreshToolbar);
