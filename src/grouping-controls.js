@@ -2,12 +2,9 @@
   'use strict';
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
-  const { Core, Composition } = NS;
-  if (!Core || !Composition) return;
-
+  const Core = NS.Core;
+  if (!Core) return;
   const $ = selector => document.querySelector(selector);
-  const markedIds = new Set();
-  let mode = 'browse';
 
   function state() { return Core.getState(); }
 
@@ -19,7 +16,7 @@
     return ids;
   }
 
-  function selectedSet(current = state()) {
+  function includedSet(current = state()) {
     return new Set((current.selectedIds || []).map(String));
   }
 
@@ -35,20 +32,13 @@
     return String(product?.category || '').trim() || 'Sem categoria';
   }
 
-  function reconcileMarked() {
-    const current = state();
-    const selected = selectedSet(current);
-    const membership = blockMemberIds(current);
-    const byId = productMap(current);
-    Array.from(markedIds).forEach(id => {
-      if (!selected.has(id) || membership.has(id) || !byId.has(id)) markedIds.delete(id);
-    });
-    if (mode !== 'grouping') markedIds.clear();
+  function editorialIds() {
+    return NS.ComposerSelection?.ids?.().map(String) || [];
   }
 
-  function orderedMarked(current = state(), values = markedIds) {
-    const marked = new Set(Array.from(values).map(String));
-    return effectiveIds(current).filter(id => marked.has(id));
+  function orderedEditorial(current = state()) {
+    const selected = new Set(editorialIds());
+    return effectiveIds(current).filter(id => selected.has(String(id))).map(String);
   }
 
   function isContiguousSameCategory(ids, current = state()) {
@@ -56,199 +46,63 @@
     const byId = productMap(current);
     const category = categoryOf(byId.get(ids[0]));
     if (ids.some(id => categoryOf(byId.get(id)) !== category)) return false;
-    const categoryIds = effectiveIds(current).filter(id => categoryOf(byId.get(id)) === category);
-    const positions = ids.map(id => categoryIds.indexOf(id));
+    const categoryIds = effectiveIds(current).filter(id => categoryOf(byId.get(id)) === category).map(String);
+    const positions = ids.map(id => categoryIds.indexOf(String(id)));
     return positions.every((position, index) => position >= 0 && (index === 0 || position === positions[index - 1] + 1));
   }
 
   function candidateIds(maxMembers = Number.POSITIVE_INFINITY) {
-    reconcileMarked();
     const current = state();
-    const selected = selectedSet(current);
-    const membership = blockMemberIds(current);
-    const ids = orderedMarked(current).filter(id => selected.has(id) && !membership.has(id));
-    if (ids.length < 2 || ids.length > maxMembers || ids.length !== markedIds.size) return [];
-    return isContiguousSameCategory(ids, current) ? ids : [];
-  }
-
-  function canAdd(productId) {
-    const id = String(productId || '');
-    if (!id) return false;
-    reconcileMarked();
-    if (markedIds.has(id)) return true;
-    const current = state();
-    if (!selectedSet(current).has(id) || blockMemberIds(current).has(id)) return false;
-    if (!markedIds.size) return true;
-    if (markedIds.size >= 30) return false;
+    const raw = editorialIds();
+    if (raw.length < 2 || raw.length > maxMembers) return [];
+    const included = includedSet(current);
+    const occupied = blockMemberIds(current);
     const byId = productMap(current);
-    const first = byId.get(orderedMarked(current)[0]);
-    if (categoryOf(byId.get(id)) !== categoryOf(first)) return false;
-    const next = new Set(markedIds);
-    next.add(id);
-    return isContiguousSameCategory(orderedMarked(current, next), current);
-  }
-
-  function ids() {
-    reconcileMarked();
-    return Array.from(markedIds);
-  }
-
-  function emit() {
-    window.dispatchEvent(new CustomEvent('catalogotop:grouping-selection-changed', {
-      detail: { mode, ids: ids() }
-    }));
-  }
-
-  function clear(refresh = true) {
-    const changed = markedIds.size > 0;
-    markedIds.clear();
-    if (refresh) refreshUi();
-    if (changed) emit();
-  }
-
-  function toggle(productId) {
-    const id = String(productId || '');
-    if (mode !== 'grouping' || !id) return false;
-    if (markedIds.has(id)) markedIds.delete(id);
-    else {
-      if (!canAdd(id)) return false;
-      markedIds.add(id);
-    }
-    refreshUi();
-    emit();
-    return true;
-  }
-
-  function setMode(next) {
-    mode = next === 'grouping' ? 'grouping' : 'browse';
-    if (mode === 'browse') markedIds.clear();
-  }
-
-  function enter() {
-    if (mode === 'grouping') return;
-    NS.ComposerSelection?.clear?.();
-    setMode('grouping');
-    refreshUi();
-    emit();
-  }
-
-  function exit({ render = true } = {}) {
-    const changed = mode !== 'browse' || markedIds.size > 0;
-    setMode('browse');
-    if (render && NS.App?.renderSelection) NS.App.renderSelection();
-    else refreshUi();
-    if (changed) emit();
-  }
-
-  function refreshRows() {
-    reconcileMarked();
-    const active = mode === 'grouping';
-    const panel = $('.selection-panel');
-    const list = $('#selectableProducts');
-    panel?.classList.toggle('is-grouping', active);
-    list?.classList.toggle('is-grouping', active);
-
-    document.querySelectorAll('#selectableProducts [data-product-row]').forEach(row => {
-      const id = String(row.dataset.productRow || '');
-      const marked = markedIds.has(id);
-      const eligible = active && canAdd(id);
-      row.classList.toggle('grouping-marked', active && marked);
-      row.classList.toggle('grouping-eligible', active && eligible);
-      row.classList.toggle('grouping-ineligible', active && !eligible && !marked);
-      if (active && (eligible || marked)) {
-        row.setAttribute('tabindex', '0');
-        row.setAttribute('aria-selected', marked ? 'true' : 'false');
-      } else {
-        row.removeAttribute('tabindex');
-        row.removeAttribute('aria-selected');
-      }
-      const checkbox = row.querySelector('[data-select-product]');
-      if (checkbox) checkbox.disabled = active;
-      const handle = row.querySelector('[data-order-handle]');
-      if (handle && active) {
-        handle.disabled = true;
-        handle.draggable = false;
-      }
-    });
+    if (raw.some(id => !included.has(id) || occupied.has(id) || !byId.has(id))) return [];
+    const ids = orderedEditorial(current);
+    if (ids.length !== raw.length || !isContiguousSameCategory(ids, current)) return [];
+    return ids;
   }
 
   function refreshToolbar() {
-    const active = mode === 'grouping';
-    const browse = $('#selectionBrowseActions');
-    const grouping = $('#groupingActions');
-    if (browse) browse.hidden = active;
-    if (grouping) grouping.hidden = !active;
+    const selected = editorialIds();
+    const valid = candidateIds(Number.POSITIVE_INFINITY);
+    const context = $('#groupingActions');
+    if (context) context.hidden = selected.length < 2;
     const status = $('#blockSelectionStatus');
     if (status) {
-      const count = ids().length;
-      status.textContent = count ? `${count} ${count === 1 ? 'marcado' : 'marcados'}` : 'Selecione um trecho contíguo';
+      if (valid.length) status.textContent = `${valid.length} produtos contíguos selecionados`;
+      else if (selected.length >= 2) status.textContent = `${selected.length} selecionados · agrupamento indisponível`;
+      else status.textContent = '';
     }
     NS.CollectionControls?.refreshButton?.();
     NS.TableControls?.refreshButton?.();
   }
 
-  function refreshUi() {
-    refreshRows();
-    refreshToolbar();
+  function emit() {
+    window.dispatchEvent(new CustomEvent('catalogotop:grouping-selection-changed', {
+      detail: { ids: editorialIds(), candidates: candidateIds(Number.POSITIVE_INFINITY) }
+    }));
   }
 
-  function handleRowActivation(target) {
-    const row = target.closest?.('[data-product-row]');
-    if (!row) return false;
-    return toggle(row.dataset.productRow);
+  function refreshAndEmit() {
+    refreshToolbar();
+    emit();
   }
 
   function bind() {
-    $('#btnEnterGrouping')?.addEventListener('click', enter);
-    $('#btnCancelGrouping')?.addEventListener('click', () => exit());
-
-    const list = $('#selectableProducts');
-    if (list) {
-      list.addEventListener('click', event => {
-        if (mode !== 'grouping') return;
-        if (event.target.closest('[data-select-product],[data-order-handle],button,select,input,a')) return;
-        if (!event.target.closest('[data-product-row]')) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        handleRowActivation(event.target);
-      });
-      list.addEventListener('keydown', event => {
-        if (mode !== 'grouping' || !['Enter', ' '].includes(event.key)) return;
-        const row = event.target.closest('[data-product-row]');
-        if (!row) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        toggle(row.dataset.productRow);
-      });
-    }
-
-    $('#searchSelection')?.addEventListener('input', () => {
-      if (mode === 'grouping') clear();
-    });
-    $('#selectionCategory')?.addEventListener('change', () => {
-      if (mode === 'grouping') clear();
-    });
-
-    window.addEventListener('catalogotop:selection-rendered', refreshUi);
-    window.addEventListener('catalogotop:products-updated', () => {
-      reconcileMarked();
-      refreshUi();
-    });
+    window.addEventListener('catalogotop:editor-selection-changed', refreshAndEmit);
+    window.addEventListener('catalogotop:selection-rendered', refreshToolbar);
+    window.addEventListener('catalogotop:products-updated', refreshToolbar);
   }
 
-  NS.BlockSelection = { ids, clear, toggle, refresh: refreshUi };
   NS.GroupingControls = {
-    mode: () => mode,
-    enter,
-    exit,
-    clear,
-    toggle,
-    ids,
+    ids: editorialIds,
     candidateIds,
-    canAdd,
-    refresh: refreshUi
+    isContiguousSameCategory,
+    refresh: refreshToolbar
   };
 
   bind();
-  refreshUi();
+  refreshToolbar();
 })();

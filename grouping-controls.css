@@ -1,110 +1,149 @@
-/* v0.11.1.7 — modo de agrupamento explícito e temporário. */
+/* v0.11.2.2 — seleção editorial única, inspector recolhível e ações contextuais. */
 
-.selection-actions[hidden] { display: none !important; }
-
-#selectionBrowseActions,
-#groupingActions {
-  align-items: center;
-  flex-wrap: wrap;
+/* Membership não é seleção editorial. */
+.select-product.selected {
+  background: #fff !important;
+  border-color: var(--line) !important;
+  box-shadow: none !important;
 }
-
-#selectionBrowseActions #btnEnterGrouping {
-  margin-left: auto;
+.select-product .selection-order { display: none !important; }
+.select-product.editor-selected-row {
+  background: #fff7f7 !important;
+  border-color: rgba(239, 23, 27, .48) !important;
+  box-shadow: inset 3px 0 0 rgba(239, 23, 27, .72), 0 0 0 2px rgba(239, 23, 27, .06) !important;
 }
+.select-product.editor-primary-row {
+  background: #fff1f1 !important;
+  border-color: rgba(239, 23, 27, .72) !important;
+}
+.select-product.editor-selected-row > span { cursor: pointer; }
 
+/* Ações de agrupamento aparecem somente quando a seleção editorial tem 2+ itens. */
 #groupingActions {
   gap: 6px;
-  background: #fff7f7;
-  border-bottom-color: #f3c7c9;
+  align-items: center;
+  flex-wrap: wrap;
+  background: #fff;
+  border-bottom-color: var(--line);
 }
-
 #groupingActions .grouping-status {
   flex: 1 1 100%;
+  font-size: 9px;
+  font-weight: 720;
+  color: var(--muted);
+}
+#groupingActions .grouping-status::before { content: none !important; }
+#groupingActions .button { flex: 1 1 0; min-width: 108px; }
+
+/* O painel tem cinco regiões: filtro, inspector, ações de membership,
+ * ações contextuais e a lista que consome todo o restante rolável. */
+.selection-panel {
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) !important;
+}
+
+/* Inspector: recolher mantém o target e devolve altura à lista. */
+.inspector-head-actions {
+  display: inline-flex;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.inspector-collapse,
+.inspector-clear {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--muted);
+  line-height: 1;
+}
+.inspector-collapse { font-size: 13px; }
+.contextual-inspector.is-minimized { padding: 0; }
+.inspector-minimized-head {
+  min-height: 38px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: var(--ink-2);
-  font-size: 10px;
-  font-weight: 760;
+  padding: 6px 10px 6px 12px;
 }
-
-#groupingActions .grouping-status::before {
-  content: 'Agrupar';
+.inspector-minimized-head > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.inspector-minimized-head span {
   color: var(--brand-deep);
-  font-size: 9px;
+  font-size: 7px;
   font-weight: 850;
   letter-spacing: .08em;
   text-transform: uppercase;
 }
-
-#groupingActions .button {
-  flex: 1 1 0;
-  min-width: 92px;
+.inspector-minimized-head strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+}
+.inspector-row-facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.inspector-row-facts > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 6px 7px;
+  border: 1px solid #eceef0;
+  border-radius: 7px;
+  background: #fafafa;
+}
+.inspector-row-facts span {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.inspector-row-facts strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
 }
 
-.selection-panel.is-grouping .contextual-inspector.is-collapsed {
-  display: none;
+/* Chrome no A4: target primário e seleção múltipla são efêmeros. */
+#catalogPreview .editor-multi-selected:not(.editor-selected) {
+  outline: .42mm solid rgba(239, 23, 27, .42) !important;
+  outline-offset: .65mm;
 }
-
-.selectable-products.is-grouping .select-product {
-  transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+#catalogPreview .catalog-table-block tr[data-editor-target] { cursor: pointer; }
+#catalogPreview .catalog-table-block tr.editor-multi-selected > td {
+  box-shadow: inset 0 .35mm 0 rgba(239, 23, 27, .30), inset 0 -.35mm 0 rgba(239, 23, 27, .30);
 }
-
-.selectable-products.is-grouping .select-product > input[type="checkbox"] {
-  opacity: .28;
-  cursor: not-allowed;
+#catalogPreview .catalog-table-block tr.editor-selected > td {
+  box-shadow: inset 0 .55mm 0 rgba(239, 23, 27, .82), inset 0 -.55mm 0 rgba(239, 23, 27, .82);
 }
-
-.selectable-products.is-grouping .select-product .order-handle,
-.selectable-products.is-grouping .select-product .order-handle-spacer {
-  opacity: .18;
-  pointer-events: none;
+#catalogPreview .catalog-table-block tr.editor-selected > td:first-child {
+  box-shadow: inset .55mm 0 0 rgba(239, 23, 27, .82), inset 0 .55mm 0 rgba(239, 23, 27, .82), inset 0 -.55mm 0 rgba(239, 23, 27, .82);
 }
-
-.select-product.grouping-eligible {
-  cursor: pointer !important;
-}
-.select-product.grouping-eligible > span {
-  cursor: pointer;
-}
-.select-product.grouping-eligible:hover,
-.select-product.grouping-eligible:focus-visible {
-  background: #fff8f8;
-  border-color: #f4c9cb;
-  outline: none;
-}
-
-.select-product.grouping-marked {
-  cursor: pointer !important;
-  background: #fff0f1 !important;
-  border-color: rgba(239, 23, 27, .58) !important;
-  box-shadow: inset 3px 0 0 var(--brand), 0 0 0 2px rgba(239, 23, 27, .07);
-}
-.select-product.grouping-marked .selection-order {
-  background: var(--ink);
-}
-
-.select-product.grouping-ineligible {
-  opacity: .42;
-}
-.select-product.grouping-ineligible > span {
-  cursor: not-allowed;
+#catalogPreview .catalog-table-block tr.editor-selected > td:last-child {
+  box-shadow: inset -.55mm 0 0 rgba(239, 23, 27, .82), inset 0 .55mm 0 rgba(239, 23, 27, .82), inset 0 -.55mm 0 rgba(239, 23, 27, .82);
 }
 
 @media (max-width: 639px) {
-  #selectionBrowseActions,
-  #groupingActions { gap: 5px; }
-  #selectionBrowseActions .button,
-  #groupingActions .button {
-    min-height: 32px;
-    padding: 6px 8px;
-    font-size: 10px;
-  }
-  #groupingActions .button { min-width: 78px; }
+  .inspector-row-facts { grid-template-columns: 1fr; }
+  #groupingActions .button { min-width: 84px; }
 }
 
 @media print {
-  #selectionBrowseActions,
-  #groupingActions { display: none !important; }
+  .editor-selected,
+  .editor-multi-selected,
+  .editor-selected-row,
+  .editor-primary-row { outline: 0 !important; box-shadow: none !important; }
+  #catalogPreview .catalog-table-block tr.editor-selected > td,
+  #catalogPreview .catalog-table-block tr.editor-multi-selected > td { box-shadow: none !important; }
 }

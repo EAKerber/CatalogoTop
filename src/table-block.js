@@ -11,16 +11,22 @@
     { id: 'comfortable', name: 'Confortável' },
     { id: 'compact', name: 'Compacta' }
   ]);
+  const TABLE_PRICE_STYLES = Object.freeze([
+    { id: 'standard', name: 'Padrão' },
+    { id: 'red', name: 'Vermelho' },
+    { id: 'label', name: 'Etiqueta' },
+    { id: 'block', name: 'Bloco' }
+  ]);
   const TABLE_COLUMNS = Object.freeze([
-    { id: 'image', name: 'Imagem', sources: ['products'], weight: 14 },
-    { id: 'code', name: 'Código', sources: ['products', 'commercialRows'], weight: 12 },
-    { id: 'description', name: 'Produto', sources: ['products', 'commercialRows'], weight: 44 },
-    { id: 'subcategory', name: 'Subcategoria', sources: ['products'], weight: 18 },
-    { id: 'variant', name: 'Cor / variação', sources: ['commercialRows'], weight: 20 },
-    { id: 'package', name: 'Embalagem', sources: ['commercialRows'], weight: 15 },
-    { id: 'price', name: 'Preço', sources: ['products', 'commercialRows'], weight: 18 },
-    { id: 'minQuantity', name: 'Qtd. mín.', sources: ['products', 'commercialRows'], weight: 10 },
-    { id: 'quantityPrice', name: 'Preço qtd.', sources: ['products', 'commercialRows'], weight: 18 }
+    { id: 'image', name: 'Imagem', sources: ['products'], weight: 14, min: 11, max: 17, reference: 0, factor: 0, flex: .2 },
+    { id: 'code', name: 'Código', sources: ['products', 'commercialRows'], weight: 12, min: 10, max: 20, reference: 6, factor: 1.2, flex: .8 },
+    { id: 'description', name: 'Produto', sources: ['products', 'commercialRows'], weight: 44, min: 30, max: 58, reference: 28, factor: .7, flex: 3 },
+    { id: 'subcategory', name: 'Subcategoria', sources: ['products'], weight: 18, min: 12, max: 28, reference: 14, factor: .65, flex: 1.4 },
+    { id: 'variant', name: 'Cor / variação', sources: ['commercialRows'], weight: 20, min: 14, max: 32, reference: 16, factor: .7, flex: 1.8 },
+    { id: 'package', name: 'Embalagem', sources: ['commercialRows'], weight: 15, min: 11, max: 24, reference: 10, factor: .65, flex: 1.1 },
+    { id: 'price', name: 'Preço', sources: ['products', 'commercialRows'], weight: 18, min: 14, max: 23, reference: 10, factor: .7, flex: .8 },
+    { id: 'minQuantity', name: 'Qtd. mín.', sources: ['products', 'commercialRows'], weight: 10, min: 8, max: 12, reference: 8, factor: .25, flex: .25 },
+    { id: 'quantityPrice', name: 'Preço qtd.', sources: ['products', 'commercialRows'], weight: 18, min: 14, max: 23, reference: 11, factor: .7, flex: .8 }
   ]);
   const MAX_MEMBERS = 30;
 
@@ -53,6 +59,8 @@
   function normalizeBlock(block, index = 0) {
     const source = block && typeof block === 'object' ? block : {};
     const rowSource = choice(source.rowSource || source.source, TABLE_SOURCES, 'products');
+    const legacyPriceStyle = source.commercialPrices === true ? 'label' : 'standard';
+    const priceStyle = choice(source.priceStyle, TABLE_PRICE_STYLES, legacyPriceStyle);
     return {
       id: String(source.id || `table-${index + 1}`),
       type: 'table',
@@ -62,7 +70,8 @@
       rowSource,
       density: choice(source.density, TABLE_DENSITIES, 'compact'),
       columns: normalizeColumns(source.columns, rowSource),
-      commercialPrices: source.commercialPrices === true
+      priceStyle,
+      commercialPrices: priceStyle !== 'standard'
     };
   }
 
@@ -134,6 +143,127 @@
     }));
   }
 
+  function columnDefinition(id) {
+    return TABLE_COLUMNS.find(column => column.id === id) || null;
+  }
+
+  function percentile(values, ratio = .75) {
+    const ordered = (Array.isArray(values) ? values : []).map(Number).filter(Number.isFinite).sort((a, b) => a - b);
+    if (!ordered.length) return 0;
+    const index = Math.min(ordered.length - 1, Math.max(0, Math.ceil(ordered.length * ratio) - 1));
+    return ordered[index];
+  }
+
+  function columnDemand(rows, columnIds) {
+    const list = Array.isArray(rows) ? rows : [];
+    const ids = (Array.isArray(columnIds) ? columnIds : []).map(String);
+    return Object.fromEntries(ids.map(id => {
+      const definition = columnDefinition(id);
+      if (id === 'image') return [id, 0];
+      const lengths = [String(definition?.name || id).length];
+      list.forEach(row => {
+        const text = String(row?.[id] ?? '').trim();
+        if (text) lengths.push(Math.min(96, text.length));
+      });
+      return [id, percentile(lengths, .75)];
+    }));
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function preferredWidth(definition, demand) {
+    const base = Number(definition?.weight) || 16;
+    if (!definition || definition.id === 'image') return base;
+    const reference = Number(definition.reference || 0);
+    const measured = Number(demand);
+    const effectiveDemand = Number.isFinite(measured) ? measured : reference;
+    const adjustment = (effectiveDemand - reference) * Number(definition.factor || 0);
+    return clamp(base + adjustment, Number(definition.min || 1), Number(definition.max || 100));
+  }
+
+  function distributeToHundred(items) {
+    const values = items.map(item => clamp(item.preferred, item.min, item.max));
+    for (let pass = 0; pass < 24; pass += 1) {
+      const total = values.reduce((sum, value) => sum + value, 0);
+      const delta = 100 - total;
+      if (Math.abs(delta) < .0001) break;
+      const growing = delta > 0;
+      const capacities = values.map((value, index) => {
+        const item = items[index];
+        const room = growing ? item.max - value : value - item.min;
+        return Math.max(0, room) * Math.max(.05, Number(item.flex) || 1);
+      });
+      const capacityTotal = capacities.reduce((sum, value) => sum + value, 0);
+      if (capacityTotal <= .0001) break;
+      values.forEach((value, index) => {
+        if (!capacities[index]) return;
+        const share = delta * capacities[index] / capacityTotal;
+        values[index] = clamp(value + share, items[index].min, items[index].max);
+      });
+    }
+    const rounded = values.map(value => Math.round(value * 100) / 100);
+    let residual = Math.round((100 - rounded.reduce((sum, value) => sum + value, 0)) * 100) / 100;
+    if (Math.abs(residual) >= .01) {
+      const direction = residual > 0 ? 1 : -1;
+      const candidates = rounded
+        .map((value, index) => ({ index, room: direction > 0 ? items[index].max - value : value - items[index].min, flex: items[index].flex }))
+        .filter(item => item.room > .001)
+        .sort((a, b) => (b.room * b.flex) - (a.room * a.flex));
+      for (const candidate of candidates) {
+        if (Math.abs(residual) < .01) break;
+        const applied = direction * Math.min(Math.abs(residual), candidate.room);
+        rounded[candidate.index] = Math.round((rounded[candidate.index] + applied) * 100) / 100;
+        residual = Math.round((residual - applied) * 100) / 100;
+      }
+    }
+    return rounded;
+  }
+
+  function elasticBounds(items) {
+    if (!items.length) return items;
+    const minTotal = items.reduce((sum, item) => sum + item.min, 0);
+    if (minTotal > 92) {
+      const scale = 92 / minTotal;
+      items.forEach(item => { item.min *= scale; });
+    }
+    const maxTotal = items.reduce((sum, item) => sum + item.max, 0);
+    if (maxTotal < 108) {
+      const missing = 108 - maxTotal;
+      const flexTotal = items.reduce((sum, item) => sum + Math.max(.05, item.flex), 0) || 1;
+      items.forEach(item => { item.max += missing * Math.max(.05, item.flex) / flexTotal; });
+    }
+    items.forEach(item => {
+      item.max = Math.max(item.max, item.min + .5);
+      item.preferred = clamp(item.preferred, item.min, item.max);
+    });
+    return items;
+  }
+
+  function planColumnWidths(columnIds, demand = {}) {
+    const ids = (Array.isArray(columnIds) ? columnIds : []).map(String);
+    const items = ids.map(id => {
+      const definition = columnDefinition(id) || { id, weight: 16, min: 8, max: 48, reference: 12, factor: .5, flex: 1 };
+      const hasDemand = Object.prototype.hasOwnProperty.call(demand || {}, id);
+      return {
+        id,
+        min: Number(definition.min || 1),
+        max: Number(definition.max || 100),
+        flex: Number(definition.flex || 1),
+        demand: hasDemand ? Number(demand[id]) : null,
+        preferred: preferredWidth(definition, hasDemand ? demand[id] : undefined)
+      };
+    });
+    elasticBounds(items);
+    const percentages = distributeToHundred(items);
+    return items.map((item, index) => ({ id: item.id, demand: item.demand, weight: item.preferred, percent: percentages[index] }));
+  }
+
+  function columnWidths(columnIds, demand = {}) {
+    return planColumnWidths(columnIds, demand);
+  }
+
   function capacityForUnit(block, unitIndex) {
     const normalized = normalizeBlock(block);
     const hasHeading = Boolean(normalized.title || normalized.subtitle);
@@ -144,6 +274,7 @@
   function fragmentTable(block, members) {
     const normalized = normalizeBlock(block);
     const rows = rowsForBlock(normalized, members);
+    const demand = columnDemand(rows, normalized.columns);
     const fragments = [];
     let cursor = 0;
     let unitIndex = 0;
@@ -156,22 +287,7 @@
     }
     if (!fragments.length) fragments.push({ fragmentIndex: 0, rows: [], rowSpan: 1 });
     fragments.forEach(fragment => { fragment.fragmentTotal = fragments.length; });
-    return { block: normalized, rows, fragments };
-  }
-
-  function columnDefinition(id) {
-    return TABLE_COLUMNS.find(column => column.id === id) || null;
-  }
-
-  function columnWidths(columnIds) {
-    const ids = (Array.isArray(columnIds) ? columnIds : []).map(String);
-    const definitions = ids.map(id => columnDefinition(id) || { id, weight: 16 });
-    const total = definitions.reduce((sum, definition) => sum + Math.max(1, Number(definition.weight) || 1), 0) || 1;
-    return definitions.map(definition => ({
-      id: definition.id,
-      weight: Math.max(1, Number(definition.weight) || 1),
-      percent: Math.round((Math.max(1, Number(definition.weight) || 1) / total) * 10000) / 100
-    }));
+    return { block: normalized, rows, fragments, columnDemand: demand };
   }
 
   function blockForMember(blocks, productId) {
@@ -182,6 +298,7 @@
   NS.TableBlock = {
     TABLE_SOURCES,
     TABLE_DENSITIES,
+    TABLE_PRICE_STYLES,
     TABLE_COLUMNS,
     MAX_MEMBERS,
     normalizeBlock,
@@ -190,6 +307,8 @@
     defaultColumns,
     columnsForSource,
     columnDefinition,
+    columnDemand,
+    planColumnWidths,
     columnWidths,
     contiguousMemberRun,
     validBlocksForProducts,

@@ -200,7 +200,7 @@ try {
     document.body.appendChild(spacer);
   });
 
-  await page.click('.catalog-table-block[data-table-block-id="table-1"]');
+  await page.click('.catalog-table-block[data-table-block-id="table-1"] .catalog-table-heading');
   await page.waitForSelector('#contextualInspector [data-inspector-table="table-1"]');
 
   const list = page.locator('#selectableProducts');
