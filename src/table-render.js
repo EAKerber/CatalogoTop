@@ -24,6 +24,11 @@
     return `<td${columnClass(columnId, 'cell')}>${Render.esc(row[columnId] || '—')}</td>`;
   }
 
+  function colgroupMarkup(columns) {
+    const widths = NS.TableBlock.columnWidths(columns);
+    return `<colgroup>${widths.map(column => `<col data-table-column-width="${Render.esc(column.id)}" style="width:${column.percent}%" />`).join('')}</colgroup>`;
+  }
+
   function tableMarkup(item, showPrices) {
     const block = item.block;
     const priceColumns = new Set(['price', 'minQuantity', 'quantityPrice']);
@@ -36,6 +41,7 @@
       ${!continuation && (block.title || block.subtitle) ? `<header class="catalog-table-heading"><div>${block.title ? `<h3>${Render.esc(block.title)}</h3>` : ''}${block.subtitle ? `<p>${Render.esc(block.subtitle)}</p>` : ''}</div><span>${item.memberIds.length} ${item.memberIds.length === 1 ? 'produto' : 'produtos'}</span></header>` : ''}
       ${continuation ? `<div class="catalog-table-continuation">${Render.esc(block.title || 'Tabela')} · continuação</div>` : ''}
       <div class="catalog-table-wrap"><table>
+        ${colgroupMarkup(columns)}
         <thead><tr>${columns.map(columnId => `<th${columnClass(columnId, 'header')}>${Render.esc(NS.TableBlock.columnDefinition(columnId)?.name || columnId)}</th>`).join('')}</tr></thead>
         <tbody>${item.rows.map(row => `<tr data-table-row-id="${Render.esc(row.rowId)}">${columns.map(columnId => cellMarkup(columnId, row)).join('')}</tr>`).join('')}</tbody>
       </table></div>
@@ -43,5 +49,6 @@
   }
 
   Render.tableCellMarkup = cellMarkup;
+  Render.tableColgroupMarkup = colgroupMarkup;
   Render.tableMarkup = tableMarkup;
 })();
