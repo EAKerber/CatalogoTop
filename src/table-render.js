@@ -6,8 +6,14 @@
   if (!Render || !NS.TableBlock) return;
 
   function columnClass(columnId, kind) {
-    if (columnId !== 'price') return '';
-    return kind === 'header' ? ' class="table-column-price"' : ' class="table-cell-price"';
+    if (columnId === 'price') return kind === 'header' ? ' class="table-column-price"' : ' class="table-cell-price"';
+    if (columnId === 'quantityPrice') return kind === 'header'
+      ? ' class="table-column-price table-column-quantity-price"'
+      : ' class="table-cell-price table-cell-quantity-price"';
+    if (columnId === 'minQuantity') return kind === 'header'
+      ? ' class="table-column-min-quantity"'
+      : ' class="table-cell-min-quantity"';
+    return '';
   }
 
   function cellMarkup(columnId, row) {
@@ -20,10 +26,12 @@
 
   function tableMarkup(item, showPrices) {
     const block = item.block;
-    const columns = block.columns.filter(columnId => showPrices || columnId !== 'price');
+    const priceColumns = new Set(['price', 'minQuantity', 'quantityPrice']);
+    const columns = block.columns.filter(columnId => showPrices || !priceColumns.has(columnId));
     const continuation = item.fragmentStart > 0;
     const placement = `grid-column:1 / span 6;grid-row:${item.row} / span ${item.rowSpan};`;
-    const commercialClass = block.commercialPrices && showPrices && columns.includes('price') ? ' commercial-prices' : '';
+    const hasPrice = columns.includes('price') || columns.includes('quantityPrice');
+    const commercialClass = block.commercialPrices && showPrices && hasPrice ? ' commercial-prices' : '';
     return `<section class="catalog-table-block density-${Render.esc(block.density)}${continuation ? ' is-continuation' : ''}${commercialClass}" data-table-block-id="${Render.esc(block.id)}" data-row-span="${item.rowSpan}" data-fragment-start="${item.fragmentStart}" data-fragment-end="${item.fragmentEnd}" data-fragment-total="${item.fragmentTotal}" data-commercial-prices="${block.commercialPrices ? 'true' : 'false'}" style="${placement}">
       ${!continuation && (block.title || block.subtitle) ? `<header class="catalog-table-heading"><div>${block.title ? `<h3>${Render.esc(block.title)}</h3>` : ''}${block.subtitle ? `<p>${Render.esc(block.subtitle)}</p>` : ''}</div><span>${item.memberIds.length} ${item.memberIds.length === 1 ? 'produto' : 'produtos'}</span></header>` : ''}
       ${continuation ? `<div class="catalog-table-continuation">${Render.esc(block.title || 'Tabela')} · continuação</div>` : ''}
