@@ -3,6 +3,12 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
 
+  const IMAGE_FRAME_FITS = Object.freeze([
+    { id: 'contain', name: 'Conter' },
+    { id: 'cover', name: 'Preencher' }
+  ]);
+  const DEFAULT_IMAGE_FRAME = Object.freeze({ fit: 'contain', zoom: 1, x: 50, y: 50 });
+
   function notify() {
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));
   }
@@ -18,6 +24,37 @@
     return result;
   }
 
+  function clampNumber(value, min, max, fallback) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    return Math.min(max, Math.max(min, number));
+  }
+
+  function normalizeImageFrame(value) {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const fit = IMAGE_FRAME_FITS.some(item => item.id === source.fit) ? source.fit : DEFAULT_IMAGE_FRAME.fit;
+    return {
+      fit,
+      zoom: Math.round(clampNumber(source.zoom, 1, 2.4, DEFAULT_IMAGE_FRAME.zoom) * 100) / 100,
+      x: Math.round(clampNumber(source.x, 0, 100, DEFAULT_IMAGE_FRAME.x)),
+      y: Math.round(clampNumber(source.y, 0, 100, DEFAULT_IMAGE_FRAME.y))
+    };
+  }
+
+  function imageFrameFor(presentation, productId) {
+    const id = String(productId || '');
+    const frames = presentation?.imageFrames && typeof presentation.imageFrames === 'object' ? presentation.imageFrames : {};
+    return normalizeImageFrame(frames[id]);
+  }
+
+  function isDefaultImageFrame(frame) {
+    const normalized = normalizeImageFrame(frame);
+    return normalized.fit === DEFAULT_IMAGE_FRAME.fit
+      && normalized.zoom === DEFAULT_IMAGE_FRAME.zoom
+      && normalized.x === DEFAULT_IMAGE_FRAME.x
+      && normalized.y === DEFAULT_IMAGE_FRAME.y;
+  }
+
   function setCardStyle(productId, patch) {
     const id = String(productId);
     return mutatePresentation(presentation => {
@@ -25,6 +62,59 @@
         ...NS.Composition.styleFor(presentation, id),
         ...(patch || {})
       };
+    });
+  }
+
+  function setImageFrame(productId, patch) {
+    const id = String(productId || '');
+    if (!id) return null;
+    return mutatePresentation(presentation => {
+      presentation.imageFrames = presentation.imageFrames && typeof presentation.imageFrames === 'object'
+        ? { ...presentation.imageFrames }
+        : {};
+      const next = normalizeImageFrame({ ...imageFrameFor(presentation, id), ...(patch || {}) });
+      if (isDefaultImageFrame(next)) delete presentation.imageFrames[id];
+      else presentation.imageFrames[id] = next;
+    });
+  }
+
+  function resetImageFrame(productId) {
+    const id = String(productId || '');
+    if (!id) return null;
+    return mutatePresentation(presentation => {
+      if (!presentation.imageFrames || typeof presentation.imageFrames !== 'object') return;
+      delete presentation.imageFrames[id];
+    });
+  }
+
+  function primaryImageForEditorTarget(node) {
+    if (node.matches('.catalog-card[data-product-id]')) {
+      return node.querySelector('.catalog-card-visuals.single > img');
+    }
+    if (node.matches('.catalog-collection-item[data-product-id]')) {
+      return node.querySelector('.catalog-collection-image > img');
+    }
+    return null;
+  }
+
+  function applyImageFrames(root, state) {
+    if (!root?.querySelectorAll || !state) return;
+    const presentation = NS.Composition?.normalizePresentation(state.catalog?.presentation) || { imageFrames: {} };
+    root.querySelectorAll('.catalog-card[data-product-id],.catalog-collection-item[data-product-id]').forEach(node => {
+      const image = primaryImageForEditorTarget(node);
+      if (!image) return;
+      const frame = imageFrameFor(presentation, node.dataset.productId);
+      const holder = image.parentElement;
+      if (holder) holder.style.overflow = 'hidden';
+      image.dataset.imageFrameTarget = 'primary';
+      image.dataset.imageFrameFit = frame.fit;
+      image.dataset.imageFrameZoom = String(frame.zoom);
+      image.dataset.imageFrameX = String(frame.x);
+      image.dataset.imageFrameY = String(frame.y);
+      image.style.objectFit = frame.fit;
+      image.style.objectPosition = `${frame.x}% ${frame.y}%`;
+      image.style.transform = `scale(${frame.zoom})`;
+      image.style.transformOrigin = `${frame.x}% ${frame.y}%`;
     });
   }
 
@@ -102,9 +192,20 @@
     return mutatePresentation(presentation => { presentation.order = nextOrder; });
   }
 
+  NS.ImageFraming = {
+    IMAGE_FRAME_FITS,
+    DEFAULT_IMAGE_FRAME,
+    normalizeImageFrame,
+    imageFrameFor,
+    isDefaultImageFrame,
+    applyImageFrames
+  };
+
   NS.PresentationActions = {
     mutatePresentation,
     setCardStyle,
+    setImageFrame,
+    resetImageFrame,
     updateCollection,
     setCollectionMemberStyle,
     updateTable,
