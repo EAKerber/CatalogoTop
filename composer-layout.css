@@ -1,17 +1,59 @@
-/* v0.11.1.7 — compositor responde à largura real do painel. */
+/* v0.11.2.1 — superfícies do compositor com altura útil e scroll independente. */
+
+.catalog-controls.editorial-controls {
+  grid-template-columns: minmax(220px, 1fr) 220px auto auto;
+}
+
+/* Aposentadoria suave: backups continuam preservando distribution/typography,
+ * mas novos catálogos não pedem mais duas decisões globais pouco previsíveis. */
+.catalog-controls.editorial-controls > label:has(#catalogDistribution),
+.catalog-controls.editorial-controls > label:has(#catalogTypography) {
+  display: none;
+}
 
 .selection-layout {
   grid-template-columns: clamp(370px, 28vw, 430px) minmax(0, 1fr);
+  align-items: start;
 }
 
 .selection-panel {
   container-type: inline-size;
   container-name: catalog-selection-panel;
+  height: calc(100dvh - 94px);
+  max-height: calc(100dvh - 94px);
+  min-height: 0;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+}
+
+.selectable-products {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .select-product {
   min-width: 0;
   overflow: hidden;
+}
+
+.preview-column {
+  position: sticky;
+  top: 72px;
+  min-width: 0;
+  min-height: 0;
+  height: calc(100dvh - 94px);
+  max-height: calc(100dvh - 94px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.preview-column .catalog-preview-viewport {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 @container catalog-selection-panel (max-width: 400px) {
@@ -34,5 +76,28 @@
 @media (max-width: 959px) {
   .selection-layout {
     grid-template-columns: 1fr;
+  }
+
+  .selection-panel {
+    position: static;
+    height: min(72dvh, 680px);
+    max-height: min(72dvh, 680px);
+  }
+
+  .preview-column {
+    position: static;
+    height: auto;
+    max-height: none;
+    display: block;
+  }
+
+  .preview-column .catalog-preview-viewport {
+    max-height: 78dvh;
+  }
+}
+
+@media (max-width: 639px) {
+  .catalog-controls.editorial-controls {
+    grid-template-columns: 1fr 1fr;
   }
 }
