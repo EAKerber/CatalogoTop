@@ -8,30 +8,8 @@
 
   function state() { return Core.getState(); }
 
-  function allMembership() {
-    const ids = new Set();
-    (state().catalog?.presentation?.blocks || []).forEach(block => {
-      (Array.isArray(block?.memberIds) ? block.memberIds : []).forEach(id => ids.add(String(id)));
-    });
-    return ids;
-  }
-
   function candidateIds() {
-    const current = state();
-    const membership = allMembership();
-    const selected = new Set((current.selectedIds || []).map(String));
-    const marked = new Set((NS.BlockSelection?.ids?.() || []).filter(id => selected.has(id) && !membership.has(id)));
-    if (marked.size < 2 || marked.size > TableBlock.MAX_MEMBERS) return [];
-    const byId = new Map(current.products.map(product => [String(product.id), product]));
-    const effective = NS.CatalogOrder?.effectiveIds ? NS.CatalogOrder.effectiveIds(current) : current.selectedIds.map(String);
-    const candidates = effective.filter(id => marked.has(id));
-    if (candidates.length !== marked.size || candidates.length < 2 || candidates.length > TableBlock.MAX_MEMBERS) return [];
-    const category = String(byId.get(candidates[0])?.category || 'Sem categoria');
-    if (candidates.some(id => String(byId.get(id)?.category || 'Sem categoria') !== category)) return [];
-    const categoryIds = effective.filter(id => String(byId.get(id)?.category || 'Sem categoria') === category);
-    const positions = candidates.map(id => categoryIds.indexOf(id));
-    if (!positions.every((position, index) => position >= 0 && (index === 0 || position === positions[index - 1] + 1))) return [];
-    return candidates;
+    return NS.GroupingControls?.candidateIds?.(TableBlock.MAX_MEMBERS) || [];
   }
 
   function mutateBlocks(mutator) {
@@ -46,7 +24,7 @@
   function createTable() {
     const ids = candidateIds();
     if (ids.length < 2) {
-      window.alert?.('Marque de 2 a 30 produtos contíguos, da mesma categoria e ainda fora de outro bloco usando a ação “Marcar” de cada item.');
+      window.alert?.('No modo Agrupar, selecione de 2 a 30 produtos contíguos da mesma categoria e ainda fora de outro bloco.');
       return;
     }
     const byId = new Map(state().products.map(product => [String(product.id), product]));
@@ -64,40 +42,28 @@
       columns
     });
     NS.BlockSelection?.clear?.(false);
+    NS.GroupingControls?.exit?.({ render: false });
     mutateBlocks(blocks => blocks.push(block));
     NS.ComposerSelection?.select?.({ kind: 'table', blockId: block.id });
   }
 
-  function ensureButton() {
-    const actions = $('.selection-actions');
-    if (!actions) return null;
-    let button = $('#btnCreateTableBlock');
-    if (!button) {
-      button = document.createElement('button');
-      button.className = 'button secondary compact';
-      button.id = 'btnCreateTableBlock';
-      button.type = 'button';
-      actions.appendChild(button);
-      button.addEventListener('click', createTable);
-    }
-    return button;
-  }
-
   function refreshButton() {
-    const button = ensureButton();
+    const button = $('#btnCreateTableBlock');
     if (!button) return;
     const ids = candidateIds();
     const count = NS.BlockSelection?.ids?.().length || 0;
-    button.textContent = count ? `Agrupar em tabela (${count})` : 'Agrupar em tabela';
-    button.disabled = ids.length < 2 || ids.length > TableBlock.MAX_MEMBERS;
+    button.textContent = count ? `Tabela (${count})` : 'Criar tabela';
+    button.disabled = NS.GroupingControls?.mode?.() !== 'grouping' || ids.length < 2 || ids.length > TableBlock.MAX_MEMBERS;
     button.title = button.disabled
-      ? 'Marque um trecho contíguo de 2 a 30 produtos do catálogo, da mesma categoria e ainda fora de outro bloco.'
+      ? 'Selecione um trecho contíguo de 2 a 30 produtos do catálogo, da mesma categoria e fora de outro bloco.'
       : `Agrupar ${ids.length} produtos em tabela`;
   }
 
   function init() {
+    $('#btnCreateTableBlock')?.addEventListener('click', createTable);
     refreshButton();
     window.addEventListener('catalogotop:selection-rendered', refreshButton);
+    window.addEventListener('catalogotop:grouping-selection-changed', refreshButton);
   }
 
   NS.TableControls = { candidateIds, createTable, refreshButton };
