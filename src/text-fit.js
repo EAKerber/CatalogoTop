@@ -23,6 +23,16 @@
     return 3;
   }
 
+  function prepareForMeasurement(element) {
+    // Presets antigos ainda trazem -webkit-line-clamp. O fitting canônico precisa
+    // medir a caixa real e aplicar seu próprio orçamento por palavras.
+    element.style.display = 'block';
+    element.style.webkitLineClamp = 'unset';
+    element.style.webkitBoxOrient = 'initial';
+    element.style.textOverflow = 'clip';
+    element.style.overflowWrap = 'anywhere';
+  }
+
   function lineHeightPx(element) {
     const view = element?.ownerDocument?.defaultView || window;
     const computed = view.getComputedStyle(element);
@@ -47,6 +57,7 @@
     if (!full) return null;
     element.dataset.fullDescription = full;
     element.title = full;
+    prepareForMeasurement(element);
 
     if (element.getBoundingClientRect().width <= 0) {
       element.textContent = full;
