@@ -3,15 +3,39 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
 
-  function lineBudget(card) {
+  function cardLineBudget(card) {
     const width = card?.dataset.cardWidth || 'simple';
     let lines = width === 'full' ? 5 : width === 'wide' ? 4 : 3;
     if (card?.closest('.template-showcase')) lines = Math.max(lines, 4);
     return lines;
   }
 
+  function collectionLineBudget(item) {
+    const width = item?.dataset.memberWidth || 'simple';
+    return width === 'full' ? 5 : width === 'wide' ? 4 : 3;
+  }
+
+  function lineBudgetFor(element) {
+    const card = element?.closest?.('.catalog-card[data-product-id]');
+    if (card) return cardLineBudget(card);
+    const collectionItem = element?.closest?.('.catalog-collection-item[data-product-id]');
+    if (collectionItem) return collectionLineBudget(collectionItem);
+    return 3;
+  }
+
+  function prepareForMeasurement(element) {
+    // Presets antigos ainda trazem -webkit-line-clamp. O fitting canônico precisa
+    // medir a caixa real e aplicar seu próprio orçamento por palavras.
+    element.style.display = 'block';
+    element.style.webkitLineClamp = 'unset';
+    element.style.webkitBoxOrient = 'initial';
+    element.style.textOverflow = 'clip';
+    element.style.overflowWrap = 'anywhere';
+  }
+
   function lineHeightPx(element) {
-    const computed = window.getComputedStyle(element);
+    const view = element?.ownerDocument?.defaultView || window;
+    const computed = view.getComputedStyle(element);
     const explicit = Number.parseFloat(computed.lineHeight);
     if (Number.isFinite(explicit)) return explicit;
     const fontSize = Number.parseFloat(computed.fontSize) || 12;
@@ -27,15 +51,19 @@
     return { fits: element.scrollHeight <= allowedHeight, lineHeight, allowedHeight };
   }
 
-  function fitHeading(element, maxLines) {
+  function fitText(element, maxLines = lineBudgetFor(element)) {
     if (!element) return null;
     const full = String(element.dataset.fullDescription || element.textContent || '').trim().replace(/\s+/g, ' ');
     if (!full) return null;
     element.dataset.fullDescription = full;
     element.title = full;
+    prepareForMeasurement(element);
 
     if (element.getBoundingClientRect().width <= 0) {
       element.textContent = full;
+      element.dataset.fitLines = String(maxLines);
+      element.dataset.visibleWords = String(full.split(' ').filter(Boolean).length);
+      element.dataset.descriptionTruncated = 'false';
       return { full, visible: full, truncated: false, lines: maxLines };
     }
 
@@ -72,13 +100,25 @@
     return { full, visible, truncated: visible !== full, lines: maxLines };
   }
 
-  function fitCatalog(root) {
-    if (!root) return [];
-    return Array.from(root.querySelectorAll('.catalog-card[data-product-id] h3')).map(heading => {
-      const card = heading.closest('.catalog-card');
-      return fitHeading(heading, lineBudget(card));
-    }).filter(Boolean);
+  function fitHeading(element, maxLines) {
+    return fitText(element, maxLines || lineBudgetFor(element));
   }
 
-  NS.TextFit = { lineBudget, fitHeading, fitCatalog };
+  function fitCatalog(root) {
+    if (!root?.querySelectorAll) return [];
+    const targets = [
+      ...root.querySelectorAll('.catalog-card[data-product-id] h3'),
+      ...root.querySelectorAll('.catalog-collection-item[data-product-id] .catalog-collection-copy b')
+    ];
+    return targets.map(element => fitText(element, lineBudgetFor(element))).filter(Boolean);
+  }
+
+  NS.TextFit = {
+    cardLineBudget,
+    collectionLineBudget,
+    lineBudgetFor,
+    fitText,
+    fitHeading,
+    fitCatalog
+  };
 })();

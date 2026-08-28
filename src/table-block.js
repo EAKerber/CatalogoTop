@@ -12,15 +12,15 @@
     { id: 'compact', name: 'Compacta' }
   ]);
   const TABLE_COLUMNS = Object.freeze([
-    { id: 'image', name: 'Imagem', sources: ['products'] },
-    { id: 'code', name: 'Código', sources: ['products', 'commercialRows'] },
-    { id: 'description', name: 'Produto', sources: ['products', 'commercialRows'] },
-    { id: 'subcategory', name: 'Subcategoria', sources: ['products'] },
-    { id: 'variant', name: 'Cor / variação', sources: ['commercialRows'] },
-    { id: 'package', name: 'Embalagem', sources: ['commercialRows'] },
-    { id: 'price', name: 'Preço', sources: ['products', 'commercialRows'] },
-    { id: 'minQuantity', name: 'Qtd. mín.', sources: ['products', 'commercialRows'] },
-    { id: 'quantityPrice', name: 'Preço qtd.', sources: ['products', 'commercialRows'] }
+    { id: 'image', name: 'Imagem', sources: ['products'], weight: 14 },
+    { id: 'code', name: 'Código', sources: ['products', 'commercialRows'], weight: 12 },
+    { id: 'description', name: 'Produto', sources: ['products', 'commercialRows'], weight: 44 },
+    { id: 'subcategory', name: 'Subcategoria', sources: ['products'], weight: 18 },
+    { id: 'variant', name: 'Cor / variação', sources: ['commercialRows'], weight: 20 },
+    { id: 'package', name: 'Embalagem', sources: ['commercialRows'], weight: 15 },
+    { id: 'price', name: 'Preço', sources: ['products', 'commercialRows'], weight: 18 },
+    { id: 'minQuantity', name: 'Qtd. mín.', sources: ['products', 'commercialRows'], weight: 10 },
+    { id: 'quantityPrice', name: 'Preço qtd.', sources: ['products', 'commercialRows'], weight: 18 }
   ]);
   const MAX_MEMBERS = 30;
 
@@ -163,6 +163,17 @@
     return TABLE_COLUMNS.find(column => column.id === id) || null;
   }
 
+  function columnWidths(columnIds) {
+    const ids = (Array.isArray(columnIds) ? columnIds : []).map(String);
+    const definitions = ids.map(id => columnDefinition(id) || { id, weight: 16 });
+    const total = definitions.reduce((sum, definition) => sum + Math.max(1, Number(definition.weight) || 1), 0) || 1;
+    return definitions.map(definition => ({
+      id: definition.id,
+      weight: Math.max(1, Number(definition.weight) || 1),
+      percent: Math.round((Math.max(1, Number(definition.weight) || 1) / total) * 10000) / 100
+    }));
+  }
+
   function blockForMember(blocks, productId) {
     const id = String(productId);
     return normalizeBlocks(blocks).find(block => block.memberIds.includes(id)) || null;
@@ -179,6 +190,7 @@
     defaultColumns,
     columnsForSource,
     columnDefinition,
+    columnWidths,
     contiguousMemberRun,
     validBlocksForProducts,
     rowsForBlock,
