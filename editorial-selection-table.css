@@ -1,5 +1,9 @@
 /* v0.11.2.2 — seleção editorial única, inspector recolhível e Table comercial/adaptativa. */
 
+.selection-panel {
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) !important;
+}
+
 /* Membership não é seleção editorial. */
 .select-product.selected {
   background: #fff !important;
