@@ -1,4 +1,4 @@
-/* v0.11.1.5 — apresentação comercial de preço + fitting editorial de descrição. */
+/* v0.11.1.5+ — apresentação comercial, fitting editorial e preço por quantidade. */
 
 .catalog-card h3 {
   display: block;
@@ -11,16 +11,38 @@
 .template-compact .catalog-card:not(.has-table) { grid-template-rows: 45% minmax(0, 1fr); }
 
 .catalog-card-price,
+.catalog-card-quantity-price,
 .catalog-card-table.has-price-column td:last-child,
+.catalog-card-table .internal-unit-price-cell,
+.catalog-card-table .internal-quantity-price-cell,
 .catalog-table-block .table-cell-price {
   font-variant-numeric: tabular-nums;
 }
+
+.catalog-card-quantity-price {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: .7mm;
+  margin-top: .7mm;
+  padding-top: .65mm;
+  border-top: .2mm solid #e5e7e9;
+  color: #61666d;
+  line-height: 1.05;
+}
+.catalog-card-quantity-price span { font-size: 2.05mm; font-weight: 700; }
+.catalog-card-quantity-price strong { color: #111; font-size: 3.45mm; font-weight: 900; white-space: nowrap; }
 
 .catalog-card.price-style-standard .catalog-card-price { color: #111; }
 .catalog-card.price-style-red .catalog-card-price {
   color: var(--brand-deep);
   font-size: 4.45mm;
   letter-spacing: -.08mm;
+}
+.catalog-card.price-style-red .catalog-card-quantity-price strong {
+  color: var(--brand-deep);
+  font-size: 4mm;
 }
 .catalog-card.price-style-label .catalog-card-price {
   width: max-content;
@@ -33,31 +55,45 @@
   background: #fff;
   line-height: 1;
 }
+.catalog-card.price-style-label .catalog-card-quantity-price {
+  padding: .75mm 1mm;
+  border: .25mm solid var(--brand);
+  border-radius: 1.1mm;
+  background: #fff8f8;
+}
+.catalog-card.price-style-label .catalog-card-quantity-price strong { color: var(--brand-deep); }
 .catalog-card.price-style-block .catalog-card-price {
   width: max-content;
   max-width: 100%;
   margin-top: auto;
-  padding: 1mm 1.6mm;
+  padding: .7mm 1.25mm;
+  border: .25mm solid var(--brand);
+  border-radius: 1.1mm;
+  color: var(--brand-deep);
+  background: #fff;
+  font-size: 3.35mm;
+  line-height: 1;
+}
+.catalog-card.price-style-block .catalog-card-quantity-price {
+  padding: .9mm 1.35mm;
   border: .3mm solid var(--brand);
   border-radius: 1.2mm;
   background: var(--brand);
   color: #fff;
-  font-size: 4.7mm;
-  line-height: 1;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
+.catalog-card.price-style-block .catalog-card-quantity-price span,
+.catalog-card.price-style-block .catalog-card-quantity-price strong { color: #fff; }
+.catalog-card.price-style-block .catalog-card-quantity-price strong { font-size: 4.35mm; }
 
-.catalog-card.price-style-red .catalog-card-table.has-price-column td:last-child {
-  color: var(--brand-deep);
-  font-weight: 900;
-}
-.catalog-card.price-style-label .catalog-card-table.has-price-column td:last-child {
+.catalog-card.price-style-red .catalog-card-table .internal-unit-price-cell { color: var(--brand-deep); font-weight: 800; }
+.catalog-card.price-style-label .catalog-card-table:not(.has-quantity-price-column) .internal-unit-price-cell {
   color: var(--brand-deep);
   font-weight: 900;
   box-shadow: inset 0 0 0 .22mm var(--brand);
 }
-.catalog-card.price-style-block .catalog-card-table.has-price-column td:last-child {
+.catalog-card.price-style-block .catalog-card-table:not(.has-quantity-price-column) .internal-unit-price-cell {
   border-color: var(--brand);
   background: var(--brand);
   color: #fff;
@@ -65,11 +101,36 @@
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
-.catalog-card.price-style-red .catalog-card-table.has-price-column th:last-child,
-.catalog-card.price-style-label .catalog-card-table.has-price-column th:last-child,
-.catalog-card.price-style-block .catalog-card-table.has-price-column th:last-child {
+.catalog-card.price-style-red .catalog-card-table .internal-quantity-price-cell {
   color: var(--brand-deep);
+  font-weight: 950;
 }
+.catalog-card.price-style-label .catalog-card-table .internal-quantity-price-cell {
+  color: var(--brand-deep);
+  font-weight: 950;
+  box-shadow: inset 0 0 0 .22mm var(--brand);
+}
+.catalog-card.price-style-block .catalog-card-table .internal-quantity-price-cell {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+  font-weight: 950;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.catalog-card.price-style-red .catalog-card-table .internal-unit-price-head,
+.catalog-card.price-style-label .catalog-card-table .internal-unit-price-head,
+.catalog-card.price-style-block .catalog-card-table .internal-unit-price-head,
+.catalog-card.price-style-red .catalog-card-table .internal-quantity-price-head,
+.catalog-card.price-style-label .catalog-card-table .internal-quantity-price-head,
+.catalog-card.price-style-block .catalog-card-table .internal-quantity-price-head { color: var(--brand-deep); }
+.catalog-card-table .internal-quantity-min-head,
+.catalog-card-table .internal-quantity-min-cell { text-align: center; }
+.catalog-card-table .internal-quantity-price-head,
+.catalog-card-table .internal-quantity-price-cell,
+.catalog-card-table .internal-unit-price-head,
+.catalog-card-table .internal-unit-price-cell { text-align: right; }
+.catalog-card-table.has-quantity-price-column { font-size: 1.75mm; }
 
 /* A Table não presume mais que a última coluna é preço. */
 .catalog-table-block td:last-child { font-weight: 650; }
@@ -78,7 +139,10 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+.catalog-table-block .table-column-min-quantity,
+.catalog-table-block .table-cell-min-quantity { text-align: center; }
 .catalog-table-block .table-cell-price { font-weight: 850; }
+.catalog-table-block .table-cell-quantity-price { font-weight: 950; }
 .catalog-table-block.commercial-prices .table-column-price {
   border-left: .35mm solid var(--brand);
   color: var(--brand-deep);
@@ -92,7 +156,43 @@
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
+.catalog-table-block.commercial-prices .table-cell-quantity-price { background: #ffecec; font-size: 2.65mm; }
 .catalog-table-block.commercial-prices.density-compact .table-cell-price { font-size: 2.35mm; }
+.catalog-table-block.commercial-prices.density-compact .table-cell-quantity-price { font-size: 2.45mm; }
+
+.quantity-price-editor {
+  display: grid;
+  gap: 7px;
+  margin-top: -1px;
+  padding: 8px;
+  border: 1px solid #e5e7e9;
+  border-radius: 9px;
+  background: #fafafa;
+}
+.quantity-price-toggle {
+  min-height: 28px;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  color: var(--ink-2) !important;
+  font-size: 10px !important;
+  font-weight: 780 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+.quantity-price-toggle input {
+  width: 17px !important;
+  min-height: 17px !important;
+  padding: 0 !important;
+  accent-color: var(--brand);
+}
+.quantity-price-fields {
+  display: grid;
+  grid-template-columns: minmax(0, .65fr) minmax(0, 1.35fr);
+  gap: 8px;
+}
+.quantity-price-fields.hidden { display: none; }
 
 .inspector-price-style {
   margin: 1px 0 0;
@@ -165,9 +265,14 @@
   accent-color: var(--brand);
 }
 
+@media(max-width:639px) {
+  .quantity-price-fields { grid-template-columns: 1fr 1fr; }
+}
+
 @media print {
-  .catalog-card.price-style-block .catalog-card-price,
-  .catalog-card.price-style-block .catalog-card-table.has-price-column td:last-child,
+  .catalog-card.price-style-block .catalog-card-quantity-price,
+  .catalog-card.price-style-block .catalog-card-table .internal-unit-price-cell,
+  .catalog-card.price-style-block .catalog-card-table .internal-quantity-price-cell,
   .catalog-table-block.commercial-prices .table-cell-price {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

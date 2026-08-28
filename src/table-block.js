@@ -18,7 +18,9 @@
     { id: 'subcategory', name: 'Subcategoria', sources: ['products'] },
     { id: 'variant', name: 'Cor / variação', sources: ['commercialRows'] },
     { id: 'package', name: 'Embalagem', sources: ['commercialRows'] },
-    { id: 'price', name: 'Preço', sources: ['products', 'commercialRows'] }
+    { id: 'price', name: 'Preço', sources: ['products', 'commercialRows'] },
+    { id: 'minQuantity', name: 'Qtd. mín.', sources: ['products', 'commercialRows'] },
+    { id: 'quantityPrice', name: 'Preço qtd.', sources: ['products', 'commercialRows'] }
   ]);
   const MAX_MEMBERS = 30;
 
@@ -92,6 +94,14 @@
     });
   }
 
+  function quantityFields(source) {
+    const quantityPrice = NS.Core?.normalizeQuantityPrice?.(source?.quantityPrice) || null;
+    return {
+      minQuantity: quantityPrice ? String(quantityPrice.minQuantity) : '',
+      quantityPrice: quantityPrice?.price || ''
+    };
+  }
+
   function rowsForBlock(block, members) {
     const normalized = normalizeBlock(block);
     const list = Array.isArray(members) ? members : [];
@@ -102,14 +112,16 @@
         if (!commercial.length) {
           rows.push({
             rowId: `${product.id}:fallback`, productId: String(product.id), code: String(product.code || ''),
-            description: String(product.description || ''), variant: '', package: '', price: String(product.price || '')
+            description: String(product.description || ''), variant: '', package: '', price: String(product.price || ''),
+            ...quantityFields(product)
           });
           return;
         }
         commercial.forEach((row, index) => rows.push({
           rowId: `${product.id}:${row.id || index}`, productId: String(product.id),
           code: String(row.code || product.code || ''), description: String(product.description || ''),
-          variant: String(row.variant || ''), package: String(row.package || ''), price: String(row.price || product.price || '')
+          variant: String(row.variant || ''), package: String(row.package || ''), price: String(row.price || product.price || ''),
+          ...quantityFields(row)
         }));
       });
       return rows;
@@ -117,7 +129,8 @@
     return list.map(product => ({
       rowId: String(product.id), productId: String(product.id), image: String(product.image || ''),
       code: String(product.code || ''), description: String(product.description || ''),
-      subcategory: String(product.subcategory || ''), price: String(product.price || '')
+      subcategory: String(product.subcategory || ''), price: String(product.price || ''),
+      ...quantityFields(product)
     }));
   }
 
