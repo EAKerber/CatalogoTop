@@ -20,6 +20,7 @@
   let pickerToggle = null;
   let activePickerIndex = -1;
   let suppressFocusOpen = false;
+  let lastFolderCategory = null;
 
   function esc(value) {
     return String(value ?? '')
@@ -244,9 +245,32 @@
     }));
   }
 
+  function keepActiveFolderVisible(previousScroll, activeChanged) {
+    requestAnimationFrame(() => {
+      if (foldersRoot.scrollWidth <= foldersRoot.clientWidth + 2) return;
+      if (!activeChanged) {
+        foldersRoot.scrollLeft = previousScroll;
+        return;
+      }
+      const activeButton = foldersRoot.querySelector('.category-folder.active');
+      const row = activeButton?.closest('.category-folder-row');
+      if (!row) return;
+      const left = row.offsetLeft;
+      const right = left + row.offsetWidth;
+      const viewportLeft = foldersRoot.scrollLeft;
+      const viewportRight = viewportLeft + foldersRoot.clientWidth;
+      let next = viewportLeft;
+      if (left < viewportLeft + 8) next = Math.max(0, left - 8);
+      else if (right > viewportRight - 8) next = Math.max(0, right - foldersRoot.clientWidth + 8);
+      if (Math.abs(next - viewportLeft) > 1) foldersRoot.scrollTo({ left: next, behavior: 'smooth' });
+    });
+  }
+
   function renderFolders() {
     const { products, counts, categories } = snapshot();
     const active = productFilter.value;
+    const previousScroll = foldersRoot.scrollLeft;
+    const activeChanged = active !== lastFolderCategory;
     const allButton = `<div class="category-folder-row all"><button type="button" class="category-folder ${active ? '' : 'active'}" data-category-folder="">
       ${allIcon}<span class="category-folder-label">Todos os produtos</span><span class="category-folder-count">${products.length}</span>
     </button></div>`;
@@ -259,6 +283,8 @@
     </div>`).join('');
 
     foldersRoot.innerHTML = allButton + (categoryButtons || '<div class="category-browser-empty">As categorias aparecerão aqui conforme produtos forem cadastrados ou importados.</div>');
+    lastFolderCategory = active;
+    keepActiveFolderVisible(previousScroll, activeChanged);
     renderDatalist(categories);
     renderPicker();
   }
