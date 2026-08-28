@@ -24,7 +24,7 @@
   function createCollection() {
     const ids = candidateIds();
     if (ids.length < 2) {
-      alert('No modo Agrupar, selecione de 2 a 12 produtos contíguos da mesma categoria e ainda fora de outro bloco.');
+      alert('Selecione de 2 a 12 produtos contíguos da mesma categoria, já incluídos no catálogo e ainda fora de outro bloco.');
       return;
     }
     const byId = new Map(state().products.map(product => [String(product.id), product]));
@@ -39,8 +39,6 @@
       itemPreset: 'visual',
       itemStyles: {}
     });
-    NS.BlockSelection?.clear?.(false);
-    NS.GroupingControls?.exit?.({ render: false });
     mutateBlocks(blocks => blocks.push(block));
     NS.ComposerSelection?.select?.({ kind: 'collection', blockId: block.id });
   }
@@ -49,9 +47,9 @@
     const button = $('#btnCreateCollection');
     if (!button) return;
     const ids = candidateIds();
-    const count = NS.BlockSelection?.ids?.().length || 0;
-    button.textContent = count ? `Coleção (${count})` : 'Criar coleção';
-    button.disabled = NS.GroupingControls?.mode?.() !== 'grouping' || ids.length < 2 || ids.length > Collection.MAX_MEMBERS;
+    const count = NS.ComposerSelection?.ids?.().length || 0;
+    button.textContent = count ? `Coleção (${Math.min(count, Collection.MAX_MEMBERS)})` : 'Criar coleção';
+    button.disabled = ids.length < 2 || ids.length > Collection.MAX_MEMBERS;
     button.title = button.disabled
       ? 'Selecione um trecho contíguo de 2 a 12 produtos do catálogo, da mesma categoria e fora de outro bloco.'
       : `Agrupar ${ids.length} produtos em coleção`;
@@ -62,6 +60,7 @@
     refreshButton();
     window.addEventListener('catalogotop:selection-rendered', refreshButton);
     window.addEventListener('catalogotop:grouping-selection-changed', refreshButton);
+    window.addEventListener('catalogotop:editor-selection-changed', refreshButton);
   }
 
   NS.CollectionControls = { candidateIds, createCollection, refreshButton };
