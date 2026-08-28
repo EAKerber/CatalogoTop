@@ -2,26 +2,19 @@
   'use strict';
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
-  const Core = NS.Core;
-  if (!Core) return;
+  const { Core, Composition, ComposerSelection, CatalogOrder, PresentationActions } = NS;
+  if (!Core || !Composition || !ComposerSelection || !CatalogOrder || !PresentationActions) return;
   const $ = selector => document.querySelector(selector);
 
   function state() { return Core.getState(); }
 
-  function blockMemberIds(current = state()) {
-    const ids = new Set();
-    (current.catalog?.presentation?.blocks || []).forEach(block => {
-      (Array.isArray(block?.memberIds) ? block.memberIds : []).forEach(id => ids.add(String(id)));
+  function uniqueIds(values) {
+    const seen = new Set();
+    return (Array.isArray(values) ? values : []).map(String).filter(id => {
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
     });
-    return ids;
-  }
-
-  function includedSet(current = state()) {
-    return new Set((current.selectedIds || []).map(String));
-  }
-
-  function effectiveIds(current = state()) {
-    return NS.CatalogOrder?.effectiveIds ? NS.CatalogOrder.effectiveIds(current) : (current.selectedIds || []).map(String);
   }
 
   function productMap(current = state()) {
@@ -32,13 +25,25 @@
     return String(product?.category || '').trim() || 'Sem categoria';
   }
 
+  function effectiveIds(current = state()) {
+    return CatalogOrder.effectiveIds(current).map(String);
+  }
+
   function editorialIds() {
-    return NS.ComposerSelection?.ids?.().map(String) || [];
+    return ComposerSelection?.ids?.().map(String) || [];
+  }
+
+  function blockMemberIds(current = state()) {
+    const ids = new Set();
+    (current.catalog?.presentation?.blocks || []).forEach(block => {
+      (Array.isArray(block?.memberIds) ? block.memberIds : []).forEach(id => ids.add(String(id)));
+    });
+    return ids;
   }
 
   function orderedEditorial(current = state()) {
     const selected = new Set(editorialIds());
-    return effectiveIds(current).filter(id => selected.has(String(id))).map(String);
+    return effectiveIds(current).filter(id => selected.has(id));
   }
 
   function isContiguousSameCategory(ids, current = state()) {
@@ -46,22 +51,228 @@
     const byId = productMap(current);
     const category = categoryOf(byId.get(ids[0]));
     if (ids.some(id => categoryOf(byId.get(id)) !== category)) return false;
-    const categoryIds = effectiveIds(current).filter(id => categoryOf(byId.get(id)) === category).map(String);
-    const positions = ids.map(id => categoryIds.indexOf(String(id)));
+    const categoryIds = effectiveIds(current).filter(id => categoryOf(byId.get(id)) === category);
+    const positions = ids.map(id => categoryIds.indexOf(String(id))).sort((a, b) => a - b);
     return positions.every((position, index) => position >= 0 && (index === 0 || position === positions[index - 1] + 1));
   }
 
   function candidateIds(maxMembers = Number.POSITIVE_INFINITY) {
     const current = state();
-    const raw = editorialIds();
+    const raw = uniqueIds(editorialIds());
     if (raw.length < 2 || raw.length > maxMembers) return [];
-    const included = includedSet(current);
+    const included = new Set((current.selectedIds || []).map(String));
     const occupied = blockMemberIds(current);
     const byId = productMap(current);
     if (raw.some(id => !included.has(id) || occupied.has(id) || !byId.has(id))) return [];
-    const ids = orderedEditorial(current);
-    if (ids.length !== raw.length || !isContiguousSameCategory(ids, current)) return [];
+    const category = categoryOf(byId.get(raw[0]));
+    if (raw.some(id => categoryOf(byId.get(id)) !== category)) return [];
+    const ordered = orderedEditorial(current);
+    return ordered.length === raw.length ? ordered : [];
+  }
+
+  function consolidatedOrder(current, ids) {
+    const ordered = effectiveIds(current);
+    const selected = new Set(uniqueIds(ids));
+    const selectedInOrder = ordered.filter(id => selected.has(id));
+    if (selectedInOrder.length < 2) return ordered;
+    const firstIndex = ordered.findIndex(id => selected.has(id));
+    if (firstIndex < 0) return ordered;
+    const insertionIndex = ordered.slice(0, firstIndex).filter(id => !selected.has(id)).length;
+    const remainder = ordered.filter(id => !selected.has(id));
+    remainder.splice(insertionIndex, 0, ...selectedInOrder);
+    return remainder;
+  }
+
+  function prepareGrouping(maxMembers) {
+    const ids = candidateIds(maxMembers);
+    if (ids.length < 2) return ids;
+    const current = state();
+    const nextOrder = consolidatedOrder(current, ids);
+    if (JSON.stringify(nextOrder) !== JSON.stringify(effectiveIds(current))) {
+      PresentationActions.mutatePresentation(presentation => { presentation.order = nextOrder; });
+    }
     return ids;
+  }
+
+  function categoryOrderFromUnits(current, category, units) {
+    const byId = productMap(current);
+    const replacement = units.flatMap(unit => unit.memberIds.map(String));
+    const all = effectiveIds(current);
+    const first = all.findIndex(id => categoryOf(byId.get(id)) === category);
+    if (first < 0) return all;
+    const withoutCategory = all.filter(id => categoryOf(byId.get(id)) !== category);
+    const prefixCount = all.slice(0, first).filter(id => categoryOf(byId.get(id)) !== category).length;
+    withoutCategory.splice(prefixCount, 0, ...replacement);
+    return withoutCategory;
+  }
+
+  function selectedMovePlan(delta) {
+    const current = state();
+    const direction = Number(delta) < 0 ? -1 : 1;
+    const target = ComposerSelection.get();
+    const selectedIds = uniqueIds(editorialIds());
+    if (!target || !selectedIds.length) return null;
+
+    if (target.kind === 'collection' || target.kind === 'table') {
+      const nextOrder = CatalogOrder.moveUnitRelative(current, `${target.kind}:${target.blockId}`, direction);
+      return JSON.stringify(nextOrder) === JSON.stringify(effectiveIds(current)) ? null : { type: 'order', nextOrder };
+    }
+
+    if (selectedIds.length === 1 && (target.kind === 'collection-member' || target.kind === 'table-row')) {
+      const unit = CatalogOrder.allUnits(current).find(item => ['collection', 'table'].includes(item.type)
+        && String(item.blockId) === String(target.blockId)
+        && item.memberIds.includes(String(target.productId)));
+      if (!unit) return null;
+      const index = unit.memberIds.indexOf(String(target.productId));
+      if (index < 0 || index + direction < 0 || index + direction >= unit.memberIds.length) return null;
+      return { type: 'member', blockId: String(target.blockId), productId: String(target.productId), delta: direction };
+    }
+
+    const selected = new Set(selectedIds);
+    const touched = [];
+    let category = '';
+    for (const unit of CatalogOrder.allUnits(current)) {
+      const hits = unit.memberIds.filter(id => selected.has(String(id)));
+      if (!hits.length) continue;
+      if (hits.length !== unit.memberIds.length) return null;
+      if (!category) category = unit.category;
+      if (category !== unit.category) return null;
+      touched.push(unit.id);
+    }
+    if (!touched.length || !category) return null;
+
+    const selectedUnits = new Set(touched);
+    const units = CatalogOrder.unitsForCategory(current, category).map(unit => ({ ...unit, memberIds: unit.memberIds.slice() }));
+    let changed = false;
+    if (direction < 0) {
+      for (let index = 1; index < units.length; index += 1) {
+        if (selectedUnits.has(units[index].id) && !selectedUnits.has(units[index - 1].id)) {
+          [units[index - 1], units[index]] = [units[index], units[index - 1]];
+          changed = true;
+        }
+      }
+    } else {
+      for (let index = units.length - 2; index >= 0; index -= 1) {
+        if (selectedUnits.has(units[index].id) && !selectedUnits.has(units[index + 1].id)) {
+          [units[index], units[index + 1]] = [units[index + 1], units[index]];
+          changed = true;
+        }
+      }
+    }
+    return changed ? { type: 'order', nextOrder: categoryOrderFromUnits(current, category, units) } : null;
+  }
+
+  function moveSelectionRelative(delta) {
+    const plan = selectedMovePlan(delta);
+    if (!plan) return false;
+    if (plan.type === 'member') PresentationActions.moveBlockMember(plan.blockId, plan.productId, plan.delta);
+    else PresentationActions.mutatePresentation(presentation => { presentation.order = plan.nextOrder; });
+    return true;
+  }
+
+  function canMoveSelection(delta) {
+    return Boolean(selectedMovePlan(delta));
+  }
+
+  function styleValueForProduct(productId, key) {
+    const current = state();
+    const target = ComposerSelection.targetForProduct(current, productId);
+    if (!target) return null;
+    const presentation = Composition.normalizePresentation(current.catalog.presentation);
+    if (target.kind === 'card') return Composition.styleFor(presentation, productId)?.[key] ?? null;
+    if (target.kind !== 'collection-member' || !NS.Collection || !['emphasis', 'width', 'priceStyle'].includes(key)) return null;
+    const block = presentation.blocks.find(item => item?.type === 'collection' && String(item.id) === String(target.blockId));
+    return block ? NS.Collection.memberStyleFor(block, productId)?.[key] ?? null : null;
+  }
+
+  function mixedValues(key) {
+    const values = uniqueIds(editorialIds()).map(id => styleValueForProduct(id, key)).filter(value => value != null);
+    return { count: values.length, values: new Set(values) };
+  }
+
+  function augmentMixedSelect(select, key) {
+    const mixed = mixedValues(key);
+    select.querySelector('option[data-bulk-mixed]')?.remove();
+    if (mixed.count < 2 || mixed.values.size < 2) return;
+    const option = document.createElement('option');
+    option.value = '__mixed__';
+    option.textContent = 'Misto';
+    option.disabled = true;
+    option.selected = true;
+    option.dataset.bulkMixed = 'true';
+    select.prepend(option);
+  }
+
+  function orderLabel(target, count) {
+    if (target?.kind === 'collection') return 'Mover coleção';
+    if (target?.kind === 'table') return 'Mover tabela';
+    if (count > 1) return `Mover ${count} selecionados`;
+    return 'Mover item';
+  }
+
+  let augmentFrame = 0;
+  function scheduleEditorAugment() {
+    if (augmentFrame) cancelAnimationFrame(augmentFrame);
+    augmentFrame = requestAnimationFrame(() => {
+      augmentFrame = 0;
+      augmentEditorUi();
+    });
+  }
+
+  function augmentEditorUi() {
+    const root = $('#contextualInspector');
+    const target = ComposerSelection.get();
+    const ids = uniqueIds(editorialIds());
+    if (root && target) {
+      root.querySelectorAll('[data-inspector-card-field]').forEach(select => augmentMixedSelect(select, select.dataset.inspectorCardField));
+      root.querySelectorAll('[data-inspector-member-field]').forEach(select => augmentMixedSelect(select, select.dataset.inspectorMemberField));
+      if (ids.length > 1 && ['card', 'collection-member'].includes(target.kind)) {
+        const head = root.querySelector('.inspector-head > div:first-child');
+        if (head && !head.querySelector('.inspector-bulk-count')) {
+          const badge = document.createElement('small');
+          badge.className = 'inspector-bulk-count';
+          badge.textContent = `${ids.length} selecionados · alterações compatíveis serão aplicadas em conjunto`;
+          head.appendChild(badge);
+        }
+        const priceMixed = mixedValues('priceStyle');
+        const fieldset = root.querySelector('[data-commercial-card-price-editor],[data-commercial-member-price-editor]');
+        if (fieldset && priceMixed.count >= 2 && priceMixed.values.size > 1) {
+          fieldset.querySelectorAll('input[type="radio"]').forEach(input => { input.checked = false; });
+          if (!fieldset.querySelector('.inspector-bulk-mixed')) {
+            const note = document.createElement('small');
+            note.className = 'inspector-bulk-mixed';
+            note.textContent = 'Valores mistos · escolha uma opção para aplicar aos itens compatíveis.';
+            fieldset.appendChild(note);
+          }
+        }
+      }
+      if (!root.querySelector('[data-editor-order-controls]')) {
+        const section = document.createElement('section');
+        section.className = 'inspector-selection-order';
+        section.dataset.editorOrderControls = 'true';
+        section.innerHTML = `<div class="inspector-subhead"><strong>Ordem no catálogo</strong><span>${orderLabel(target, ids.length)}</span></div><div class="inspector-selection-order-actions"><button type="button" data-editor-move="-1" aria-label="Mover para cima">↑</button><button type="button" data-editor-move="1" aria-label="Mover para baixo">↓</button></div>`;
+        root.appendChild(section);
+      }
+      const up = root.querySelector('[data-editor-move="-1"]');
+      const down = root.querySelector('[data-editor-move="1"]');
+      if (up) up.disabled = !canMoveSelection(-1);
+      if (down) down.disabled = !canMoveSelection(1);
+    }
+
+    let floater = $('#editorOrderFloater');
+    if (!floater) {
+      floater = document.createElement('div');
+      floater.id = 'editorOrderFloater';
+      floater.className = 'editor-order-floater';
+      floater.setAttribute('aria-label', 'Reordenar seleção');
+      floater.innerHTML = '<button type="button" data-editor-move="-1" aria-label="Mover seleção para cima">↑</button><button type="button" data-editor-move="1" aria-label="Mover seleção para baixo">↓</button>';
+      document.body.appendChild(floater);
+    }
+    floater.hidden = !$('#catalog')?.classList.contains('active') || !target || !ids.length;
+    const floatUp = floater.querySelector('[data-editor-move="-1"]');
+    const floatDown = floater.querySelector('[data-editor-move="1"]');
+    if (floatUp) floatUp.disabled = !canMoveSelection(-1);
+    if (floatDown) floatDown.disabled = !canMoveSelection(1);
   }
 
   function refreshToolbar() {
@@ -71,38 +282,70 @@
     if (context) context.hidden = selected.length < 2;
     const status = $('#blockSelectionStatus');
     if (status) {
-      if (valid.length) status.textContent = `${valid.length} produtos contíguos selecionados`;
+      if (valid.length) status.textContent = isContiguousSameCategory(valid) ? `${valid.length} produtos selecionados` : `${valid.length} selecionados · serão reunidos ao agrupar`;
       else if (selected.length >= 2) status.textContent = `${selected.length} selecionados · agrupamento indisponível`;
       else status.textContent = '';
     }
     NS.CollectionControls?.refreshButton?.();
     NS.TableControls?.refreshButton?.();
+    scheduleEditorAugment();
   }
 
-  function emit() {
+  function refreshAndEmit() {
+    refreshToolbar();
     window.dispatchEvent(new CustomEvent('catalogotop:grouping-selection-changed', {
       detail: { ids: editorialIds(), candidates: candidateIds(Number.POSITIVE_INFINITY) }
     }));
   }
 
-  function refreshAndEmit() {
-    refreshToolbar();
-    emit();
+  function bindGroupingPreparation() {
+    document.addEventListener('click', event => {
+      const button = event.target.closest('#btnCreateCollection,#btnCreateTableBlock');
+      if (!button || button.disabled) return;
+      const max = button.id === 'btnCreateCollection' ? (NS.Collection?.MAX_MEMBERS || 12) : (NS.TableBlock?.MAX_MEMBERS || 30);
+      prepareGrouping(max);
+    }, true);
   }
 
-  function bind() {
-    window.addEventListener('catalogotop:editor-selection-changed', refreshAndEmit);
-    window.addEventListener('catalogotop:selection-rendered', refreshToolbar);
-    window.addEventListener('catalogotop:products-updated', refreshToolbar);
+  function bindOrderCommands() {
+    document.addEventListener('click', event => {
+      const button = event.target.closest('[data-editor-move]');
+      if (!button || button.disabled) return;
+      event.preventDefault();
+      moveSelectionRelative(Number(button.dataset.editorMove));
+    });
+    window.addEventListener('keydown', event => {
+      if (!['ArrowUp', 'ArrowDown'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (!$('#catalog')?.classList.contains('active') || !ComposerSelection.get()) return;
+      if (event.target?.closest?.('input,textarea,select,button,a,[contenteditable="true"]')) return;
+      const active = document.activeElement;
+      if (!(active === document.body || active?.closest?.('#selectableProducts,#catalogPreview,.contextual-inspector'))) return;
+      const delta = event.key === 'ArrowUp' ? -1 : 1;
+      if (!canMoveSelection(delta)) return;
+      event.preventDefault();
+      moveSelectionRelative(delta);
+    });
   }
+
+  bindGroupingPreparation();
+  bindOrderCommands();
 
   NS.GroupingControls = {
     ids: editorialIds,
     candidateIds,
     isContiguousSameCategory,
+    consolidatedOrder,
+    prepareGrouping,
+    moveSelectionRelative,
+    canMoveSelection,
     refresh: refreshToolbar
   };
+  NS.EditorOrder = { consolidatedOrder, selectedMovePlan, moveSelectionRelative, canMoveSelection };
 
-  bind();
+  window.addEventListener('catalogotop:editor-selection-changed', refreshAndEmit);
+  window.addEventListener('catalogotop:selection-rendered', refreshToolbar);
+  window.addEventListener('catalogotop:catalog-rendered', scheduleEditorAugment);
+  window.addEventListener('catalogotop:products-updated', refreshToolbar);
+  window.addEventListener('resize', scheduleEditorAugment);
   refreshToolbar();
 })();

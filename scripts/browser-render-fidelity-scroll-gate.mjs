@@ -139,8 +139,8 @@ try {
     throw new Error(`larguras físicas da Table não refletem semântica: ${JSON.stringify(geometry.cols)}`);
   }
   if (!geometry.price.backgroundColor || geometry.price.backgroundColor === 'rgba(0, 0, 0, 0)') throw new Error(`destaque comercial não apareceu no preview: ${JSON.stringify(geometry.price)}`);
-  if (geometry.collection.lines !== '3' || geometry.collection.full !== LONG_DESCRIPTION || geometry.collection.stateDescription !== LONG_DESCRIPTION) {
-    throw new Error(`Collection não recebeu fitting factual de 3 linhas: ${JSON.stringify(geometry.collection)}`);
+  if (geometry.collection.lines !== '4' || geometry.collection.full !== LONG_DESCRIPTION || geometry.collection.stateDescription !== LONG_DESCRIPTION) {
+    throw new Error(`Collection de 4 colunas não recebeu fitting factual de 4 linhas: ${JSON.stringify(geometry.collection)}`);
   }
   if (geometry.collection.text.includes('…') || geometry.collection.text.includes('...')) throw new Error('Collection não deve truncar com reticências');
   if (geometry.collection.truncated !== 'true') throw new Error('descrição longa da Collection deveria ser truncada por palavras');
@@ -188,7 +188,7 @@ try {
     if (parity.previewPrice?.[property] !== parity.printPrice?.[property]) throw new Error(`preview/PDF divergem em ${property}: ${JSON.stringify(parity)}`);
   }
   if (parity.previewPrice?.text !== parity.printPrice?.text) throw new Error(`preço mudou entre preview/PDF: ${JSON.stringify(parity)}`);
-  if (parity.previewText !== parity.printText || parity.previewLines !== '3' || parity.printLines !== '3') throw new Error(`fitting mudou entre preview/PDF: ${JSON.stringify(parity)}`);
+  if (parity.previewText !== parity.printText || parity.previewLines !== '4' || parity.printLines !== '4') throw new Error(`fitting mudou entre preview/PDF: ${JSON.stringify(parity)}`);
   if (Math.abs(parity.previewRatio.descriptionToCode - parity.printRatio.descriptionToCode) > 0.08 || Math.abs(parity.previewRatio.descriptionToPrice - parity.printRatio.descriptionToPrice) > 0.08) {
     throw new Error(`proporções de Table mudaram no PDF: ${JSON.stringify(parity)}`);
   }

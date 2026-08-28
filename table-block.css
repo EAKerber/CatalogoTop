@@ -164,8 +164,8 @@
   border-right: .2mm solid #e2e4e7;
   border-bottom: .2mm solid #e2e4e7;
   padding: 1.05mm 1.35mm;
-  font-size: 2.35mm;
-  line-height: 1.08;
+  font-size: 2.45mm;
+  line-height: 1.1;
 }
 .catalog-table-block th:last-child,
 .catalog-table-block td:last-child { border-right: 0; }
@@ -173,7 +173,7 @@
 .catalog-table-block th {
   background: #f3f4f5;
   color: #555b62;
-  font-size: 2.05mm;
+  font-size: 2.15mm;
   font-weight: 900;
   text-align: left;
   text-transform: uppercase;
@@ -182,10 +182,32 @@
 .catalog-table-block td { font-weight: 650; }
 .catalog-table-block td:last-child { font-weight: 850; }
 .catalog-table-block.density-compact th,
-.catalog-table-block.density-compact td { padding-block: .75mm; font-size: 2.18mm; }
-.catalog-table-block.density-compact th { font-size: 1.95mm; }
+.catalog-table-block.density-compact td { padding-block: .78mm; font-size: 2.34mm; }
+.catalog-table-block.density-compact th { font-size: 2.08mm; }
 .table-cell-image { width: 14mm; padding: .7mm !important; text-align: center; }
 .table-cell-image img { width: 100%; height: 100%; max-height: 11mm; object-fit: contain; }
+
+/* v0.11.2.3 — preço permanece legível mesmo nos estilos comerciais compactos. */
+.catalog-table-block .table-cell-price {
+  font-size: 2.58mm !important;
+  line-height: 1.05;
+}
+.catalog-table-block .table-cell-quantity-price {
+  font-size: 2.72mm !important;
+}
+.catalog-table-block.price-style-red .table-cell-price,
+.catalog-table-block.price-style-label .table-cell-price,
+.catalog-table-block.price-style-block .table-cell-price,
+.catalog-table-block.density-compact.price-style-red .table-cell-price,
+.catalog-table-block.density-compact.price-style-label .table-cell-price,
+.catalog-table-block.density-compact.price-style-block .table-cell-price {
+  font-size: 2.7mm !important;
+}
+.catalog-table-block.price-style-red .table-cell-quantity-price,
+.catalog-table-block.price-style-label .table-cell-quantity-price,
+.catalog-table-block.price-style-block .table-cell-quantity-price {
+  font-size: 2.82mm !important;
+}
 
 @container catalog-selection-panel (max-width: 390px) {
   .table-column-choices { grid-template-columns: 1fr; }

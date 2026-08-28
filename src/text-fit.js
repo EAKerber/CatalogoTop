@@ -12,7 +12,11 @@
 
   function collectionLineBudget(item) {
     const width = item?.dataset.memberWidth || 'simple';
-    return width === 'full' ? 5 : width === 'wide' ? 4 : 3;
+    if (width === 'full') return 5;
+    if (width === 'wide') return 4;
+    const collection = item?.closest?.('.catalog-collection');
+    const columns = Number(collection?.style?.getPropertyValue('--collection-cols')) || 0;
+    return columns >= 4 ? 4 : 3;
   }
 
   function lineBudgetFor(element) {
@@ -24,8 +28,6 @@
   }
 
   function prepareForMeasurement(element) {
-    // Presets antigos ainda trazem -webkit-line-clamp. O fitting canônico precisa
-    // medir a caixa real e aplicar seu próprio orçamento por palavras.
     element.style.display = 'block';
     element.style.webkitLineClamp = 'unset';
     element.style.webkitBoxOrient = 'initial';
@@ -83,9 +85,7 @@
         if (result.fits) {
           best = middle;
           low = middle + 1;
-        } else {
-          high = middle - 1;
-        }
+        } else high = middle - 1;
       }
       visible = words.slice(0, best).join(' ');
       measurement = fitsWithinLines(element, visible, maxLines);
@@ -104,13 +104,27 @@
     return fitText(element, maxLines || lineBudgetFor(element));
   }
 
-  function fitCatalog(root) {
+  function fitCatalogAtCurrentGeometry(root) {
     if (!root?.querySelectorAll) return [];
     const targets = [
       ...root.querySelectorAll('.catalog-card[data-product-id] h3'),
       ...root.querySelectorAll('.catalog-collection-item[data-product-id] .catalog-collection-copy b')
     ];
     return targets.map(element => fitText(element, lineBudgetFor(element))).filter(Boolean);
+  }
+
+  function fitCatalog(root) {
+    if (!root?.style) return fitCatalogAtCurrentGeometry(root);
+    const previous = root.style.getPropertyValue('--preview-scale');
+    const priority = root.style.getPropertyPriority('--preview-scale');
+    root.style.setProperty('--preview-scale', '1');
+    void root.offsetWidth;
+    try {
+      return fitCatalogAtCurrentGeometry(root);
+    } finally {
+      if (previous) root.style.setProperty('--preview-scale', previous, priority);
+      else root.style.removeProperty('--preview-scale');
+    }
   }
 
   NS.TextFit = {

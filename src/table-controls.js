@@ -24,7 +24,7 @@
   function createTable() {
     const ids = candidateIds();
     if (ids.length < 2) {
-      window.alert?.('Selecione de 2 a 30 produtos contíguos da mesma categoria, já incluídos no catálogo e ainda fora de outro bloco.');
+      window.alert?.('Selecione de 2 a 30 produtos da mesma categoria, já incluídos no catálogo e ainda fora de outro bloco. Itens separados serão reunidos automaticamente.');
       return;
     }
     const byId = new Map(state().products.map(product => [String(product.id), product]));
@@ -54,8 +54,8 @@
     button.textContent = count ? `Tabela (${Math.min(count, TableBlock.MAX_MEMBERS)})` : 'Criar tabela';
     button.disabled = ids.length < 2 || ids.length > TableBlock.MAX_MEMBERS;
     button.title = button.disabled
-      ? 'Selecione um trecho contíguo de 2 a 30 produtos do catálogo, da mesma categoria e fora de outro bloco.'
-      : `Agrupar ${ids.length} produtos em tabela`;
+      ? 'Selecione de 2 a 30 produtos do catálogo, da mesma categoria e fora de outro bloco.'
+      : `Agrupar ${ids.length} produtos em tabela${NS.GroupingControls?.isContiguousSameCategory?.(ids) ? '' : ' · itens separados serão reunidos'}`;
   }
 
   function init() {

@@ -55,45 +55,86 @@
       && normalized.y === DEFAULT_IMAGE_FRAME.y;
   }
 
-  function setCardStyle(productId, patch) {
+  function uniqueIds(values) {
+    const seen = new Set();
+    return (Array.isArray(values) ? values : []).map(String).filter(id => {
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }
+
+  function editorialSelectionFor(originProductId) {
+    const origin = String(originProductId || '');
+    const selected = uniqueIds(NS.ComposerSelection?.ids?.());
+    return selected.length > 1 && selected.includes(origin) ? selected : [origin].filter(Boolean);
+  }
+
+  function blockIndex(presentation, blockId, type) {
+    return presentation.blocks.findIndex(block => String(block?.id || '') === String(blockId) && (!type || block.type === type));
+  }
+
+  function blockIndexForProduct(presentation, productId) {
     const id = String(productId);
+    return presentation.blocks.findIndex(block => (Array.isArray(block?.memberIds) ? block.memberIds : []).map(String).includes(id));
+  }
+
+  function collectionCompatiblePatch(patch) {
+    const allowed = new Set(['emphasis', 'width', 'priceStyle']);
+    return Object.fromEntries(Object.entries(patch || {}).filter(([key]) => allowed.has(key)));
+  }
+
+  function applyStylePatchToProduct(presentation, productId, patch) {
+    const id = String(productId);
+    const index = blockIndexForProduct(presentation, id);
+    const block = index >= 0 ? presentation.blocks[index] : null;
+    if (block?.type === 'collection' && NS.Collection) {
+      const compatible = collectionCompatiblePatch(patch);
+      if (!Object.keys(compatible).length) return false;
+      const normalized = NS.Collection.normalizeBlock(block);
+      normalized.itemStyles[id] = { ...NS.Collection.memberStyleFor(normalized, id), ...compatible };
+      presentation.blocks[index] = NS.Collection.normalizeBlock(normalized);
+      return true;
+    }
+    if (block) return false;
+    presentation.itemStyles[id] = { ...NS.Composition.styleFor(presentation, id), ...(patch || {}) };
+    return true;
+  }
+
+  function setCardStyle(productId, patch) {
+    const ids = editorialSelectionFor(productId);
     return mutatePresentation(presentation => {
-      presentation.itemStyles[id] = {
-        ...NS.Composition.styleFor(presentation, id),
-        ...(patch || {})
-      };
+      ids.forEach(id => applyStylePatchToProduct(presentation, id, patch));
     });
   }
 
   function setImageFrame(productId, patch) {
-    const id = String(productId || '');
-    if (!id) return null;
+    const ids = editorialSelectionFor(productId);
+    if (!ids.length) return null;
     return mutatePresentation(presentation => {
       presentation.imageFrames = presentation.imageFrames && typeof presentation.imageFrames === 'object'
         ? { ...presentation.imageFrames }
         : {};
-      const next = normalizeImageFrame({ ...imageFrameFor(presentation, id), ...(patch || {}) });
-      if (isDefaultImageFrame(next)) delete presentation.imageFrames[id];
-      else presentation.imageFrames[id] = next;
+      ids.forEach(id => {
+        const next = normalizeImageFrame({ ...imageFrameFor(presentation, id), ...(patch || {}) });
+        if (isDefaultImageFrame(next)) delete presentation.imageFrames[id];
+        else presentation.imageFrames[id] = next;
+      });
     });
   }
 
   function resetImageFrame(productId) {
-    const id = String(productId || '');
-    if (!id) return null;
+    const ids = editorialSelectionFor(productId);
+    if (!ids.length) return null;
     return mutatePresentation(presentation => {
       if (!presentation.imageFrames || typeof presentation.imageFrames !== 'object') return;
-      delete presentation.imageFrames[id];
+      ids.forEach(id => { delete presentation.imageFrames[id]; });
     });
   }
 
   function primaryImageForEditorTarget(node) {
-    if (node.matches('.catalog-card[data-product-id]')) {
-      return node.querySelector('.catalog-card-visuals.single > img');
-    }
-    if (node.matches('.catalog-collection-item[data-product-id]')) {
-      return node.querySelector('.catalog-collection-image > img');
-    }
+    if (node.matches('.catalog-card[data-product-id]')) return node.querySelector('.catalog-card-visuals.single > img');
+    if (node.matches('.catalog-collection-item[data-product-id]')) return node.querySelector('.catalog-collection-image > img');
     return null;
   }
 
@@ -142,10 +183,6 @@
     document.head.appendChild(style);
   }
 
-  function blockIndex(presentation, blockId, type) {
-    return presentation.blocks.findIndex(block => String(block?.id || '') === String(blockId) && (!type || block.type === type));
-  }
-
   function updateCollection(blockId, patch) {
     return mutatePresentation(presentation => {
       const index = blockIndex(presentation, blockId, 'collection');
@@ -156,8 +193,13 @@
   }
 
   function setCollectionMemberStyle(blockId, productId, patch) {
-    const id = String(productId);
+    const ids = editorialSelectionFor(productId);
     return mutatePresentation(presentation => {
+      if (ids.length > 1) {
+        ids.forEach(id => applyStylePatchToProduct(presentation, id, patch));
+        return;
+      }
+      const id = String(productId);
       const index = blockIndex(presentation, blockId, 'collection');
       if (index < 0 || !NS.Collection) return;
       const block = NS.Collection.normalizeBlock(presentation.blocks[index]);
@@ -173,9 +215,7 @@
       if (index < 0 || !NS.TableBlock) return;
       const current = NS.TableBlock.normalizeBlock(presentation.blocks[index]);
       const next = { ...current, ...(patch || {}) };
-      if (patch?.rowSource && patch.rowSource !== current.rowSource && patch.columns == null) {
-        next.columns = NS.TableBlock.defaultColumns(patch.rowSource);
-      }
+      if (patch?.rowSource && patch.rowSource !== current.rowSource && patch.columns == null) next.columns = NS.TableBlock.defaultColumns(patch.rowSource);
       presentation.blocks[index] = NS.TableBlock.normalizeBlock(next);
     });
   }
@@ -187,13 +227,8 @@
     });
   }
 
-  function dissolveCollection(blockId) {
-    return dissolveBlock(blockId, 'collection');
-  }
-
-  function dissolveTable(blockId) {
-    return dissolveBlock(blockId, 'table');
-  }
+  function dissolveCollection(blockId) { return dissolveBlock(blockId, 'collection'); }
+  function dissolveTable(blockId) { return dissolveBlock(blockId, 'table'); }
 
   function moveOrderUnit(sourceUnitId, targetUnitId, position = 'before') {
     const current = NS.Core?.getState?.();
@@ -212,8 +247,26 @@
   function moveBlockMember(blockId, productId, delta) {
     const current = NS.Core?.getState?.();
     if (!current || !NS.CatalogOrder?.moveBlockMember) return null;
+    const unit = NS.CatalogOrder.allUnits?.(current)?.find(item => ['collection', 'table'].includes(item.type)
+      && String(item.blockId) === String(blockId)
+      && item.memberIds.includes(String(productId)));
+    if (!unit) return null;
+    const sourceIndex = unit.memberIds.indexOf(String(productId));
+    const targetIndex = sourceIndex + (Number(delta) < 0 ? -1 : 1);
+    if (sourceIndex < 0 || targetIndex < 0 || targetIndex >= unit.memberIds.length) return current;
+    const targetProductId = String(unit.memberIds[targetIndex]);
     const nextOrder = NS.CatalogOrder.moveBlockMember(current, blockId, productId, delta);
-    return mutatePresentation(presentation => { presentation.order = nextOrder; });
+    return mutatePresentation(presentation => {
+      presentation.order = nextOrder;
+      const index = blockIndex(presentation, blockId, 'collection');
+      if (index < 0 || !NS.Collection) return;
+      const block = NS.Collection.normalizeBlock(presentation.blocks[index]);
+      const sourceStyle = NS.Collection.memberStyleFor(block, productId);
+      const targetStyle = NS.Collection.memberStyleFor(block, targetProductId);
+      block.itemStyles[String(productId)] = targetStyle;
+      block.itemStyles[targetProductId] = sourceStyle;
+      presentation.blocks[index] = NS.Collection.normalizeBlock(block);
+    });
   }
 
   NS.ImageFraming = {
