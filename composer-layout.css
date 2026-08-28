@@ -14,6 +14,23 @@
   overflow: hidden;
 }
 
+@container catalog-selection-panel (max-width: 400px) {
+  #selectionBrowseActions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  #selectionBrowseActions #btnSelectVisible {
+    grid-column: 1 / -1;
+  }
+  #selectionBrowseActions #btnClearSelection {
+    grid-column: 1;
+  }
+  #selectionBrowseActions #btnEnterGrouping {
+    grid-column: 2;
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 959px) {
   .selection-layout {
     grid-template-columns: 1fr;
