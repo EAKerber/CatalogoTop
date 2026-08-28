@@ -204,17 +204,38 @@
     let residual = Math.round((100 - rounded.reduce((sum, value) => sum + value, 0)) * 100) / 100;
     if (Math.abs(residual) >= .01) {
       const direction = residual > 0 ? 1 : -1;
-      const candidate = rounded
+      const candidates = rounded
         .map((value, index) => ({ index, room: direction > 0 ? items[index].max - value : value - items[index].min, flex: items[index].flex }))
         .filter(item => item.room > .001)
-        .sort((a, b) => (b.room * b.flex) - (a.room * a.flex))[0];
-      if (candidate) {
+        .sort((a, b) => (b.room * b.flex) - (a.room * a.flex));
+      for (const candidate of candidates) {
+        if (Math.abs(residual) < .01) break;
         const applied = direction * Math.min(Math.abs(residual), candidate.room);
         rounded[candidate.index] = Math.round((rounded[candidate.index] + applied) * 100) / 100;
         residual = Math.round((residual - applied) * 100) / 100;
       }
     }
     return rounded;
+  }
+
+  function elasticBounds(items) {
+    if (!items.length) return items;
+    const minTotal = items.reduce((sum, item) => sum + item.min, 0);
+    if (minTotal > 92) {
+      const scale = 92 / minTotal;
+      items.forEach(item => { item.min *= scale; });
+    }
+    const maxTotal = items.reduce((sum, item) => sum + item.max, 0);
+    if (maxTotal < 108) {
+      const missing = 108 - maxTotal;
+      const flexTotal = items.reduce((sum, item) => sum + Math.max(.05, item.flex), 0) || 1;
+      items.forEach(item => { item.max += missing * Math.max(.05, item.flex) / flexTotal; });
+    }
+    items.forEach(item => {
+      item.max = Math.max(item.max, item.min + .5);
+      item.preferred = clamp(item.preferred, item.min, item.max);
+    });
+    return items;
   }
 
   function planColumnWidths(columnIds, demand = {}) {
@@ -230,6 +251,7 @@
         preferred: preferredWidth(definition, demand?.[id])
       };
     });
+    elasticBounds(items);
     const percentages = distributeToHundred(items);
     return items.map((item, index) => ({ id: item.id, demand: item.demand, weight: item.preferred, percent: percentages[index] }));
   }
