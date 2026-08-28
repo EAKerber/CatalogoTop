@@ -2,18 +2,9 @@
   'use strict';
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
-  const { Core, Composition } = NS;
-  if (!Core || !Composition) return;
+  const Core = NS.Core;
+  if (!Core) return;
   const $ = selector => document.querySelector(selector);
-
-  function ensureStylesheet() {
-    if (typeof document === 'undefined' || document.querySelector('link[data-editorial-selection-table]')) return;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'editorial-selection-table.css';
-    link.dataset.editorialSelectionTable = 'true';
-    document.head.appendChild(link);
-  }
 
   function state() { return Core.getState(); }
 
@@ -25,7 +16,7 @@
     return ids;
   }
 
-  function selectedSet(current = state()) {
+  function includedSet(current = state()) {
     return new Set((current.selectedIds || []).map(String));
   }
 
@@ -64,10 +55,10 @@
     const current = state();
     const raw = editorialIds();
     if (raw.length < 2 || raw.length > maxMembers) return [];
-    const included = selectedSet(current);
-    const membership = blockMemberIds(current);
+    const included = includedSet(current);
+    const occupied = blockMemberIds(current);
     const byId = productMap(current);
-    if (raw.some(id => !included.has(id) || membership.has(id) || !byId.has(id))) return [];
+    if (raw.some(id => !included.has(id) || occupied.has(id) || !byId.has(id))) return [];
     const ids = orderedEditorial(current);
     if (ids.length !== raw.length || !isContiguousSameCategory(ids, current)) return [];
     return ids;
@@ -94,39 +85,24 @@
     }));
   }
 
-  function refresh() {
+  function refreshAndEmit() {
     refreshToolbar();
-  }
-
-  function clear() {
-    NS.ComposerSelection?.clear?.();
-  }
-
-  function toggle(productId) {
-    NS.ComposerSelection?.selectProduct?.(state(), productId, { additive: true });
-    return true;
+    emit();
   }
 
   function bind() {
-    window.addEventListener('catalogotop:editor-selection-changed', () => { refresh(); emit(); });
-    window.addEventListener('catalogotop:selection-rendered', refresh);
-    window.addEventListener('catalogotop:products-updated', refresh);
+    window.addEventListener('catalogotop:editor-selection-changed', refreshAndEmit);
+    window.addEventListener('catalogotop:selection-rendered', refreshToolbar);
+    window.addEventListener('catalogotop:products-updated', refreshToolbar);
   }
 
-  NS.BlockSelection = { ids: editorialIds, clear, toggle, refresh };
   NS.GroupingControls = {
-    mode: () => 'editorial',
     ids: editorialIds,
     candidateIds,
     isContiguousSameCategory,
-    clear,
-    toggle,
-    refresh,
-    enter: () => {},
-    exit: () => {}
+    refresh: refreshToolbar
   };
 
-  ensureStylesheet();
   bind();
-  refresh();
+  refreshToolbar();
 })();
