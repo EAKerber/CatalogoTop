@@ -24,7 +24,7 @@
   function createTable() {
     const ids = candidateIds();
     if (ids.length < 2) {
-      window.alert?.('No modo Agrupar, selecione de 2 a 30 produtos contíguos da mesma categoria e ainda fora de outro bloco.');
+      window.alert?.('Selecione de 2 a 30 produtos contíguos da mesma categoria, já incluídos no catálogo e ainda fora de outro bloco.');
       return;
     }
     const byId = new Map(state().products.map(product => [String(product.id), product]));
@@ -39,10 +39,9 @@
       subtitle: '',
       rowSource: 'products',
       density: 'compact',
-      columns
+      columns,
+      priceStyle: 'standard'
     });
-    NS.BlockSelection?.clear?.(false);
-    NS.GroupingControls?.exit?.({ render: false });
     mutateBlocks(blocks => blocks.push(block));
     NS.ComposerSelection?.select?.({ kind: 'table', blockId: block.id });
   }
@@ -51,9 +50,9 @@
     const button = $('#btnCreateTableBlock');
     if (!button) return;
     const ids = candidateIds();
-    const count = NS.BlockSelection?.ids?.().length || 0;
-    button.textContent = count ? `Tabela (${count})` : 'Criar tabela';
-    button.disabled = NS.GroupingControls?.mode?.() !== 'grouping' || ids.length < 2 || ids.length > TableBlock.MAX_MEMBERS;
+    const count = NS.ComposerSelection?.ids?.().length || 0;
+    button.textContent = count ? `Tabela (${Math.min(count, TableBlock.MAX_MEMBERS)})` : 'Criar tabela';
+    button.disabled = ids.length < 2 || ids.length > TableBlock.MAX_MEMBERS;
     button.title = button.disabled
       ? 'Selecione um trecho contíguo de 2 a 30 produtos do catálogo, da mesma categoria e fora de outro bloco.'
       : `Agrupar ${ids.length} produtos em tabela`;
@@ -64,6 +63,7 @@
     refreshButton();
     window.addEventListener('catalogotop:selection-rendered', refreshButton);
     window.addEventListener('catalogotop:grouping-selection-changed', refreshButton);
+    window.addEventListener('catalogotop:editor-selection-changed', refreshButton);
   }
 
   NS.TableControls = { candidateIds, createTable, refreshButton };
