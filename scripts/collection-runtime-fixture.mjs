@@ -14,7 +14,7 @@ const checks=[
 ['adapter Collection é compatibilidade sem override',documentAdapter.includes('CollectionDocument')&&!documentAdapter.includes('CatalogDocument.build =')],
 ['renderer Collection é helper puro',renderer.includes('catalog-collection')&&!renderer.includes('renderCatalog =')],
 ['renderer canônico é único dispatch',catalogRenderer.includes("item.type === 'collection'")&&catalogRenderer.includes('Render.renderCatalog = renderDocument')],
-['UI de criação Collection é creation-only e agrupamento fica efêmero',controls.includes('createCollection')&&controls.includes('GroupingControls?.candidateIds')&&!controls.includes('MutationObserver')&&!controls.includes('collection-manager')&&grouping.includes('const markedIds = new Set()')&&!grouping.includes('Core.mutate')],
+['UI de criação Collection é creation-only e agrupamento deriva seleção editorial efêmera',controls.includes('createCollection')&&controls.includes('GroupingControls?.candidateIds')&&!controls.includes('MutationObserver')&&!controls.includes('collection-manager')&&grouping.includes('ComposerSelection?.ids')&&!grouping.includes('BlockSelection')&&!grouping.includes('const markedIds = new Set()')&&!grouping.includes('Core.mutate')],
 ['override e reorder de membro ficam no inspector',inspector.includes('data-inspector-member-field="width"')&&inspector.includes('setCollectionMemberStyle')&&inspector.includes('data-inspector-member-move')&&inspector.includes('moveBlockMember')],
 ['CSS Collection mantém temas e grade',css.includes('.catalog-collection.theme-dark')&&css.includes('repeat(var(--collection-cols)')],
 ['documentação preserva vocabulário',docs.includes('Card')&&docs.includes('Collection')&&docs.includes('Table')]
