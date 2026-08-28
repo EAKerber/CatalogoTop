@@ -3,12 +3,42 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
 
+  const DOCUMENT_STYLE_SHEETS = Object.freeze([
+    Object.freeze({ href: 'styles.css' }),
+    Object.freeze({ href: 'cards.css' }),
+    Object.freeze({ href: 'catalog-page.css' }),
+    Object.freeze({ href: 'editorial-composition.css' }),
+    Object.freeze({ href: 'collection-block.css' }),
+    Object.freeze({ href: 'table-block.css' }),
+    Object.freeze({ href: 'commercial-presentation.css' }),
+    Object.freeze({ href: 'print.css', media: 'print' })
+  ]);
+
   function escAttr(value) {
     return String(value || '').replaceAll('&', '&amp;').replaceAll('"', '&quot;');
   }
 
   function baseHref() {
     return new URL('./', window.location.href).href;
+  }
+
+  function styleSheetName(value, base = window.location.href) {
+    try { return new URL(value, base).pathname.split('/').pop(); }
+    catch (_) { return String(value || '').split('/').pop(); }
+  }
+
+  function documentStyleLinksMarkup() {
+    return DOCUMENT_STYLE_SHEETS.map(sheet => {
+      const media = sheet.media ? ` media="${sheet.media}"` : '';
+      return `<link rel="stylesheet" href="${escAttr(sheet.href)}"${media} />`;
+    }).join('\n  ');
+  }
+
+  function missingDocumentStyles(doc) {
+    if (!doc?.querySelectorAll) return DOCUMENT_STYLE_SHEETS.map(sheet => sheet.href);
+    const loaded = new Set(Array.from(doc.querySelectorAll('link[rel="stylesheet"][href]'))
+      .map(link => styleSheetName(link.getAttribute('href'), doc.baseURI)));
+    return DOCUMENT_STYLE_SHEETS.map(sheet => sheet.href).filter(href => !loaded.has(styleSheetName(href, doc.baseURI)));
   }
 
   function renderPages(state) {
@@ -34,13 +64,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <base href="${href}" />
   <title>CatalogoTop · impressão</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="cards.css" />
-  <link rel="stylesheet" href="catalog-page.css" />
-  <link rel="stylesheet" href="editorial-composition.css" />
-  <link rel="stylesheet" href="collection-block.css" />
-  <link rel="stylesheet" href="table-block.css" />
-  <link rel="stylesheet" href="print.css" />
+  ${documentStyleLinksMarkup()}
 </head>
 <body class="catalog-print-document" data-logical-pages="${documentModel?.pageCount ?? pages.length}">
 ${markup}
@@ -78,13 +102,22 @@ ${markup}
     }));
   }
 
+  function nextFrame(doc) {
+    const view = doc?.defaultView || window;
+    return new Promise(resolve => view.requestAnimationFrame(() => view.requestAnimationFrame(resolve)));
+  }
+
   async function waitForDocumentReady(doc) {
     await waitForStyles(doc);
     if (doc.fonts?.ready) {
       try { await doc.fonts.ready; } catch (_) { /* sem bloqueio */ }
     }
     await waitForImages(doc);
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await nextFrame(doc);
+    // O fitting precisa ser medido no documento que será impresso, depois de CSS,
+    // fontes e imagens. Reusar a medição do preview gera quebras diferentes no PDF.
+    NS.TextFit?.fitCatalog?.(doc);
+    await nextFrame(doc);
   }
 
   async function createPrintFrame(state) {
@@ -139,7 +172,11 @@ ${markup}
   }
 
   NS.Print = {
+    DOCUMENT_STYLE_SHEETS,
+    documentStyleLinksMarkup,
+    missingDocumentStyles,
     buildPrintableHtml,
+    waitForDocumentReady,
     createPrintFrame,
     printCurrent
   };
