@@ -166,7 +166,7 @@ try {
     presentation.itemStyles.p2 = { ...window.CatalogoTop.Composition.styleFor(presentation, 'p2'), width: 'simple' };
     presentation.itemStyles.p4 = { ...window.CatalogoTop.Composition.styleFor(presentation, 'p4'), width: 'wide' };
   }));
-  await page.waitForSelector('#contextualInspector select[data-inspector-card-field="width"] option[data-bulk-mixed]');
+  await page.waitForSelector('#contextualInspector select[data-inspector-card-field="width"] option[data-bulk-mixed]', { state: 'attached' });
   const mixedValue = await page.locator('#contextualInspector select[data-inspector-card-field="width"]').inputValue();
   if (mixedValue !== '__mixed__') throw new Error(`estado misto de largura não foi explicitado: ${mixedValue}`);
 
