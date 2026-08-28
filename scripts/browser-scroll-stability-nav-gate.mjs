@@ -55,7 +55,7 @@ try {
     const previewColumn = document.querySelector('.preview-column');
     const preview = document.querySelector('#catalogPreviewViewport');
     const list = document.querySelector('#selectableProducts');
-    const scrolling = document.scrollingElement;
+    const pageRoot = document.querySelector('#catalog.panel.active');
     const previewStyle = getComputedStyle(preview);
     return {
       panelHeight: panel.getBoundingClientRect().height,
@@ -65,23 +65,26 @@ try {
       previewScrollTop: preview.scrollTop,
       previewOverflowY: previewStyle.overflowY,
       previewTouchAction: previewStyle.touchAction,
-      documentRange: Math.max(0, scrolling.scrollHeight - scrolling.clientHeight),
+      pageOverflowY: getComputedStyle(pageRoot).overflowY,
+      pageRange: Math.max(0, pageRoot.scrollHeight - pageRoot.clientHeight),
       columnOverflow: getComputedStyle(previewColumn).overflowY,
       listOverflow: getComputedStyle(list).overflowY,
       listScrollbar: getComputedStyle(list).scrollbarWidth
     };
   });
-  if (desktop.panelMaxHeight !== 'none' || desktop.previewRange > 2 || desktop.previewOverflowY !== 'clip' || !desktop.previewTouchAction.includes('pan-y') || desktop.documentRange < 50 || desktop.columnOverflow !== 'visible' || desktop.listOverflow !== 'auto') {
+  const touchAllowsPanY = desktop.previewTouchAction === 'manipulation' || desktop.previewTouchAction.includes('pan-y');
+  const previewClipsY = desktop.previewOverflowY === 'clip' || desktop.previewOverflowY === 'hidden';
+  if (desktop.panelMaxHeight !== 'none' || desktop.previewRange > 2 || !previewClipsY || !touchAllowsPanY || desktop.pageOverflowY !== 'auto' || desktop.pageRange < 50 || desktop.columnOverflow !== 'visible' || desktop.listOverflow !== 'auto') {
     throw new Error(`ownership desktop adaptativo incorreto: ${JSON.stringify(desktop)}`);
   }
   if (desktop.listScrollbar !== 'thin') throw new Error(`scrollbar editorial não foi tematizada: ${JSON.stringify(desktop)}`);
 
   const heightBeforeScroll = await page.locator('.selection-panel').evaluate(node => node.getBoundingClientRect().height);
-  await page.evaluate(() => window.scrollBy(0, 260));
+  await page.evaluate(() => document.querySelector('#catalog')?.scrollBy(0, 260));
   await page.waitForTimeout(80);
-  const externalScroll = await page.evaluate(() => ({ y: window.scrollY, previewTop: document.querySelector('#catalogPreviewViewport').scrollTop }));
+  const externalScroll = await page.evaluate(() => ({ outer: document.querySelector('#catalog').scrollTop, previewTop: document.querySelector('#catalogPreviewViewport').scrollTop }));
   const heightAfterScroll = await page.locator('.selection-panel').evaluate(node => node.getBoundingClientRect().height);
-  if (externalScroll.y < 20 || externalScroll.previewTop > 2) throw new Error(`scroll vertical não pertenceu ao documento: ${JSON.stringify(externalScroll)}`);
+  if (externalScroll.outer < 20 || externalScroll.previewTop > 2) throw new Error(`scroll vertical não pertenceu à página da aba: ${JSON.stringify(externalScroll)}`);
   if (Math.abs(heightBeforeScroll - heightAfterScroll) > 1) throw new Error(`scroll externo redimensionou compositor: ${heightBeforeScroll} -> ${heightAfterScroll}`);
 
   await page.click('.catalog-table-block[data-table-block-id="table-scroll"] .catalog-table-heading');
@@ -131,7 +134,7 @@ try {
   }));
   if (settings.target?.productId !== 'p2' || settings.minimized || settings.mode !== 'general') throw new Error(`atalho Ajustes perdeu seleção/estado: ${JSON.stringify(settings)}`);
 
-  console.log('PASS browser scroll stability/nav gate: fluxo vertical, ordem com scroll único, rail horizontal e atalho Ajustes');
+  console.log('PASS browser scroll stability/nav gate: fluxo vertical da aba, ordem com scroll único, rail horizontal e atalho Ajustes');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
