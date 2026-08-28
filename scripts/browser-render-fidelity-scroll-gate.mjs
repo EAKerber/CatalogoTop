@@ -219,13 +219,29 @@ try {
   if (!(listAfter.inner > listBefore.inner + 20)) throw new Error(`wheel não rolou a lista internamente: ${JSON.stringify({ listBefore, listAfter })}`);
   if (Math.abs(listAfter.outer - listBefore.outer) > 3) throw new Error(`lista em meio de curso moveu a página externa: ${JSON.stringify({ listBefore, listAfter })}`);
 
-  await page.evaluate(() => { const node = document.querySelector('#selectableProducts'); node.scrollTop = node.scrollHeight; });
+  const listEdgeBefore = await page.evaluate(() => {
+    const node = document.querySelector('#selectableProducts');
+    node.scrollTop = node.scrollHeight;
+    return {
+      top: node.scrollTop,
+      max: Math.max(0, node.scrollHeight - node.clientHeight),
+      overscroll: getComputedStyle(node).overscrollBehaviorY
+    };
+  });
   await list.hover();
-  const listEdgeOuter = await page.evaluate(() => window.scrollY);
   await page.mouse.wheel(0, 600);
-  await page.waitForTimeout(140);
-  const listChainedOuter = await page.evaluate(() => window.scrollY);
-  if (!(listChainedOuter > listEdgeOuter + 5)) throw new Error(`lista no fim não encadeou scroll com a página: ${listEdgeOuter} -> ${listChainedOuter}`);
+  await page.waitForTimeout(120);
+  const listEdgeAfter = await page.evaluate(() => {
+    const node = document.querySelector('#selectableProducts');
+    return {
+      top: node.scrollTop,
+      max: Math.max(0, node.scrollHeight - node.clientHeight),
+      overscroll: getComputedStyle(node).overscrollBehaviorY
+    };
+  });
+  if (Math.abs(listEdgeBefore.top - listEdgeBefore.max) > 2 || Math.abs(listEdgeAfter.top - listEdgeAfter.max) > 2 || listEdgeAfter.overscroll !== 'auto') {
+    throw new Error(`lista deve atingir o limite e deixar chaining nativo desbloqueado: ${JSON.stringify({ listEdgeBefore, listEdgeAfter })}`);
+  }
 
   const preview = page.locator('#catalogPreviewViewport');
   await page.evaluate(() => { window.scrollTo(0, 0); const node = document.querySelector('#catalogPreviewViewport'); node.scrollTop = 0; });
@@ -244,20 +260,36 @@ try {
   if (!(previewAfter.inner > previewBefore.inner + 20)) throw new Error(`wheel não rolou páginas A4 internamente: ${JSON.stringify({ previewBefore, previewAfter })}`);
   if (Math.abs(previewAfter.outer - previewBefore.outer) > 3) throw new Error(`preview em meio de curso moveu a página externa: ${JSON.stringify({ previewBefore, previewAfter })}`);
 
-  await page.evaluate(() => { const node = document.querySelector('#catalogPreviewViewport'); node.scrollTop = node.scrollHeight; });
+  const previewEdgeBefore = await page.evaluate(() => {
+    const node = document.querySelector('#catalogPreviewViewport');
+    node.scrollTop = node.scrollHeight;
+    return {
+      top: node.scrollTop,
+      max: Math.max(0, node.scrollHeight - node.clientHeight),
+      overscroll: getComputedStyle(node).overscrollBehaviorY
+    };
+  });
   await preview.hover();
-  const previewEdgeOuter = await page.evaluate(() => window.scrollY);
   await page.mouse.wheel(0, 650);
-  await page.waitForTimeout(140);
-  const previewChainedOuter = await page.evaluate(() => window.scrollY);
-  if (!(previewChainedOuter > previewEdgeOuter + 5)) throw new Error(`preview no fim não encadeou scroll com a página: ${previewEdgeOuter} -> ${previewChainedOuter}`);
+  await page.waitForTimeout(120);
+  const previewEdgeAfter = await page.evaluate(() => {
+    const node = document.querySelector('#catalogPreviewViewport');
+    return {
+      top: node.scrollTop,
+      max: Math.max(0, node.scrollHeight - node.clientHeight),
+      overscroll: getComputedStyle(node).overscrollBehaviorY
+    };
+  });
+  if (Math.abs(previewEdgeBefore.top - previewEdgeBefore.max) > 2 || Math.abs(previewEdgeAfter.top - previewEdgeAfter.max) > 2 || previewEdgeAfter.overscroll !== 'auto') {
+    throw new Error(`preview deve atingir o limite e deixar chaining nativo desbloqueado: ${JSON.stringify({ previewEdgeBefore, previewEdgeAfter })}`);
+  }
 
   await page.evaluate(() => {
     window.__fidelityPrintFrame?.remove();
     document.querySelector('#scroll-gate-spacer')?.remove();
   });
 
-  console.log('PASS browser render fidelity/scroll gate: CSS e fitting preview→PDF, colunas semânticas e scroll interno encadeável');
+  console.log('PASS browser render fidelity/scroll gate: CSS e fitting preview→PDF, colunas semânticas e scroll interno com chaining nativo desbloqueado');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
