@@ -10,6 +10,22 @@
   const tableRowsField = document.getElementById('commercialRows');
   if (!Core || !form || !priceField || !variantsField || !tableRowsField) return;
 
+  const priceGrid = priceField.closest('.field-grid');
+  const quantityEditor = document.createElement('div');
+  quantityEditor.className = 'quantity-price-editor';
+  quantityEditor.innerHTML = `
+    <label class="quantity-price-toggle"><input id="hasQuantityPrice" type="checkbox" /><span>Preço por quantidade</span></label>
+    <div class="quantity-price-fields hidden" id="quantityPriceFields">
+      <label>Qtd. mín.<input id="quantityMin" type="number" min="2" step="1" inputmode="numeric" placeholder="Ex.: 10" /></label>
+      <label>Preço em quantidade<input id="quantityPrice" inputmode="decimal" placeholder="Ex.: R$ 49,90" /></label>
+    </div>`;
+  priceGrid?.after(quantityEditor);
+
+  const quantityToggle = document.getElementById('hasQuantityPrice');
+  const quantityFields = document.getElementById('quantityPriceFields');
+  const quantityMinField = document.getElementById('quantityMin');
+  const quantityPriceField = document.getElementById('quantityPrice');
+
   let pendingDetails = null;
   const normalizeProduct = Core.normalizeProduct;
 
@@ -18,17 +34,32 @@
     if (!pendingDetails) return normalized;
     const productId = String(product?.id || normalized.id || '');
     if (pendingDetails.id && pendingDetails.id !== productId) return normalized;
+    normalized.quantityPrice = pendingDetails.quantityPrice;
     normalized.variants = pendingDetails.variants;
     normalized.tableRows = pendingDetails.tableRows;
     pendingDetails = null;
     return normalized;
   };
 
+  function setQuantityEnabled(enabled) {
+    quantityToggle.checked = Boolean(enabled);
+    quantityFields.classList.toggle('hidden', !enabled);
+    quantityMinField.disabled = !enabled;
+    quantityPriceField.disabled = !enabled;
+    if (!enabled) {
+      quantityMinField.setCustomValidity('');
+      quantityPriceField.setCustomValidity('');
+    }
+  }
+
   function clearDetails() {
     variantsField.value = '';
     tableRowsField.value = '';
     priceField.setCustomValidity('');
     tableRowsField.setCustomValidity('');
+    quantityMinField.value = '';
+    quantityPriceField.value = '';
+    setQuantityEnabled(false);
   }
 
   function loadDetails() {
@@ -42,6 +73,10 @@
     tableRowsField.value = Core.tableRowsToText(product.tableRows);
     priceField.setCustomValidity('');
     tableRowsField.setCustomValidity('');
+    const quantityPrice = Core.normalizeQuantityPrice(product.quantityPrice);
+    quantityMinField.value = quantityPrice?.minQuantity || '';
+    quantityPriceField.value = quantityPrice?.price || '';
+    setQuantityEnabled(Boolean(quantityPrice));
   }
 
   function normalizeSinglePriceField() {
@@ -56,6 +91,30 @@
     return true;
   }
 
+  function normalizeQuantityPriceFields() {
+    if (!quantityToggle.checked) {
+      quantityMinField.setCustomValidity('');
+      quantityPriceField.setCustomValidity('');
+      return { ok: true, value: null };
+    }
+    const minQuantity = Number(quantityMinField.value);
+    if (!Number.isSafeInteger(minQuantity) || minQuantity < 2) {
+      quantityMinField.setCustomValidity('Informe uma quantidade mínima inteira a partir de 2.');
+      quantityPriceField.setCustomValidity('');
+      return { ok: false, field: quantityMinField, value: null };
+    }
+    const parsed = Money?.parse(quantityPriceField.value);
+    if (!parsed?.ok || parsed.empty) {
+      quantityMinField.setCustomValidity('');
+      quantityPriceField.setCustomValidity('Informe um preço em quantidade válido, por exemplo R$ 49,90.');
+      return { ok: false, field: quantityPriceField, value: null };
+    }
+    quantityMinField.setCustomValidity('');
+    quantityPriceField.setCustomValidity('');
+    quantityPriceField.value = parsed.canonical;
+    return { ok: true, value: { minQuantity, price: parsed.canonical } };
+  }
+
   function commercialPriceIssue(text) {
     if (!Money) return null;
     const lines = String(text || '').split(/\r?\n/);
@@ -64,7 +123,16 @@
       if (!line) continue;
       const parts = line.split('|').map(part => part.trim());
       const price = parts[3] || '';
-      if (price && !Money.parse(price).ok) return { line: index + 1, price };
+      const minQuantity = parts[4] || '';
+      const quantityPrice = parts[5] || '';
+      if (price && !Money.parse(price).ok) return { line: index + 1, reason: `Preço inválido: ${price}` };
+      if (Boolean(minQuantity) !== Boolean(quantityPrice)) return { line: index + 1, reason: 'Qtd. mín. e preço em quantidade devem ser informados juntos.' };
+      if (minQuantity) {
+        const minimum = Number(minQuantity);
+        if (!Number.isSafeInteger(minimum) || minimum < 2) return { line: index + 1, reason: `Qtd. mín. inválida: ${minQuantity}` };
+        const parsed = Money.parse(quantityPrice);
+        if (!parsed.ok || parsed.empty) return { line: index + 1, reason: `Preço em quantidade inválido: ${quantityPrice}` };
+      }
     }
     return null;
   }
@@ -72,7 +140,7 @@
   function normalizeCommercialRowsField() {
     const issue = commercialPriceIssue(tableRowsField.value);
     if (issue) {
-      tableRowsField.setCustomValidity(`Preço inválido na linha ${issue.line}: ${issue.price}`);
+      tableRowsField.setCustomValidity(`Linha ${issue.line}: ${issue.reason}`);
       return issue;
     }
     tableRowsField.setCustomValidity('');
@@ -84,6 +152,14 @@
   priceField.addEventListener('blur', () => {
     if (normalizeSinglePriceField()) return;
     priceField.setCustomValidity('Informe um valor monetário válido, por exemplo R$ 54,90.');
+  });
+  quantityToggle.addEventListener('change', () => setQuantityEnabled(quantityToggle.checked));
+  quantityMinField.addEventListener('input', () => quantityMinField.setCustomValidity(''));
+  quantityPriceField.addEventListener('input', () => quantityPriceField.setCustomValidity(''));
+  quantityPriceField.addEventListener('blur', () => {
+    if (!quantityToggle.checked || !quantityPriceField.value.trim()) return;
+    const parsed = Money?.parse(quantityPriceField.value);
+    if (parsed?.ok && !parsed.empty) quantityPriceField.value = parsed.canonical;
   });
   tableRowsField.addEventListener('input', () => tableRowsField.setCustomValidity(''));
   tableRowsField.addEventListener('blur', normalizeCommercialRowsField);
@@ -99,6 +175,16 @@
       return;
     }
 
+    const quantity = normalizeQuantityPriceFields();
+    if (!quantity.ok) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      document.querySelector('[data-form-step-target="2"]')?.click();
+      quantity.field.reportValidity();
+      quantity.field.focus();
+      return;
+    }
+
     const issue = normalizeCommercialRowsField();
     if (issue) {
       event.preventDefault();
@@ -111,6 +197,7 @@
 
     pendingDetails = {
       id: document.getElementById('productId')?.value || '',
+      quantityPrice: quantity.value,
       variants: Core.parseVariantsText(variantsField.value),
       tableRows: Core.parseTableRowsText(tableRowsField.value)
     };
