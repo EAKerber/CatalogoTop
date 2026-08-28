@@ -55,34 +55,34 @@ try {
     const previewColumn = document.querySelector('.preview-column');
     const preview = document.querySelector('#catalogPreviewViewport');
     const list = document.querySelector('#selectableProducts');
+    const scrolling = document.scrollingElement;
+    const previewStyle = getComputedStyle(preview);
     return {
       panelHeight: panel.getBoundingClientRect().height,
       panelMaxHeight: getComputedStyle(panel).maxHeight,
       previewHeight: previewColumn.getBoundingClientRect().height,
       previewRange: Math.max(0, preview.scrollHeight - preview.clientHeight),
       previewScrollTop: preview.scrollTop,
+      previewOverflowY: previewStyle.overflowY,
+      previewTouchAction: previewStyle.touchAction,
+      documentRange: Math.max(0, scrolling.scrollHeight - scrolling.clientHeight),
       columnOverflow: getComputedStyle(previewColumn).overflowY,
       listOverflow: getComputedStyle(list).overflowY,
       listScrollbar: getComputedStyle(list).scrollbarWidth
     };
   });
-  if (desktop.panelMaxHeight !== 'none' || desktop.previewRange > 2 || desktop.columnOverflow !== 'visible' || desktop.listOverflow !== 'auto') throw new Error(`ownership desktop adaptativo incorreto: ${JSON.stringify(desktop)}`);
+  if (desktop.panelMaxHeight !== 'none' || desktop.previewRange > 2 || desktop.previewOverflowY !== 'clip' || !desktop.previewTouchAction.includes('pan-y') || desktop.documentRange < 50 || desktop.columnOverflow !== 'visible' || desktop.listOverflow !== 'auto') {
+    throw new Error(`ownership desktop adaptativo incorreto: ${JSON.stringify(desktop)}`);
+  }
   if (desktop.listScrollbar !== 'thin') throw new Error(`scrollbar editorial não foi tematizada: ${JSON.stringify(desktop)}`);
 
   const heightBeforeScroll = await page.locator('.selection-panel').evaluate(node => node.getBoundingClientRect().height);
   await page.evaluate(() => window.scrollBy(0, 260));
   await page.waitForTimeout(80);
+  const externalScroll = await page.evaluate(() => ({ y: window.scrollY, previewTop: document.querySelector('#catalogPreviewViewport').scrollTop }));
   const heightAfterScroll = await page.locator('.selection-panel').evaluate(node => node.getBoundingClientRect().height);
+  if (externalScroll.y < 20 || externalScroll.previewTop > 2) throw new Error(`scroll vertical não pertenceu ao documento: ${JSON.stringify(externalScroll)}`);
   if (Math.abs(heightBeforeScroll - heightAfterScroll) > 1) throw new Error(`scroll externo redimensionou compositor: ${heightBeforeScroll} -> ${heightAfterScroll}`);
-
-  await page.evaluate(() => window.scrollTo(0, 0));
-  const preview = page.locator('#catalogPreviewViewport');
-  await preview.hover();
-  const outerBefore = await page.evaluate(() => window.scrollY);
-  await page.mouse.wheel(0, 520);
-  await page.waitForTimeout(120);
-  const previewWheel = await page.evaluate(() => ({ outer: window.scrollY, inner: document.querySelector('#catalogPreviewViewport').scrollTop, range: Math.max(0, document.querySelector('#catalogPreviewViewport').scrollHeight - document.querySelector('#catalogPreviewViewport').clientHeight) }));
-  if (!(previewWheel.outer > outerBefore + 20) || previewWheel.inner > 2 || previewWheel.range > 2) throw new Error(`wheel sobre A4 não permaneceu no fluxo vertical da página: ${JSON.stringify({ outerBefore, previewWheel })}`);
 
   await page.click('.catalog-table-block[data-table-block-id="table-scroll"] .catalog-table-heading');
   await page.waitForSelector('#contextualInspector .inspector-mode-tabs');
