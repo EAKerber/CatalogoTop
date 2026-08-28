@@ -124,6 +124,8 @@ try {
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.blocks.some(block => block.type === 'collection'));
   const collectionId = await page.evaluate(() => window.CatalogoTop.Core.getState().catalog.presentation.blocks.find(block => block.type === 'collection').id);
   await assertMembership(page, 'criar Collection');
+  await page.waitForSelector('#contextualInspector [data-inspector-mode="order"]');
+  await page.click('#contextualInspector [data-inspector-mode="order"]');
   await page.waitForSelector(`#contextualInspector [data-inspector-member-order="${collectionId}"]`);
 
   await page.keyboard.press('Escape');
