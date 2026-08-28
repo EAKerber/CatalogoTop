@@ -211,6 +211,41 @@
   }
 
   let augmentFrame = 0;
+  let composerMeasureFrame = 0;
+
+  function measureComposerHeight() {
+    composerMeasureFrame = 0;
+    const layout = $('.selection-layout');
+    if (!layout) return;
+    if (matchMedia('(max-width: 959px)').matches || !$('#catalog')?.classList.contains('active')) {
+      layout.style.removeProperty('--composer-available-height');
+      return;
+    }
+    const documentTop = layout.getBoundingClientRect().top + window.scrollY;
+    const available = Math.max(360, Math.floor(window.innerHeight - documentTop - 16));
+    layout.style.setProperty('--composer-available-height', `${available}px`);
+  }
+
+  function scheduleComposerMeasure() {
+    if (composerMeasureFrame) cancelAnimationFrame(composerMeasureFrame);
+    composerMeasureFrame = requestAnimationFrame(measureComposerHeight);
+  }
+
+  function focusEditorSettings() {
+    const inspector = $('#contextualInspector');
+    if (!inspector || !ComposerSelection.get()) return false;
+    NS.ContextualInspector?.setMinimized?.(false);
+    requestAnimationFrame(() => {
+      const current = $('#contextualInspector');
+      if (!current) return;
+      current.scrollTop = 0;
+      if (matchMedia('(max-width: 959px)').matches) {
+        current.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+      }
+    });
+    return true;
+  }
+
   function scheduleEditorAugment() {
     if (augmentFrame) cancelAnimationFrame(augmentFrame);
     augmentFrame = requestAnimationFrame(() => {
@@ -264,8 +299,8 @@
       floater = document.createElement('div');
       floater.id = 'editorOrderFloater';
       floater.className = 'editor-order-floater';
-      floater.setAttribute('aria-label', 'Reordenar seleção');
-      floater.innerHTML = '<button type="button" data-editor-move="-1" aria-label="Mover seleção para cima">↑</button><button type="button" data-editor-move="1" aria-label="Mover seleção para baixo">↓</button>';
+      floater.setAttribute('aria-label', 'Reordenar seleção e abrir ajustes');
+      floater.innerHTML = '<button type="button" data-editor-move="-1" aria-label="Mover seleção para cima">↑</button><button type="button" class="editor-settings-jump" data-editor-settings aria-label="Ir para ajustes" title="Ir para ajustes">⚙</button><button type="button" data-editor-move="1" aria-label="Mover seleção para baixo">↓</button>';
       document.body.appendChild(floater);
     }
     floater.hidden = !$('#catalog')?.classList.contains('active') || !target || !ids.length;
@@ -309,6 +344,12 @@
 
   function bindOrderCommands() {
     document.addEventListener('click', event => {
+      const settings = event.target.closest('[data-editor-settings]');
+      if (settings) {
+        event.preventDefault();
+        focusEditorSettings();
+        return;
+      }
       const button = event.target.closest('[data-editor-move]');
       if (!button || button.disabled) return;
       event.preventDefault();
@@ -327,8 +368,24 @@
     });
   }
 
+  function bindComposerSizing() {
+    const controls = $('.catalog-controls');
+    const header = $('.app-shell-header');
+    if (window.ResizeObserver) {
+      const observer = new ResizeObserver(scheduleComposerMeasure);
+      if (controls) observer.observe(controls);
+      if (header) observer.observe(header);
+    }
+    document.addEventListener('click', event => {
+      if (event.target.closest('[data-tab="catalog"]')) requestAnimationFrame(scheduleComposerMeasure);
+    });
+    window.addEventListener('orientationchange', scheduleComposerMeasure);
+    scheduleComposerMeasure();
+  }
+
   bindGroupingPreparation();
   bindOrderCommands();
+  bindComposerSizing();
 
   NS.GroupingControls = {
     ids: editorialIds,
@@ -338,14 +395,16 @@
     prepareGrouping,
     moveSelectionRelative,
     canMoveSelection,
+    focusEditorSettings,
+    measureComposerHeight,
     refresh: refreshToolbar
   };
   NS.EditorOrder = { consolidatedOrder, selectedMovePlan, moveSelectionRelative, canMoveSelection };
 
   window.addEventListener('catalogotop:editor-selection-changed', refreshAndEmit);
   window.addEventListener('catalogotop:selection-rendered', refreshToolbar);
-  window.addEventListener('catalogotop:catalog-rendered', scheduleEditorAugment);
+  window.addEventListener('catalogotop:catalog-rendered', () => { scheduleEditorAugment(); scheduleComposerMeasure(); });
   window.addEventListener('catalogotop:products-updated', refreshToolbar);
-  window.addEventListener('resize', scheduleEditorAugment);
+  window.addEventListener('resize', () => { scheduleEditorAugment(); scheduleComposerMeasure(); });
   refreshToolbar();
 })();
