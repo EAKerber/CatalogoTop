@@ -86,13 +86,12 @@ try {
       orderDisplay: getComputedStyle(row.querySelector('.selection-order')).display,
       contextHidden: document.querySelector('#groupingActions')?.hidden,
       legacyBulk: document.querySelectorAll('.bulk-presentation-controls,[data-bulk-presentation]').length,
-      oldGroupingButtonDisplay: document.querySelector('#btnEnterGrouping') ? getComputedStyle(document.querySelector('#btnEnterGrouping')).display : 'missing'
+      oldGroupingButton: Boolean(document.querySelector('#btnEnterGrouping,#btnCancelGrouping'))
     };
   });
-  if (!baseline.checked || baseline.background !== 'rgb(255, 255, 255)' || baseline.orderDisplay !== 'none' || !baseline.contextHidden || baseline.legacyBulk) {
+  if (!baseline.checked || baseline.background !== 'rgb(255, 255, 255)' || baseline.orderDisplay !== 'none' || !baseline.contextHidden || baseline.legacyBulk || baseline.oldGroupingButton) {
     throw new Error(`membership ainda parece seleção editorial ou há chrome legado: ${JSON.stringify(baseline)}`);
   }
-  if (!['none', 'missing'].includes(baseline.oldGroupingButtonDisplay)) throw new Error(`botão Agrupar legado ficou visível: ${baseline.oldGroupingButtonDisplay}`);
 
   const p1 = page.locator('#selectableProducts [data-product-row="p1"] > span strong');
   const p2 = page.locator('#selectableProducts [data-product-row="p2"] > span strong');
@@ -149,27 +148,15 @@ try {
     const expected = NS.TableBlock.planColumnWidths(fragmented.block.columns, fragmented.columnDemand).map(item => ({ id: item.id, width: item.percent }));
     const logicalItems = NS.CatalogDocument.build(state).pages.flatMap(item => item.items).filter(item => item.type === 'table' && item.blockId === tableId);
     const rendered = Array.from(document.querySelectorAll(`#catalogPreview .catalog-table-block[data-table-block-id="${CSS.escape(tableId)}"]`)).map(table => Array.from(table.querySelectorAll('col[data-table-column-width]')).map(col => ({ id: col.dataset.tableColumnWidth, width: parseFloat(col.style.width) })));
-    return {
-      rawFragments: fragmented.fragments.length,
-      expected,
-      logicalDemands: logicalItems.map(item => item.columnDemand || {}),
-      rendered
-    };
+    return { rawFragments: fragmented.fragments.length, expected, logicalDemands: logicalItems.map(item => item.columnDemand || {}), rendered };
   }, tableId);
-  if (widthContract.rawFragments < 2) throw new Error(`fixture deveria produzir fragmentação lógica, recebeu ${widthContract.rawFragments}`);
-  if (!widthContract.rendered.length) throw new Error('Table não foi materializada no preview');
+  if (widthContract.rawFragments < 2 || !widthContract.rendered.length) throw new Error(`Table não preservou fragmentação/materialização: ${JSON.stringify(widthContract)}`);
   const expectedSignature = JSON.stringify(widthContract.expected);
-  if (widthContract.rendered.some(widths => JSON.stringify(widths) !== expectedSignature)) {
-    throw new Error(`Table renderizada divergiu do plano adaptativo único: ${JSON.stringify(widthContract)}`);
-  }
-  if (widthContract.logicalDemands.some(demand => JSON.stringify(demand) !== JSON.stringify(widthContract.logicalDemands[0]))) {
-    throw new Error(`itens lógicos da mesma Table não compartilharam demanda: ${JSON.stringify(widthContract.logicalDemands)}`);
-  }
+  if (widthContract.rendered.some(widths => JSON.stringify(widths) !== expectedSignature)) throw new Error(`Table renderizada divergiu do plano adaptativo único: ${JSON.stringify(widthContract)}`);
+  if (widthContract.logicalDemands.some(demand => JSON.stringify(demand) !== JSON.stringify(widthContract.logicalDemands[0]))) throw new Error(`itens lógicos da mesma Table não compartilharam demanda: ${JSON.stringify(widthContract.logicalDemands)}`);
   const firstWidths = Object.fromEntries(widthContract.expected.map(item => [item.id, item.width]));
   const totalWidth = widthContract.expected.reduce((sum, item) => sum + item.width, 0);
-  if (Math.abs(totalWidth - 100) > .05 || !(firstWidths.description > firstWidths.code && firstWidths.description > firstWidths.price)) {
-    throw new Error(`plano adaptativo não ocupou 100% com Produto dominante: ${JSON.stringify(widthContract.expected)}`);
-  }
+  if (Math.abs(totalWidth - 100) > .05 || !(firstWidths.description > firstWidths.code && firstWidths.description > firstWidths.price)) throw new Error(`plano adaptativo não ocupou 100% com Produto dominante: ${JSON.stringify(widthContract.expected)}`);
 
   await page.click(`#catalogPreview .catalog-table-block[data-table-block-id="${tableId}"] tr[data-product-id="p3"] td`);
   await page.waitForSelector('#contextualInspector [data-inspector-table-row]');
@@ -184,6 +171,8 @@ try {
   await page.click('#contextualInspector [data-inspector-toggle]');
   await page.waitForSelector('#contextualInspector [data-inspector-table-row]');
 
+  await page.click('#contextualInspector [data-inspector-open-table]');
+  await page.waitForSelector(`#contextualInspector [data-inspector-table="${tableId}"]`);
   await page.waitForSelector('#contextualInspector [data-commercial-table-price-style] input[value="block"]');
   await page.check('#contextualInspector [data-commercial-table-price-style] input[value="block"]');
   await page.waitForFunction(tableId => window.CatalogoTop.Core.getState().catalog.presentation.blocks.find(block => block.id === tableId)?.priceStyle === 'block', tableId);
@@ -202,15 +191,15 @@ try {
     const result = {
       tableBackground: table ? frame.contentWindow.getComputedStyle(table).backgroundColor : '',
       collectionBorder: collectionPrice ? frame.contentWindow.getComputedStyle(collectionPrice).borderTopWidth : '',
-      legacyBulk: frame.contentDocument.querySelectorAll('.bulk-presentation-controls,[data-bulk-presentation]').length
+      legacyBulk: frame.contentDocument.querySelectorAll('.bulk-presentation-controls,[data-bulk-presentation]').length,
+      editorChromeStyles: [...frame.contentDocument.querySelectorAll('link[rel="stylesheet"]')].some(link => link.href.endsWith('/grouping-controls.css'))
     };
     frame.remove();
     return result;
   });
-  if (!printFrame.tableBackground || printFrame.tableBackground === 'rgba(0, 0, 0, 0)' || printFrame.collectionBorder === '0px' || printFrame.legacyBulk) {
-    throw new Error(`estilos de agrupamento não sobreviveram ao documento de impressão: ${JSON.stringify(printFrame)}`);
+  if (!printFrame.tableBackground || printFrame.tableBackground === 'rgba(0, 0, 0, 0)' || printFrame.collectionBorder === '0px' || printFrame.legacyBulk || printFrame.editorChromeStyles) {
+    throw new Error(`estilos de agrupamento/isolamento de print inválidos: ${JSON.stringify(printFrame)}`);
   }
-
   await assertMembership(page, 'estilos e seleção de linha');
 
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
