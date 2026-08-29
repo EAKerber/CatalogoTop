@@ -90,6 +90,21 @@
   .catalog-preview { gap: 14px; }
 }
 
+/* No celular, o A4 é uma superfície editorial: long-press não deve abrir o callout
+ * nativo de copiar/Lens/baixar. O gesto continua livre para pan e seleção editorial. */
+@media (max-width: 639px) {
+  .catalog-preview-viewport,
+  .catalog-preview-viewport * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .catalog-preview-viewport img {
+    -webkit-user-drag: none;
+  }
+}
+
 @media (max-width: 480px) {
   .preview-toolbar-meta {
     width: 100%;
