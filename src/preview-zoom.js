@@ -3,8 +3,9 @@
 
   const A4_WIDTH_CSS_PX = 210 * 96 / 25.4;
   const MIN_SCALE = 0.24;
-  const MAX_SCALE = 1.6;
-  const STEP = 0.12;
+  const DESKTOP_MAX_SCALE = 0.8;
+  const MOBILE_MAX_SCALE = 1;
+  const STEP_RATIO = 0.12;
 
   const root = document.getElementById('catalogPreview');
   const viewport = document.getElementById('catalogPreviewViewport');
@@ -15,26 +16,36 @@
 
   if (!root || !viewport || !value || !fitButton || !outButton || !inButton) return;
 
-  let mode = window.matchMedia('(max-width: 959px)').matches ? 'fit' : 'actual';
-  let scale = 1;
+  const desktop = window.matchMedia('(min-width: 1180px)');
+  let mode = desktop.matches ? 'actual' : 'fit';
+  let scale = desktop.matches ? DESKTOP_MAX_SCALE : 1;
 
   function clamp(number, min, max) {
     return Math.min(max, Math.max(min, number));
   }
 
+  function maxScale() {
+    return desktop.matches ? DESKTOP_MAX_SCALE : MOBILE_MAX_SCALE;
+  }
+
+  function displayPercent(nextScale = scale) {
+    const reference = maxScale();
+    return Math.round((nextScale / reference) * 100);
+  }
+
   function fitScale() {
     const available = Math.max(1, viewport.clientWidth - 8);
-    return clamp(Math.min(1, available / A4_WIDTH_CSS_PX), MIN_SCALE, 1);
+    return clamp(Math.min(maxScale(), available / A4_WIDTH_CSS_PX), MIN_SCALE, maxScale());
   }
 
   function apply(nextScale) {
-    scale = clamp(nextScale, MIN_SCALE, MAX_SCALE);
+    scale = clamp(nextScale, MIN_SCALE, maxScale());
     root.style.setProperty('--preview-scale', scale.toFixed(4));
-    value.textContent = `${Math.round(scale * 100)}%`;
+    value.textContent = `${displayPercent(scale)}%`;
     fitButton.classList.toggle('active', mode === 'fit');
     fitButton.setAttribute('aria-pressed', mode === 'fit' ? 'true' : 'false');
     outButton.disabled = scale <= MIN_SCALE + .001;
-    inButton.disabled = scale >= MAX_SCALE - .001;
+    inButton.disabled = scale >= maxScale() - .001;
   }
 
   function fit() {
@@ -48,8 +59,12 @@
     apply(nextScale);
   }
 
-  outButton.addEventListener('click', () => setManual(scale - STEP));
-  inButton.addEventListener('click', () => setManual(scale + STEP));
+  function stepSize() {
+    return maxScale() * STEP_RATIO;
+  }
+
+  outButton.addEventListener('click', () => setManual(scale - stepSize()));
+  inButton.addEventListener('click', () => setManual(scale + stepSize()));
   fitButton.addEventListener('click', fit);
 
   const resizeObserver = new ResizeObserver(() => {
@@ -62,15 +77,27 @@
   });
   mutationObserver.observe(root, { childList: true });
 
+  desktop.addEventListener?.('change', event => {
+    if (event.matches) {
+      mode = 'actual';
+      apply(DESKTOP_MAX_SCALE);
+      viewport.scrollLeft = 0;
+    } else {
+      fit();
+    }
+  });
+
   window.addEventListener('catalogotop:preview-fit', fit);
 
   if (mode === 'fit') requestAnimationFrame(fit);
-  else apply(1);
+  else apply(DESKTOP_MAX_SCALE);
 
   window.CatalogoTop = window.CatalogoTop || {};
   window.CatalogoTop.PreviewZoom = {
     fit,
     getScale: () => scale,
-    getMode: () => mode
+    getMode: () => mode,
+    getDisplayPercent: () => displayPercent(scale),
+    getMaxScale: maxScale
   };
 })();
