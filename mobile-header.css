@@ -16,7 +16,7 @@
     align-self: center;
   }
 
-  /* Os dois filhos precisam participar diretamente do grid do header. */
+  /* Os filhos participam diretamente do grid do header. */
   .app-primary-tools { display: contents; }
 
   .header-product-import {
@@ -69,6 +69,31 @@
     width: 100%;
     min-width: 0;
   }
+
+  /* Undo/redo ocupa o canto direito da segunda linha apenas no contexto Catálogo.
+   * As tabs cedem largura em vez de criar uma terceira linha. */
+  .app-shell-header .editor-history-controls:not([hidden]) {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
+    align-self: center;
+    display: inline-flex;
+    gap: 4px;
+    padding-left: 6px;
+    background: var(--shell, #191b20);
+  }
+  .app-shell-header:has(.editor-history-controls:not([hidden])) .app-tabs {
+    grid-column: 1 / 3;
+  }
+  .app-shell-header .editor-history-controls button {
+    width: 31px;
+    height: 31px;
+    min-width: 31px;
+    border-color: rgba(255,255,255,.16);
+    background: rgba(255,255,255,.06);
+    color: #fff;
+  }
+  .app-shell-header .editor-history-controls button:disabled { opacity: .3; }
 }
 
 @media (max-width: 639px) {
@@ -78,9 +103,7 @@
     padding: 5px 6px 4px;
   }
 
-  .app-brand {
-    gap: 5px;
-  }
+  .app-brand { gap: 5px; }
   .app-brand img {
     width: 38px;
     height: 28px;
@@ -97,9 +120,7 @@
     gap: 4px;
   }
   .header-product-import > *,
-  .app-header-actions .button {
-    scroll-snap-align: start;
-  }
+  .app-header-actions .button { scroll-snap-align: start; }
 
   .header-import-button,
   .header-product-import select,
@@ -125,6 +146,13 @@
     font-size: 10.5px;
     padding: 6px 7px;
   }
+  .app-shell-header .editor-history-controls:not([hidden]) { padding-left: 4px; }
+  .app-shell-header .editor-history-controls button {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    font-size: 15px;
+  }
 }
 
 @media (max-width: 420px) {
@@ -133,4 +161,5 @@
   .app-shell-header {
     grid-template-columns: 38px minmax(0, 1.05fr) minmax(0, .95fr);
   }
+  .app-shell-header:has(.editor-history-controls:not([hidden])) .app-tabs { grid-column: 1 / 3; }
 }

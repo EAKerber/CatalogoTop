@@ -1,4 +1,4 @@
-/* v0.11.2.8 — painel desktop orientado ao target: configuração inteira + lista sempre útil. */
+/* v0.11.3.0 — painel desktop orientado ao target: configuração inteira + lista sempre útil. */
 
 .catalog-controls.editorial-controls {
   grid-template-columns: minmax(220px, 1fr) 220px auto auto;
@@ -66,6 +66,37 @@
   }
 }
 
+.editor-history-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.editor-history-controls button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink-2);
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1;
+}
+.editor-history-controls button:hover:not(:disabled),
+.editor-history-controls button:focus-visible {
+  border-color: #c8ccd1;
+  background: #f7f7f8;
+  color: var(--ink);
+  outline: 0;
+}
+.editor-history-controls button:disabled {
+  opacity: .28;
+  cursor: not-allowed;
+}
+
 /* Desktop: o antigo 80% físico do preview é o novo teto visual de 100%.
  * A largura recuperada pertence ao painel autoral; A4 e lista mantêm scroll próprio. */
 @media (min-width: 1180px) {
@@ -79,7 +110,7 @@
   }
 
   #catalog.panel.active {
-    --authoring-panel-width: clamp(480px, 36vw, 580px);
+    --authoring-panel-width: clamp(520px, 38vw, 640px);
     position: relative;
     height: 100%;
     min-height: 0;
@@ -91,7 +122,6 @@
     align-items: stretch;
   }
 
-  /* Onboarding não ocupa o workspace recorrente; as ações sobem para a toolbar do preview via JS. */
   #catalog > .catalog-heading { display: contents; }
   #catalog > .catalog-heading > div:first-child { display: none; }
   #catalog > .catalog-heading .heading-actions {
@@ -152,41 +182,115 @@
     overflow: hidden;
     align-self: stretch;
     display: grid;
-    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     box-shadow: none;
     border-radius: 12px;
   }
   #catalog:has(#contextualInspector:not(.is-collapsed)) .selection-panel { grid-row: 1 / 3; }
   #catalog .contextual-inspector.is-collapsed { display: none; }
 
-  /* Ordem espacial: configurar → agir → filtrar → percorrer produtos. */
+  /* Ordem espacial: configurar → filtrar/agir → percorrer produtos. */
   #catalog .contextual-inspector { order: 1; }
-  #catalog .desktop-editor-actions { order: 2; }
-  #catalog .selection-toolbar { order: 3; }
-  #catalog .selectable-products { order: 4; }
+  #catalog .selection-toolbar { order: 2; }
+  #catalog .selectable-products { order: 3; }
 
-  /* Ações frequentes cabem em uma linha; ação destrutiva fica no overflow. */
-  #catalog .desktop-editor-actions {
+  /* Busca e ações rápidas compartilham a mesma linha; rail usa a linha inteira abaixo. */
+  #catalog .selection-toolbar {
     min-width: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1.3fr) 1fr 1fr auto;
-    gap: 5px;
-    padding: 7px 8px;
+    grid-template-columns: minmax(180px, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 6px 7px;
+    padding: 7px 8px 8px;
+    border-top: 0;
     border-bottom: 1px solid var(--line);
-    background: #fafafa;
+    align-items: center;
   }
-  #catalog .desktop-editor-actions > button {
+  #catalog .selection-toolbar #searchSelection {
+    grid-column: 1;
+    grid-row: 1;
     min-width: 0;
-    min-height: 30px;
-    padding: 5px 7px;
-    font-size: 9px;
+    min-height: 32px;
+    padding: 6px 9px;
+  }
+  #catalog .selection-toolbar #selectionCategory { display: none; }
+
+  #catalog .desktop-editor-actions {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    display: inline-grid;
+    grid-template-columns: auto 34px 34px 32px;
+    gap: 5px;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  #catalog .desktop-editor-actions > #btnSelectVisible {
+    min-width: 104px;
+    min-height: 32px;
+    padding: 5px 9px;
     border-radius: 8px;
+    font-size: 9px;
     white-space: nowrap;
   }
+  #catalog .desktop-editor-actions .group-create-action {
+    position: relative;
+    width: 34px;
+    min-width: 34px;
+    height: 32px;
+    min-height: 32px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border-radius: 9px;
+    overflow: visible;
+  }
+  #catalog .desktop-editor-actions .group-action-text { display: none; }
+  #catalog .desktop-editor-actions .group-action-glyph {
+    width: 18px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+  }
+  #catalog .desktop-editor-actions .group-action-glyph svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  #catalog .desktop-editor-actions .group-action-badge {
+    position: absolute;
+    top: -6px;
+    right: -5px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    background: var(--brand);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 900;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  #catalog .desktop-editor-actions .group-create-action[data-count="0"] .group-action-badge { display: none; }
+  #catalog .desktop-editor-actions .group-create-action:disabled {
+    opacity: .34;
+    cursor: not-allowed;
+  }
+
   #catalog .desktop-action-overflow { position: relative; }
   #catalog .desktop-action-overflow > summary {
-    width: 31px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     display: grid;
     place-items: center;
     border: 1px solid var(--line);
@@ -223,30 +327,19 @@
   #catalog #selectionBrowseActions,
   #catalog #groupingActions { display: none !important; }
 
-  /* Busca + rail descrevem a intenção da lista e ficam imediatamente acima dela. */
-  #catalog .selection-toolbar {
-    min-width: 0;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 6px;
-    padding: 7px 8px 8px;
-    border-top: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  #catalog .selection-toolbar #selectionCategory { display: none; }
-  #catalog .selection-toolbar input {
-    min-height: 32px;
-    padding: 6px 9px;
-  }
   #catalog .selection-category-rail {
+    grid-column: 1 / -1;
+    grid-row: 2;
     display: flex;
     width: 100%;
     min-width: 0;
     gap: 6px;
+    padding-inline-end: 64px;
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
     scrollbar-width: none;
+    scroll-padding-inline-end: 64px;
     -webkit-overflow-scrolling: touch;
   }
   #catalog .selection-category-rail::-webkit-scrollbar { display: none; }
@@ -342,7 +435,6 @@
 @media (max-width: 639px) {
   .catalog-controls.editorial-controls { grid-template-columns: 1fr 1fr; }
 
-  /* Busca e categoria descrevem a intenção da lista: ficam imediatamente acima dela. */
   #contextualInspector { order: 1; }
   #selectionBrowseActions { order: 2; }
   #groupingActions { order: 3; }

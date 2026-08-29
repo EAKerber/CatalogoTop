@@ -48,11 +48,17 @@
     if (!button) return;
     const ids = candidateIds();
     const count = NS.ComposerSelection?.ids?.().length || 0;
-    button.textContent = count ? `Coleção (${Math.min(count, Collection.MAX_MEMBERS)})` : 'Criar coleção';
+    const shownCount = Math.min(count, Collection.MAX_MEMBERS);
+    button.classList.add('group-create-action', 'group-create-collection');
+    button.dataset.count = String(shownCount);
+    button.dataset.shortcut = 'Ctrl+G';
+    button.innerHTML = `<span class="group-action-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="11" height="10" rx="2"></rect><rect x="9" y="4" width="11" height="10" rx="2"></rect></svg></span><span class="group-action-text">${count ? `Coleção (${shownCount})` : 'Criar coleção'}</span><span class="group-action-badge" aria-hidden="true">${shownCount}</span>`;
     button.disabled = ids.length < 2 || ids.length > Collection.MAX_MEMBERS;
-    button.title = button.disabled
+    const hint = button.disabled
       ? 'Selecione de 2 a 12 produtos do catálogo, da mesma categoria e fora de outro bloco.'
       : `Agrupar ${ids.length} produtos em coleção${NS.GroupingControls?.isContiguousSameCategory?.(ids) ? '' : ' · itens separados serão reunidos'}`;
+    button.title = `${hint} Atalho: Ctrl+G (Ctrl+Alt+G se o navegador reservar o atalho).`;
+    button.setAttribute('aria-label', `${count ? `Criar coleção com ${shownCount} selecionados` : 'Criar coleção'}. ${hint}`);
   }
 
   function init() {
