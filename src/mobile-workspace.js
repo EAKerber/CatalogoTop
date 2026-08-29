@@ -90,10 +90,12 @@
 
   function syncHistoryControls() {
     if (!historyControls) return;
+    const active = isCatalogActive();
+    historyControls.hidden = !active;
     const undo = historyControls.querySelector('[data-editor-history="undo"]');
     const redo = historyControls.querySelector('[data-editor-history="redo"]');
-    if (undo) undo.disabled = history.undo.length === 0;
-    if (redo) redo.disabled = history.redo.length === 0;
+    if (undo) undo.disabled = !active || history.undo.length === 0;
+    if (redo) redo.disabled = !active || history.redo.length === 0;
     historyControls.dataset.undoCount = String(history.undo.length);
     historyControls.dataset.redoCount = String(history.redo.length);
   }
@@ -169,7 +171,7 @@
   }
 
   function undo() {
-    if (!history.undo.length) return false;
+    if (!isCatalogActive() || !history.undo.length) return false;
     const target = history.undo.pop();
     history.redo.push(historySnapshot());
     history.lastSource = '';
@@ -178,7 +180,7 @@
   }
 
   function redo() {
-    if (!history.redo.length) return false;
+    if (!isCatalogActive() || !history.redo.length) return false;
     const target = history.redo.pop();
     history.undo.push(historySnapshot());
     history.lastSource = '';
@@ -215,6 +217,7 @@
     if (!controls || !historyMarker) return;
     if (mobile.matches && appPrimaryTools) appPrimaryTools.appendChild(controls);
     else if (historyMarker.isConnected) historyMarker.after(controls);
+    syncHistoryControls();
   }
 
   function show(name) {
@@ -409,13 +412,13 @@
     const editable = event.target?.closest?.('input,textarea,select,[contenteditable="true"]');
     const command = event.ctrlKey || event.metaKey;
 
-    if (command && !editable && key === 'z') {
+    if (isCatalogActive() && command && !editable && key === 'z') {
       event.preventDefault();
       if (event.shiftKey) redo();
       else undo();
       return;
     }
-    if (command && !editable && key === 'y') {
+    if (isCatalogActive() && command && !editable && key === 'y') {
       event.preventDefault();
       redo();
       return;
@@ -485,6 +488,7 @@
   window.addEventListener('catalogotop:catalog-rendered', () => { protectPreviewImages(); syncDesktopChrome(); });
   window.addEventListener('catalogotop:editor-selection-changed', scheduleInspectorSync);
   window.addEventListener('catalogotop:products-updated', renderSelectionCategoryRail);
+  window.addEventListener('catalogotop:tab-changed', syncHistoryPlacement);
   document.addEventListener('change', event => {
     if (event.target.closest('.inspector-image-frame')) scheduleInspectorSync();
   });
