@@ -95,10 +95,9 @@ try {
   await page.click('[data-tab="products"]');
   await page.waitForSelector('#products.panel.active');
   const products = await page.evaluate(() => {
-    const library = document.querySelector('.product-library');
     const folders = document.querySelector('#categoryFolders');
     const table = document.querySelector('.table-wrap');
-    return { columns: getComputedStyle(library).gridTemplateColumns, foldersDisplay: getComputedStyle(folders).display, wrap: getComputedStyle(folders).flexWrap, overflowX: getComputedStyle(folders).overflowX, tableOverflow: Math.max(0, table.scrollWidth - table.clientWidth) };
+    return { foldersDisplay: getComputedStyle(folders).display, wrap: getComputedStyle(folders).flexWrap, overflowX: getComputedStyle(folders).overflowX, tableOverflow: Math.max(0, table.scrollWidth - table.clientWidth) };
   });
   if (products.foldersDisplay !== 'flex' || products.wrap !== 'nowrap' || products.overflowX !== 'auto' || products.tableOverflow > 3) throw new Error(`filesystem desktop não virou rail sem roubar a tabela: ${JSON.stringify(products)}`);
 
@@ -109,7 +108,12 @@ try {
   await page.waitForSelector('#editorOrderFloater:not([hidden]) [data-editor-settings]');
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.click('[data-editor-settings]');
-  await page.waitForTimeout(420);
+  await page.waitForFunction(() => {
+    const header = document.querySelector('.app-shell-header');
+    const inspector = document.querySelector('#contextualInspector');
+    if (!header || !inspector) return false;
+    return Math.abs(inspector.getBoundingClientRect().top - header.getBoundingClientRect().bottom) <= 38;
+  }, null, { timeout: 2500 });
   const mobileAnchor = await page.evaluate(() => ({
     headerBottom: document.querySelector('.app-shell-header').getBoundingClientRect().bottom,
     inspectorTop: document.querySelector('#contextualInspector').getBoundingClientRect().top,
@@ -117,7 +121,7 @@ try {
     mode: document.querySelector('#contextualInspector').dataset.inspectorMode,
     returning: document.querySelector('[data-editor-settings]').classList.contains('is-returning')
   }));
-  if (Math.abs(mobileAnchor.inspectorTop - mobileAnchor.headerBottom) > 38 || mobileAnchor.filterTop <= mobileAnchor.inspectorTop || mobileAnchor.mode !== 'general' || !mobileAnchor.returning) throw new Error(`⚙ mobile não ancora no topo da configuração: ${JSON.stringify(mobileAnchor)}`);
+  if (mobileAnchor.filterTop <= mobileAnchor.inspectorTop || mobileAnchor.mode !== 'general' || !mobileAnchor.returning) throw new Error(`⚙ mobile não ancora no topo da configuração: ${JSON.stringify(mobileAnchor)}`);
 
   console.log('PASS desktop authoring workspace gate: painel persistente, A4 maximizado, filesystem rail e anchor mobile contextual');
 } finally {
