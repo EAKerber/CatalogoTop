@@ -45,7 +45,10 @@ function installFixture() {
 }
 
 function trackCount(template) {
-  return String(template || '').trim().split(/\s+/).filter(Boolean).length;
+  const value = String(template || '').trim();
+  const repeated = value.match(/^repeat\((\d+),/);
+  if (repeated) return Number(repeated[1]);
+  return value.split(/\s+/).filter(Boolean).length;
 }
 
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
