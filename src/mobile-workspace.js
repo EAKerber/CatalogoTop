@@ -42,7 +42,7 @@
 
     selectionCategoryRail.addEventListener('click', event => {
       const button = event.target.closest('[data-selection-category-value]');
-      if (!button || !mobile.matches) return;
+      if (!button) return;
       const nextValue = button.dataset.selectionCategoryValue || '';
       if (selectionCategory.value === nextValue) {
         renderSelectionCategoryRail();
@@ -56,7 +56,7 @@
   }
 
   function keepActiveCategoryVisible(rail) {
-    if (!mobile.matches || !rail?.clientWidth) return;
+    if (!rail?.clientWidth) return;
     const active = rail.querySelector('.active');
     if (!active) return;
     const left = active.offsetLeft;
@@ -154,6 +154,6 @@
   if (typeof mobile.addEventListener === 'function') mobile.addEventListener('change', syncMode);
   else mobile.addListener(syncMode);
 
-  NS.MobileWorkspace = { show, current: () => current };
+  NS.MobileWorkspace = { show, current: () => current, renderSelectionCategoryRail };
   syncMode();
 })();
