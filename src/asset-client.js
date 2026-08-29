@@ -81,6 +81,9 @@
     const clone = typeof structuredClone === 'function' ? structuredClone(products) : JSON.parse(JSON.stringify(products));
     for (const product of clone) {
       product.image = await materializeImageValue(product.image);
+      if (Array.isArray(product.imageGallery)) {
+        for (const entry of product.imageGallery) entry.image = await materializeImageValue(entry.image);
+      }
       if (Array.isArray(product.variants)) {
         for (const variant of product.variants) variant.image = await materializeImageValue(variant.image);
       }

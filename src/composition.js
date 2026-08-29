@@ -3,6 +3,125 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
 
+  const MAX_PRODUCT_GALLERY_IMAGES = 24;
+  const MAX_CATALOG_IMAGE_VARIANTS = 24;
+  const IMAGE_SELECTION_SOURCES = Object.freeze(['product', 'catalog']);
+
+  function normalizeImageEntry(value, index, prefix) {
+    const item = typeof value === 'string' ? { image: value } : (value && typeof value === 'object' ? value : {});
+    const image = String(item.image || item.imageUrl || item.url || '').trim();
+    if (!image) return null;
+    const provenance = item.provenance && typeof item.provenance === 'object' && !Array.isArray(item.provenance)
+      ? { ...item.provenance }
+      : null;
+    return {
+      id: String(item.id || `${prefix}-${index + 1}`).trim() || `${prefix}-${index + 1}`,
+      label: String(item.label || item.name || '').trim(),
+      image,
+      provenance
+    };
+  }
+
+  function normalizeImageList(value, { prefix = 'image', limit = MAX_PRODUCT_GALLERY_IMAGES } = {}) {
+    const source = Array.isArray(value) ? value.slice(0, limit) : [];
+    const seen = new Set();
+    const result = [];
+    source.forEach((valueItem, index) => {
+      const entry = normalizeImageEntry(valueItem, index, prefix);
+      if (!entry) return;
+      let id = entry.id;
+      if (seen.has(id)) {
+        let suffix = 1;
+        id = `${prefix}-${index + 1}`;
+        while (seen.has(id)) {
+          suffix += 1;
+          id = `${prefix}-${index + 1}-${suffix}`;
+        }
+      }
+      seen.add(id);
+      result.push({ ...entry, id });
+    });
+    return result;
+  }
+
+  function normalizeProductGallery(value) {
+    return normalizeImageList(value, { prefix: 'image', limit: MAX_PRODUCT_GALLERY_IMAGES });
+  }
+
+  function normalizeCatalogImageVariants(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const result = {};
+    Object.entries(value).forEach(([productId, entries]) => {
+      const id = String(productId || '').trim();
+      if (!id) return;
+      const normalized = normalizeImageList(entries, { prefix: 'variant', limit: MAX_CATALOG_IMAGE_VARIANTS });
+      if (normalized.length) result[id] = normalized;
+    });
+    return result;
+  }
+
+  function normalizeImageSelections(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const result = {};
+    Object.entries(value).forEach(([productId, rawSelection]) => {
+      const id = String(productId || '').trim();
+      if (!id || !rawSelection || typeof rawSelection !== 'object' || Array.isArray(rawSelection)) return;
+      const source = String(rawSelection.source || '').trim();
+      const imageId = String(rawSelection.id || '').trim();
+      if (!IMAGE_SELECTION_SOURCES.includes(source) || !imageId) return;
+      result[id] = { source, id: imageId };
+    });
+    return result;
+  }
+
+  function imageSelectionFor(presentation, productId) {
+    const id = String(productId || '');
+    if (!id) return null;
+    return normalizeImageSelections(presentation?.imageSelections)[id] || null;
+  }
+
+  function availableImages(product, presentation) {
+    if (!product) return [];
+    const productId = String(product.id || '');
+    const result = [];
+    const original = String(product.image || '').trim();
+    if (original) result.push({ source: 'original', id: 'original', label: 'Original', image: original, provenance: null });
+    normalizeProductGallery(product.imageGallery).forEach(entry => result.push({ ...entry, source: 'product' }));
+    const catalogVariants = normalizeCatalogImageVariants(presentation?.imageVariants)[productId] || [];
+    catalogVariants.forEach(entry => result.push({ ...entry, source: 'catalog' }));
+    return result;
+  }
+
+  function resolveImage(product, presentation) {
+    const original = {
+      source: 'original',
+      id: 'original',
+      label: 'Original',
+      image: String(product?.image || '').trim(),
+      provenance: null,
+      isFallback: false
+    };
+    if (!product) return original;
+    const selection = imageSelectionFor(presentation, product.id);
+    if (!selection) return original;
+    const available = availableImages(product, presentation);
+    const selected = available.find(entry => entry.source === selection.source && entry.id === selection.id);
+    return selected ? { ...selected, isFallback: false } : { ...original, isFallback: true };
+  }
+
+  NS.ImageVariants = Object.freeze({
+    MAX_PRODUCT_GALLERY_IMAGES,
+    MAX_CATALOG_IMAGE_VARIANTS,
+    IMAGE_SELECTION_SOURCES,
+    normalizeImageList,
+    normalizeProductGallery,
+    normalizeCatalogImageVariants,
+    normalizeImageSelections,
+    imageSelectionFor,
+    availableImages,
+    resolveImage
+  });
+
   const CONTENT_PRESETS = Object.freeze([
     { id: 'visual', name: 'Visual' },
     { id: 'essential', name: 'Essencial' },
@@ -112,7 +231,9 @@
       order: uniqueIds(source.order),
       itemStyles,
       blocks: normalizeBlocks(source.blocks),
-      imageFrames: normalizeImageFrames(source.imageFrames)
+      imageFrames: normalizeImageFrames(source.imageFrames),
+      imageSelections: NS.ImageVariants.normalizeImageSelections(source.imageSelections),
+      imageVariants: NS.ImageVariants.normalizeCatalogImageVariants(source.imageVariants)
     };
   }
 

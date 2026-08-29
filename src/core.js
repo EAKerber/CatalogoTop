@@ -3,7 +3,7 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const STORAGE_KEY = 'catalogotop:state:v1';
-  const SCHEMA_VERSION = 6;
+  const SCHEMA_VERSION = 7;
 
   const APP_CONFIG = Object.freeze({
     brandName: 'Top Mobili',
@@ -144,7 +144,7 @@
   function normalizePresentation(value) {
     const normalized = NS.Composition?.normalizePresentation
       ? NS.Composition.normalizePresentation(value)
-      : { distribution: 'balanced', typography: 'neutral', order: [], itemStyles: {}, blocks: [], imageFrames: {} };
+      : { distribution: 'balanced', typography: 'neutral', order: [], itemStyles: {}, blocks: [], imageFrames: {}, imageSelections: {}, imageVariants: {} };
     return {
       ...normalized,
       order: uniqueIds(normalized.order || value?.order),
@@ -212,6 +212,10 @@
         image: String(item.image || item.imageUrl || '').trim()
       };
     }).filter(item => item.label || item.image);
+  }
+
+  function normalizeImageGallery(value) {
+    return NS.ImageVariants?.normalizeProductGallery ? NS.ImageVariants.normalizeProductGallery(value) : [];
   }
 
   function parseVariantsText(text) {
@@ -290,6 +294,7 @@
       status: product.status === 'Inativo' ? 'Inativo' : 'Ativo',
       notes: String(product.notes || '').trim(),
       image: String(product.image || '').trim(),
+      imageGallery: normalizeImageGallery(product.imageGallery),
       specs: normalizeSpecs(product.specs),
       variants: normalizeVariants(product.variants),
       tableRows: normalizeTableRows(product.tableRows),
@@ -376,7 +381,9 @@
         ...draft.catalog.presentation,
         order: [],
         itemStyles: {},
-        blocks: []
+        blocks: [],
+        imageSelections: {},
+        imageVariants: {}
       });
     });
   }
@@ -387,6 +394,10 @@
       .filter(product => product && Object.prototype.hasOwnProperty.call(product, 'quantityPrice'))
       .map(product => String(product.code || '').trim().toLowerCase())
       .filter(Boolean));
+    const explicitGalleryByCode = new Set(source
+      .filter(product => product && Object.prototype.hasOwnProperty.call(product, 'imageGallery'))
+      .map(product => String(product.code || '').trim().toLowerCase())
+      .filter(Boolean));
     const normalized = source.map(normalizeProduct).filter(p => p.code && p.description);
     return mutate(draft => {
       if (mode === 'replace') {
@@ -395,6 +406,8 @@
         draft.catalog.presentation.order = [];
         draft.catalog.presentation.itemStyles = {};
         draft.catalog.presentation.blocks = [];
+        draft.catalog.presentation.imageSelections = {};
+        draft.catalog.presentation.imageVariants = {};
         return;
       }
       const byCode = new Map(draft.products.map((p, index) => [p.code.trim().toLowerCase(), index]));
@@ -411,6 +424,7 @@
             ...product,
             id: existing.id,
             image: product.image || existing.image,
+            imageGallery: explicitGalleryByCode.has(key) ? product.imageGallery : existing.imageGallery,
             quantityPrice: explicitQuantityByCode.has(key) ? product.quantityPrice : existing.quantityPrice,
             variants: product.variants.length ? product.variants : existing.variants,
             tableRows: product.tableRows.length ? product.tableRows : existing.tableRows,
@@ -434,6 +448,7 @@
     normalizeProduct,
     normalizeQuantityPrice,
     normalizeVariants,
+    normalizeImageGallery,
     normalizeTableRows,
     parseSpecsText,
     specsToText,
