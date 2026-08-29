@@ -16,6 +16,7 @@
   const previewToolbar = document.querySelector('#catalog .preview-toolbar');
   const previewZoomControls = document.querySelector('#catalog .preview-zoom-controls');
   const headingActions = document.querySelector('#catalog .catalog-heading .heading-actions');
+  const appPrimaryTools = document.querySelector('.app-primary-tools');
 
   let current = 'form';
   let gesture = null;
@@ -23,7 +24,8 @@
   let desktopActionToolbar = null;
   let desiredInspectorMode = 'general';
   let inspectorTargetKey = '';
-  let syncFrame = 0;
+  let historyControls = null;
+  let historyMarker = null;
 
   const managedNodes = new Map();
   function rememberNode(node, key) {
@@ -38,7 +40,181 @@
     const entry = managedNodes.get(key);
     if (!entry?.marker?.isConnected) return;
     entry.marker.after(entry.node);
-    if (entry.text != null && entry.node instanceof HTMLButtonElement) entry.node.textContent = entry.text;
+    if (entry.text != null && entry.node instanceof HTMLButtonElement && !entry.node.classList.contains('group-create-action')) entry.node.textContent = entry.text;
+  }
+
+  function clone(value) {
+    return typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+  }
+
+  function activeTab() {
+    return document.querySelector('.tab.active')?.dataset.tab || '';
+  }
+
+  function isCatalogActive() {
+    return activeTab() === 'catalog' && Boolean(document.querySelector('#catalog.panel.active'));
+  }
+
+  /* Histórico editorial deliberadamente limitado a catálogo/seleção.
+   * Produtos não entram no snapshot para evitar que undo local tente ressuscitar dados já publicados. */
+  const history = {
+    undo: [],
+    redo: [],
+    applying: false,
+    lastSource: '',
+    lastAt: 0,
+    limit: 80
+  };
+  const originalCoreMutate = NS.Core?.mutate?.bind(NS.Core);
+  const originalCoreSetState = NS.Core?.setState?.bind(NS.Core);
+  const originalResetCatalog = NS.Core?.resetCatalog?.bind(NS.Core);
+
+  function historySnapshot() {
+    const state = NS.Core?.getState?.();
+    if (!state) return null;
+    return clone({ selectedIds: state.selectedIds || [], catalog: state.catalog || {} });
+  }
+
+  function snapshotKey(snapshot) {
+    return snapshot ? JSON.stringify(snapshot) : '';
+  }
+
+  function historySource() {
+    const node = document.activeElement;
+    if (!node || node === document.body) return 'editor';
+    const id = node.id ? `#${node.id}` : '';
+    const data = node.dataset || {};
+    const detail = data.inspectorCardField || data.inspectorCollectionField || data.inspectorTableField || data.inspectorMemberField || data.selectProduct || data.commercialPriceStyle || data.commercialTablePriceStyle || data.commercialMemberPriceStyle || data.imageFrameField || data.editorMove || '';
+    return `${node.tagName || 'NODE'}${id}:${detail}`;
+  }
+
+  function syncHistoryControls() {
+    if (!historyControls) return;
+    const undo = historyControls.querySelector('[data-editor-history="undo"]');
+    const redo = historyControls.querySelector('[data-editor-history="redo"]');
+    if (undo) undo.disabled = history.undo.length === 0;
+    if (redo) redo.disabled = history.redo.length === 0;
+    historyControls.dataset.undoCount = String(history.undo.length);
+    historyControls.dataset.redoCount = String(history.redo.length);
+  }
+
+  function pushHistory(before, source) {
+    const now = Date.now();
+    const coalesce = source && source === history.lastSource && now - history.lastAt < 650 && history.undo.length;
+    if (!coalesce) {
+      history.undo.push(before);
+      if (history.undo.length > history.limit) history.undo.shift();
+    }
+    history.redo.length = 0;
+    history.lastSource = source;
+    history.lastAt = now;
+    syncHistoryControls();
+    window.dispatchEvent(new CustomEvent('catalogotop:history-changed', { detail: { undo: history.undo.length, redo: history.redo.length } }));
+  }
+
+  function clearHistory() {
+    history.undo.length = 0;
+    history.redo.length = 0;
+    history.lastSource = '';
+    history.lastAt = 0;
+    syncHistoryControls();
+  }
+
+  if (originalCoreMutate) {
+    NS.Core.mutate = function historyAwareMutate(mutator) {
+      if (history.applying || !isCatalogActive()) return originalCoreMutate(mutator);
+      const before = historySnapshot();
+      const beforeKey = snapshotKey(before);
+      const source = historySource();
+      const result = originalCoreMutate(mutator);
+      const after = historySnapshot();
+      if (before && beforeKey !== snapshotKey(after)) pushHistory(before, source);
+      return result;
+    };
+  }
+
+  if (originalResetCatalog) {
+    NS.Core.resetCatalog = function historyAwareResetCatalog() {
+      if (history.applying || !isCatalogActive()) return originalResetCatalog();
+      const before = historySnapshot();
+      const beforeKey = snapshotKey(before);
+      const result = originalResetCatalog();
+      if (before && beforeKey !== snapshotKey(historySnapshot())) pushHistory(before, 'reset-catalog');
+      return result;
+    };
+  }
+
+  if (originalCoreSetState) {
+    NS.Core.setState = function historyAwareSetState(nextState, options) {
+      const result = originalCoreSetState(nextState, options);
+      if (!history.applying) clearHistory();
+      return result;
+    };
+  }
+
+  function applyHistorySnapshot(snapshot) {
+    if (!snapshot || !originalCoreSetState) return false;
+    const currentState = NS.Core.getState();
+    history.applying = true;
+    try {
+      originalCoreSetState({ ...currentState, selectedIds: clone(snapshot.selectedIds), catalog: clone(snapshot.catalog) });
+    } finally {
+      history.applying = false;
+    }
+    NS.App?.renderAll?.();
+    NS.ComposerSelection?.reconcile?.(NS.Core.getState());
+    window.dispatchEvent(new CustomEvent('catalogotop:history-applied'));
+    syncHistoryControls();
+    return true;
+  }
+
+  function undo() {
+    if (!history.undo.length) return false;
+    const target = history.undo.pop();
+    history.redo.push(historySnapshot());
+    history.lastSource = '';
+    history.lastAt = 0;
+    return applyHistorySnapshot(target);
+  }
+
+  function redo() {
+    if (!history.redo.length) return false;
+    const target = history.redo.pop();
+    history.undo.push(historySnapshot());
+    history.lastSource = '';
+    history.lastAt = 0;
+    return applyHistorySnapshot(target);
+  }
+
+  function ensureHistoryControls() {
+    if (historyControls?.isConnected) return historyControls;
+    if (!headingActions) return null;
+    if (!historyMarker) {
+      historyMarker = document.createElement('span');
+      historyMarker.hidden = true;
+      historyMarker.dataset.historyMarker = 'true';
+      headingActions.insertBefore(historyMarker, document.getElementById('btnNewCatalog') || headingActions.firstChild);
+    }
+    historyControls = document.createElement('div');
+    historyControls.className = 'editor-history-controls';
+    historyControls.setAttribute('aria-label', 'Histórico de edição do catálogo');
+    historyControls.innerHTML = '<button type="button" data-editor-history="undo" aria-label="Desfazer" title="Desfazer · Ctrl+Z" aria-keyshortcuts="Control+Z">↶</button><button type="button" data-editor-history="redo" aria-label="Refazer" title="Refazer · Ctrl+Shift+Z / Ctrl+Y" aria-keyshortcuts="Control+Shift+Z Control+Y">↷</button>';
+    historyMarker.after(historyControls);
+    historyControls.addEventListener('click', event => {
+      const button = event.target.closest('[data-editor-history]');
+      if (!button || button.disabled) return;
+      if (button.dataset.editorHistory === 'undo') undo();
+      else redo();
+    });
+    syncHistoryControls();
+    return historyControls;
+  }
+
+  function syncHistoryPlacement() {
+    const controls = ensureHistoryControls();
+    if (!controls || !historyMarker) return;
+    if (mobile.matches && appPrimaryTools) appPrimaryTools.appendChild(controls);
+    else if (historyMarker.isConnected) historyMarker.after(controls);
   }
 
   function show(name) {
@@ -164,7 +340,7 @@
   }
 
   function ensureDesktopActionToolbar() {
-    if (!selectionPanel) return null;
+    if (!selectionToolbar) return null;
     if (desktopActionToolbar?.isConnected) return desktopActionToolbar;
     desktopActionToolbar = document.createElement('div');
     desktopActionToolbar.className = 'desktop-editor-actions';
@@ -172,9 +348,7 @@
     overflow.className = 'desktop-action-overflow';
     overflow.innerHTML = '<summary aria-label="Mais ações" title="Mais ações">⋯</summary><div></div>';
     desktopActionToolbar.appendChild(overflow);
-    const inspector = document.querySelector('#contextualInspector');
-    if (inspector) inspector.insertAdjacentElement('afterend', desktopActionToolbar);
-    else selectionPanel.prepend(desktopActionToolbar);
+    selectionToolbar.appendChild(desktopActionToolbar);
     return desktopActionToolbar;
   }
 
@@ -196,8 +370,8 @@
     const table = document.getElementById('btnCreateTableBlock');
     const clear = document.getElementById('btnClearSelection');
     if (include) { include.textContent = 'Incluir visíveis'; toolbar.insertBefore(include, overflow); }
-    if (collection) { collection.textContent = 'Coleção'; toolbar.insertBefore(collection, overflow); }
-    if (table) { table.textContent = 'Tabela'; toolbar.insertBefore(table, overflow); }
+    if (collection) toolbar.insertBefore(collection, overflow);
+    if (table) toolbar.insertBefore(table, overflow);
     if (clear && overflowMenu) overflowMenu.appendChild(clear);
   }
 
@@ -210,6 +384,7 @@
 
   function syncDesktopChrome() {
     syncHeadingActions();
+    syncHistoryPlacement();
     syncDesktopActionToolbar();
     renderSelectionCategoryRail();
     scheduleInspectorSync();
@@ -223,6 +398,34 @@
     renderSelectionCategoryRail();
     protectPreviewImages();
     syncDesktopChrome();
+  }
+
+  function shortcutButton(kind) {
+    return document.getElementById(kind === 'table' ? 'btnCreateTableBlock' : 'btnCreateCollection');
+  }
+
+  function handleKeyboardShortcuts(event) {
+    const key = String(event.key || '').toLowerCase();
+    const editable = event.target?.closest?.('input,textarea,select,[contenteditable="true"]');
+    const command = event.ctrlKey || event.metaKey;
+
+    if (command && !editable && key === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) redo();
+      else undo();
+      return;
+    }
+    if (command && !editable && key === 'y') {
+      event.preventDefault();
+      redo();
+      return;
+    }
+
+    if (!isCatalogActive() || editable || event.shiftKey) return;
+    if (!command || !['g', 't'].includes(key)) return;
+    event.preventDefault();
+    const button = shortcutButton(key === 't' ? 'table' : 'collection');
+    if (button && !button.disabled) button.click();
   }
 
   tabs.forEach(tab => tab.addEventListener('click', () => show(tab.dataset.mobileWorkspaceTarget)));
@@ -276,6 +479,7 @@
     if (event.target.closest('#btnClearSelection')) document.querySelector('.desktop-action-overflow')?.removeAttribute('open');
   });
 
+  window.addEventListener('keydown', handleKeyboardShortcuts, true);
   selectionCategory?.addEventListener('change', renderSelectionCategoryRail);
   window.addEventListener('catalogotop:selection-rendered', () => { renderSelectionCategoryRail(); syncDesktopChrome(); });
   window.addEventListener('catalogotop:catalog-rendered', () => { protectPreviewImages(); syncDesktopChrome(); });
@@ -290,6 +494,8 @@
   if (typeof desktopAuthoring.addEventListener === 'function') desktopAuthoring.addEventListener('change', syncMode);
   else desktopAuthoring.addListener(syncMode);
 
+  NS.EditorHistory = { undo, redo, clear: clearHistory, canUndo: () => history.undo.length > 0, canRedo: () => history.redo.length > 0, snapshot: historySnapshot };
   NS.MobileWorkspace = { show, current: () => current, renderSelectionCategoryRail, syncDesktopChrome };
+  ensureHistoryControls();
   syncMode();
 })();
