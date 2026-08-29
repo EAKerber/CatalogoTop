@@ -51,11 +51,17 @@
     if (!button) return;
     const ids = candidateIds();
     const count = NS.ComposerSelection?.ids?.().length || 0;
-    button.textContent = count ? `Tabela (${Math.min(count, TableBlock.MAX_MEMBERS)})` : 'Criar tabela';
+    const shownCount = Math.min(count, TableBlock.MAX_MEMBERS);
+    button.classList.add('group-create-action', 'group-create-table');
+    button.dataset.count = String(shownCount);
+    button.dataset.shortcut = 'Ctrl+T';
+    button.innerHTML = `<span class="group-action-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="M4 10h16M9 5v14M15 5v14"></path></svg></span><span class="group-action-text">${count ? `Tabela (${shownCount})` : 'Criar tabela'}</span><span class="group-action-badge" aria-hidden="true">${shownCount}</span>`;
     button.disabled = ids.length < 2 || ids.length > TableBlock.MAX_MEMBERS;
-    button.title = button.disabled
+    const hint = button.disabled
       ? 'Selecione de 2 a 30 produtos do catálogo, da mesma categoria e fora de outro bloco.'
       : `Agrupar ${ids.length} produtos em tabela${NS.GroupingControls?.isContiguousSameCategory?.(ids) ? '' : ' · itens separados serão reunidos'}`;
+    button.title = `${hint} Atalho: Ctrl+T (Ctrl+Alt+T se o navegador reservar o atalho).`;
+    button.setAttribute('aria-label', `${count ? `Criar tabela com ${shownCount} selecionados` : 'Criar tabela'}. ${hint}`);
   }
 
   function init() {
