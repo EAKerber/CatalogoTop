@@ -146,6 +146,29 @@
     return setImageSelection(id, next.source === 'original' ? null : { source: next.source, id: next.id });
   }
 
+  function primaryImageForEditorTarget(node) {
+    if (node.matches('.catalog-card[data-product-id]')) return node.querySelector('.catalog-card-visuals.single > img');
+    if (node.matches('.catalog-collection-item[data-product-id]')) return node.querySelector('.catalog-collection-image > img');
+    return null;
+  }
+
+  function applyImageSelections(root, state) {
+    if (!root?.querySelectorAll || !state || !NS.ImageVariants || !NS.Composition) return;
+    const presentation = NS.Composition.normalizePresentation(state.catalog?.presentation);
+    const byId = new Map((Array.isArray(state.products) ? state.products : []).map(product => [String(product.id), product]));
+    root.querySelectorAll('.catalog-card[data-product-id],.catalog-collection-item[data-product-id]').forEach(node => {
+      const product = byId.get(String(node.dataset.productId || ''));
+      const image = primaryImageForEditorTarget(node);
+      if (!product || !image) return;
+      const resolved = NS.ImageVariants.resolveImage(product, presentation);
+      if (!resolved.image) return;
+      image.src = resolved.image;
+      image.dataset.imageVariantSource = resolved.source;
+      image.dataset.imageVariantId = resolved.id;
+      image.dataset.imageVariantFallback = String(Boolean(resolved.isFallback));
+    });
+  }
+
   function setImageFrame(productId, patch) {
     const ids = editorialSelectionFor(productId);
     if (!ids.length) return null;
@@ -168,12 +191,6 @@
       if (!presentation.imageFrames || typeof presentation.imageFrames !== 'object') return;
       ids.forEach(id => { delete presentation.imageFrames[id]; });
     });
-  }
-
-  function primaryImageForEditorTarget(node) {
-    if (node.matches('.catalog-card[data-product-id]')) return node.querySelector('.catalog-card-visuals.single > img');
-    if (node.matches('.catalog-collection-item[data-product-id]')) return node.querySelector('.catalog-collection-image > img');
-    return null;
   }
 
   function applyImageFrames(root, state) {
@@ -282,6 +299,10 @@
       presentation.blocks[index] = NS.Collection.normalizeBlock(block);
     });
   }
+
+  NS.ImageVariantRender = Object.freeze({
+    applyImageSelections
+  });
 
   NS.ImageFraming = {
     IMAGE_FRAME_FITS,
