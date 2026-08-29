@@ -37,13 +37,11 @@ function installFixture() {
     }
   }, { persist: false });
   NS.ComposerSelection?.clear?.();
+  window.__dispatchEditorShortcut = (key, options = {}) => window.dispatchEvent(new KeyboardEvent('keydown', {
+    key, ctrlKey: true, altKey: Boolean(options.altKey), shiftKey: Boolean(options.shiftKey), bubbles: true, cancelable: true
+  }));
   window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));
   NS.App.renderAll();
-}
-
-function dispatchShortcut(key, options = {}) {
-  const event = new KeyboardEvent('keydown', { key, ctrlKey: true, altKey: Boolean(options.altKey), shiftKey: Boolean(options.shiftKey), bubbles: true, cancelable: true });
-  return window.dispatchEvent(event);
 }
 
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -110,7 +108,7 @@ try {
   if (validButtons.collectionCount !== '2' || validButtons.tableCount !== '2' || validButtons.collectionBadge === 'none' || !validButtons.badgeColor.includes('239, 23, 27')) throw new Error(`badges de ações inválidos: ${JSON.stringify(validButtons)}`);
   if (!validButtons.collectionTitle.includes('Ctrl+G') || !validButtons.tableTitle.includes('Ctrl+T')) throw new Error(`tooltips não documentam atalhos: ${JSON.stringify(validButtons)}`);
 
-  await page.evaluate(() => dispatchShortcut('g'));
+  await page.evaluate(() => window.__dispatchEditorShortcut('g'));
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.blocks.some(block => block.type === 'collection'));
   await page.waitForSelector('#contextualInspector [data-inspector-collection]');
   const collectionLayout = await page.evaluate(() => {
@@ -136,7 +134,7 @@ try {
     NS.ComposerSelection.clear();
     NS.ComposerSelection.selectProduct(NS.Core.getState(), 'p1');
     NS.ComposerSelection.selectProduct(NS.Core.getState(), 'p2', { additive: true });
-    dispatchShortcut('t');
+    window.__dispatchEditorShortcut('t');
   });
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.blocks.some(block => block.type === 'table'));
   await page.waitForSelector('#contextualInspector [data-inspector-table] [data-commercial-table-price-editor]');
@@ -155,7 +153,7 @@ try {
     return JSON.stringify(window.CatalogoTop.Core.getState().catalog.presentation.blocks);
   });
   await page.waitForFunction(() => document.querySelector('#btnCreateCollection').disabled && document.querySelector('#btnCreateTableBlock').disabled);
-  await page.evaluate(() => { dispatchShortcut('g'); dispatchShortcut('t'); });
+  await page.evaluate(() => { window.__dispatchEditorShortcut('g'); window.__dispatchEditorShortcut('t'); });
   const afterInvalid = await page.evaluate(() => JSON.stringify(window.CatalogoTop.Core.getState().catalog.presentation.blocks));
   if (afterInvalid !== beforeInvalid) throw new Error('atalho inválido não pode executar ação desabilitada');
 
@@ -163,7 +161,7 @@ try {
   await page.waitForSelector('#products.panel.active');
   await page.waitForTimeout(60);
   const outsideCatalog = await page.evaluate(() => ({ historyHidden: document.querySelector('.editor-history-controls').hidden, before: window.CatalogoTop.EditorHistory.snapshot() }));
-  await page.evaluate(() => { dispatchShortcut('z'); dispatchShortcut('y'); });
+  await page.evaluate(() => { window.__dispatchEditorShortcut('z'); window.__dispatchEditorShortcut('y'); });
   const outsideAfter = await page.evaluate(() => ({ hidden: document.querySelector('.editor-history-controls').hidden, after: window.CatalogoTop.EditorHistory.snapshot() }));
   if (!outsideCatalog.historyHidden || !outsideAfter.hidden || JSON.stringify(outsideCatalog.before) !== JSON.stringify(outsideAfter.after)) throw new Error(`histórico vazou para outra aba: ${JSON.stringify({ outsideCatalog, outsideAfter })}`);
 
