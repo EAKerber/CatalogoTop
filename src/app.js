@@ -30,6 +30,7 @@
     $$('.tab').forEach(tab => tab.classList.toggle('active', tab.dataset.tab === tabId));
     $$('.panel').forEach(panel => panel.classList.toggle('active', panel.id === tabId));
     if (tabId === 'catalog') renderCatalog();
+    window.dispatchEvent(new CustomEvent('catalogotop:tab-changed', { detail: { tabId } }));
   }
 
   function productMatches(product, query, category) {
