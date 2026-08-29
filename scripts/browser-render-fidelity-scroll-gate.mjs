@@ -193,13 +193,6 @@ try {
     throw new Error(`proporções de Table mudaram no PDF: ${JSON.stringify(parity)}`);
   }
 
-  await page.evaluate(() => {
-    const spacer = document.createElement('div');
-    spacer.id = 'scroll-gate-spacer';
-    spacer.style.height = '1800px';
-    document.querySelector('#catalog')?.appendChild(spacer);
-  });
-
   await page.click('.catalog-table-block[data-table-block-id="table-1"] .catalog-table-heading');
   await page.waitForSelector('#contextualInspector [data-inspector-table="table-1"]');
 
@@ -245,33 +238,29 @@ try {
 
   const previewFlow = await page.evaluate(() => {
     const node = document.querySelector('#catalogPreviewViewport');
-    const style = getComputedStyle(node);
     const pageRoot = document.querySelector('#catalog.panel.active');
     return {
       top: node.scrollTop,
       range: Math.max(0, node.scrollHeight - node.clientHeight),
-      overflowY: style.overflowY,
-      touchAction: style.touchAction,
+      overflowY: getComputedStyle(node).overflowY,
       pageOverflowY: getComputedStyle(pageRoot).overflowY,
-      pageRange: Math.max(0, pageRoot.scrollHeight - pageRoot.clientHeight)
+      pageRange: Math.max(0, pageRoot.scrollHeight - pageRoot.clientHeight),
+      previewHeight: node.getBoundingClientRect().height
     };
   });
-  const touchAllowsPanY = previewFlow.touchAction === 'manipulation' || previewFlow.touchAction.includes('pan-y');
-  const previewClipsY = previewFlow.overflowY === 'clip' || previewFlow.overflowY === 'hidden';
-  if (previewFlow.top > 2 || previewFlow.range > 2 || !previewClipsY || !touchAllowsPanY || previewFlow.pageOverflowY !== 'auto' || previewFlow.pageRange < 200) {
-    throw new Error(`preview não delegou o eixo vertical à página da aba: ${JSON.stringify(previewFlow)}`);
+  if (previewFlow.overflowY !== 'auto' || previewFlow.range < 200 || previewFlow.pageOverflowY !== 'hidden' || previewFlow.pageRange > 3 || previewFlow.previewHeight < 500) {
+    throw new Error(`preview desktop não assumiu seu território vertical maximizado: ${JSON.stringify(previewFlow)}`);
   }
-  await page.evaluate(() => { const root = document.querySelector('#catalog'); root.scrollTop = 0; root.scrollBy(0, 620); });
+  await page.evaluate(() => { const node = document.querySelector('#catalogPreviewViewport'); node.scrollTop = 0; node.scrollBy(0, 620); });
   await page.waitForTimeout(80);
-  const pageScroll = await page.evaluate(() => ({ outer: document.querySelector('#catalog').scrollTop, inner: document.querySelector('#catalogPreviewViewport').scrollTop }));
-  if (pageScroll.outer < 20 || pageScroll.inner > 2) throw new Error(`página da aba não assumiu o scroll vertical do A4: ${JSON.stringify(pageScroll)}`);
+  const previewScroll = await page.evaluate(() => ({ outer: document.querySelector('#catalog').scrollTop, inner: document.querySelector('#catalogPreviewViewport').scrollTop }));
+  if (previewScroll.inner < 20 || previewScroll.outer > 2) throw new Error(`A4 não assumiu o scroll vertical próprio no workspace desktop: ${JSON.stringify(previewScroll)}`);
 
   await page.evaluate(() => {
     window.__fidelityPrintFrame?.remove();
-    document.querySelector('#scroll-gate-spacer')?.remove();
   });
 
-  console.log('PASS browser render fidelity/scroll gate: CSS e fitting preview→PDF, colunas semânticas, lista rolável e preview no fluxo vertical da aba');
+  console.log('PASS browser render fidelity/scroll gate: CSS e fitting preview→PDF, colunas semânticas, lista rolável e A4 com scroll próprio maximizado no desktop');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
