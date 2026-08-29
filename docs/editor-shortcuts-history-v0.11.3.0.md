@@ -85,6 +85,33 @@ Alguns navegadores reservam `Ctrl+T` (nova aba) e `Ctrl+G` (buscar próximo) ant
 
 Por isso os handlers também aceitam as mesmas combinações com `Alt` (`Ctrl+Alt+T/G`) quando o evento é entregue; os tooltips indicam esse fallback. Os botões visuais continuam sendo a autoridade confiável.
 
+## Lifecycle de aba — correção v0.11.3.1
+
+`App.switchTab(tabId)` é a autoridade que materializa a aba ativa e, depois da troca, publica `catalogotop:tab-changed` com `{ tabId }`.
+
+Esse evento é necessário porque, no mobile, os controles de histórico são fisicamente reparentados para o header global. Inferir a aba apenas pela árvore DOM deixava o estado `hidden` obsoleto ao sair de Catálogo.
+
+O contrato é simples:
+
+```text
+switchTab
+  → materializa .active em tab/panel
+  → renderiza Catálogo quando aplicável
+  → publica catalogotop:tab-changed
+  → consumidores sincronizam chrome derivado
+```
+
+Não usar CSS para mascarar ausência desse lifecycle.
+
+## Bootstrap e autoridade visual — correção v0.11.3.1
+
+- `editor-command-layout.css` é carregado explicitamente por `index.html`; `mobile-workspace.js` não injeta stylesheets.
+- estilos de image framing pertencem a `contextual-inspector.css`; `presentation-actions.js` não cria `<style>` em runtime.
+- os valores estáticos preservam a cascata visual efetiva anterior, inclusive o grid de framing em uma coluna no mobile.
+- seletores do header mobile sem produtor DOM foram removidos.
+
+Isso materializa o guardrail já existente: módulos de UI podem mover/sincronizar chrome, mas não criar dependências de asset como efeito colateral.
+
 ## Gates
 
 `browser-editor-shortcuts-history-gate.mjs` prova:
@@ -95,7 +122,18 @@ Por isso os handlers também aceitam as mesmas combinações com `Alt` (`Ctrl+Al
 - ações inválidas desabilitadas;
 - execução de Collection/Table por evento de atalho quando entregue à página;
 - undo → redo de criação de bloco;
-- histórico inerte/oculto fora do Catálogo;
+- histórico inerte/oculto fora do Catálogo em desktop;
 - `Tema / Colunas / Apresentação` na mesma linha;
 - `Linhas / Densidade / Preço` na mesma linha;
-- undo/redo no header mobile sem criar uma terceira linha.
+- undo/redo no header mobile sem criar uma terceira linha;
+- `mobile → Catálogo → Produtos/Templates`: history some, atalhos Z/Y ficam inertes e o estado não muda;
+- retorno a Catálogo: history reaparece na mesma linha;
+- a sequência real de `catalogotop:tab-changed` acompanha as transições.
+
+`runtime-boundaries-fixture.mjs` também falha se:
+
+- `editor-command-layout.css` deixar de estar no bootstrap estático;
+- `mobile-workspace.js` voltar a injetar CSS;
+- `presentation-actions.js` voltar a injetar estilos de framing;
+- producer/consumer do lifecycle de aba se separarem;
+- seletores legados do antigo header mobile reaparecerem.

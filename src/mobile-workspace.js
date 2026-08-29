@@ -2,14 +2,6 @@
   'use strict';
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
-  if (!document.querySelector('link[data-editor-command-layout]')) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'editor-command-layout.css';
-    link.dataset.editorCommandLayout = 'true';
-    document.head.appendChild(link);
-  }
-
   const products = document.querySelector('#products');
   const workspace = products?.querySelector('.product-workspace');
   const tabs = Array.from(products?.querySelectorAll('[data-mobile-workspace-target]') || []);

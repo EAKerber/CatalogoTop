@@ -454,7 +454,6 @@
     }
     refreshToolbar();
     syncDrawerUi();
-    window.dispatchEvent(new CustomEvent('catalogotop:tab-changed', { detail: { tab: activeTab() } }));
   }
 
   function bindGroupingPreparation() {
@@ -468,11 +467,6 @@
 
   function bindOrderCommands() {
     document.addEventListener('click', event => {
-      const tab = event.target.closest('[data-tab]');
-      if (tab) {
-        requestAnimationFrame(handleTabChange);
-        return;
-      }
       const drawerToggle = event.target.closest('#catalogPanelToggle');
       if (drawerToggle) {
         event.preventDefault();
@@ -563,5 +557,6 @@
   window.addEventListener('catalogotop:selection-rendered', refreshToolbar);
   window.addEventListener('catalogotop:catalog-rendered', scheduleEditorAugment);
   window.addEventListener('catalogotop:products-updated', refreshToolbar);
+  window.addEventListener('catalogotop:tab-changed', handleTabChange);
   refreshToolbar();
 })();
