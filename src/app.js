@@ -386,6 +386,7 @@
       event.preventDefault();
       const id = $('#productId').value || Core.uuid();
       const existing = state().products.find(product => product.id === id);
+      const details = NS.ProductDetails?.read?.() || {};
       const urlImage = $('#imageUrl').value.trim();
       let image = existing?.image || '';
 
@@ -401,6 +402,7 @@
 
       const product = Core.normalizeProduct({
         ...existing,
+        ...details,
         id,
         code: $('#code').value,
         description: $('#description').value,
