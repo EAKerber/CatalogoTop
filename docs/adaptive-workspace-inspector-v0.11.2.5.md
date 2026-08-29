@@ -40,9 +40,11 @@ Nenhuma coordenada persistida é usada.
 
 ### Workspace Catálogo
 
-- Desktop largo: seleção à esquerda e A4 à direita; o preview não possui scroll vertical interno normal. A rolagem vertical pertence ao painel/página.
+- Desktop largo: seleção à esquerda e A4 à direita; o preview não possui range de scroll vertical próprio. O shell mantém `body`/`.app-main` fixos e `#catalog.panel.active` é o page-scroll da aba.
 - Desktop médio (960–1239 px): o painel vira drawer sobreposto antes de comprimir o A4.
-- Mobile/tablet (<960 px): painel e preview voltam ao fluxo; a configuração cresce naturalmente e a lista de produtos possui uma janela rolável própria.
+- Mobile/tablet (<960 px): painel e preview voltam ao fluxo do documento; a configuração cresce naturalmente e a lista de produtos possui uma janela rolável própria.
+
+`preview-viewport.css` é a única autoridade de overflow/touch do viewport do A4. `composer-layout.css` cuida apenas da geometria do workspace e não redefine os eixos de scroll do preview.
 
 ### Biblioteca de Produtos
 
@@ -74,4 +76,23 @@ Listas curtas ficam sempre alinhadas ao topo; espaço excedente fica abaixo.
 - linha mobile com miniatura e 3 linhas;
 - toggle ⚙ Ajustes ↔ target.
 
-O gate anterior de estabilidade/scroll foi migrado para o novo ownership vertical e continua protegendo rail, estabilidade e ausência de scroll interno em `Ordem interna`.
+`browser-scroll-stability-nav-gate.mjs` prova que, no shell desktop largo, `#catalog` possui o range vertical da página enquanto `catalogPreviewViewport` permanece sem range vertical próprio; também protege o único scroll da aba Ordenação, rail horizontal e atalho Ajustes.
+
+`browser-render-fidelity-scroll-gate.mjs` preserva as provas de preview→PDF, TextFit, proporções de Table e wheel nativo da lista de produtos, e agora valida o mesmo ownership vertical do shell em vez do antigo scroll interno do preview.
+
+## Higiene observada
+
+Correções feitas no próprio recorte:
+
+- removida a autoridade concorrente de overflow do preview em `composer-layout.css`;
+- o click handler de modos do inspector foi restrito aos botões reais `Configuração / Ordenação`, evitando cancelar labels/radios internos;
+- gates antigos deixaram de codificar a viewport vertical rígida aposentada;
+- assertions de scroll usam o owner real do shell em desktop largo (`#catalog`) e não `window`;
+- `touch-action: pan-x pan-y pinch-zoom` pode ser serializado pelo Chromium como `manipulation`; os gates tratam as duas formas como semanticamente equivalentes.
+
+Pendências de higiene não bloqueantes identificadas:
+
+- `grouping-controls.js` preserva a seleção fora de Catálogo interceptando `Escape` com `stopImmediatePropagation()`; o comportamento está coberto, mas o mecanismo é mais amplo do que o ideal e deve ser substituído por escopo explícito no listener de `contextual-inspector.js` quando esse módulo for tocado;
+- `shell-responsive.css` e `category-browser.css` ainda possuem declarações mobile parcialmente sobrepostas para o rail de categorias. Hoje convergem visualmente, mas uma futura limpeza de Produtos deve deixar `category-browser.css` como autoridade única dessa navegação.
+
+Esses dois itens não alteram dados, print ou resultado visual do recorte e não justificam reescrever módulos grandes no fechamento de v0.11.2.5.
