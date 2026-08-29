@@ -23,7 +23,5 @@ jobs:
         run: npm install --no-save playwright@1.55.0 pdf-lib@1.17.1
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Trace tab lifecycle dispatches
-        run: node scripts/browser-tab-lifecycle-diagnostic.mjs
       - name: Run physical PDF regression gates
         run: node scripts/browser-print-gate.mjs && node scripts/browser-collection-gate.mjs && node scripts/browser-table-gate.mjs && node scripts/browser-inspector-gate.mjs && node scripts/browser-grouping-ux-gate.mjs && node scripts/browser-composer-order-legibility-gate.mjs && node scripts/browser-desktop-authoring-workspace-gate.mjs && node scripts/browser-control-density-gate.mjs && node scripts/browser-editor-shortcuts-history-gate.mjs && node scripts/browser-mobile-polish-gate.mjs && node scripts/browser-product-category-gate.mjs && node scripts/browser-money-gate.mjs && node scripts/browser-commercial-presentation-gate.mjs && node scripts/browser-quantity-pricing-gate.mjs && node scripts/browser-image-framing-gate.mjs && node scripts/browser-render-fidelity-scroll-gate.mjs && node scripts/browser-date-gate.mjs
