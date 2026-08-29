@@ -108,6 +108,44 @@
     });
   }
 
+  function setImageSelection(productId, selection) {
+    const id = String(productId || '');
+    if (!id || !NS.ImageVariants) return null;
+    return mutatePresentation(presentation => {
+      presentation.imageSelections = presentation.imageSelections && typeof presentation.imageSelections === 'object'
+        ? { ...presentation.imageSelections }
+        : {};
+      if (!selection || selection.source === 'original') {
+        delete presentation.imageSelections[id];
+        return;
+      }
+      const normalized = NS.ImageVariants.normalizeImageSelections({ [id]: selection });
+      if (normalized[id]) presentation.imageSelections[id] = normalized[id];
+      else delete presentation.imageSelections[id];
+    });
+  }
+
+  function resetImageSelection(productId) {
+    return setImageSelection(productId, null);
+  }
+
+  function cycleImageSelection(productId, delta = 1) {
+    const id = String(productId || '');
+    const current = NS.Core?.getState?.();
+    if (!id || !current || !NS.ImageVariants) return null;
+    const product = current.products.find(item => String(item.id) === id);
+    if (!product) return null;
+    const presentation = NS.Composition.normalizePresentation(current.catalog?.presentation);
+    const available = NS.ImageVariants.availableImages(product, presentation);
+    if (available.length < 2) return current;
+    const resolved = NS.ImageVariants.resolveImage(product, presentation);
+    let index = available.findIndex(item => item.source === resolved.source && item.id === resolved.id);
+    if (index < 0) index = 0;
+    const direction = Number(delta) < 0 ? -1 : 1;
+    const next = available[(index + direction + available.length) % available.length];
+    return setImageSelection(id, next.source === 'original' ? null : { source: next.source, id: next.id });
+  }
+
   function setImageFrame(productId, patch) {
     const ids = editorialSelectionFor(productId);
     if (!ids.length) return null;
@@ -257,6 +295,9 @@
   NS.PresentationActions = {
     mutatePresentation,
     setCardStyle,
+    setImageSelection,
+    resetImageSelection,
+    cycleImageSelection,
     setImageFrame,
     resetImageFrame,
     updateCollection,
