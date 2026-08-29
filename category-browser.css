@@ -125,6 +125,12 @@
 .category-folder-label { max-width: 148px; }
 .product-table-pane { width: 100%; }
 
+/* O rail já é a navegação por categoria; o select duplicava a mesma intenção. */
+#products .list-toolbar {
+  grid-template-columns: minmax(220px, 1fr) auto;
+}
+#products #filterCategory { display: none !important; }
+
 @media (max-width: 639px) {
   .category-folders { padding: 8px 10px 10px; }
   .category-folder-row { grid-template-columns: minmax(138px, auto) 32px; }
