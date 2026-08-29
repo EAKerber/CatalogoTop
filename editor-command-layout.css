@@ -1,5 +1,5 @@
-/* v0.11.3.0 — densidade contextual + chrome de comandos.
- * Carregado por mobile-workspace.js por ser um recorte editor-only e posterior ao CSS legado. */
+/* v0.11.3.1 — densidade contextual + chrome de comandos.
+ * Bootstrap explícito em index.html; nenhum módulo de UI carrega esta folha por efeito colateral. */
 
 .group-action-glyph,
 .group-action-badge { display: none; }
