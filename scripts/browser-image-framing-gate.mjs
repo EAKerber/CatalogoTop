@@ -92,10 +92,12 @@ function fixtureStateScript() {
   return { originalP1: p1.image, originalP2: p2.image };
 }
 
-async function enterImageMode(page) {
+async function enterImageMode(page, editorSelector) {
+  await page.waitForSelector(editorSelector, { state: 'attached' });
   await page.waitForSelector('#contextualInspector [data-inspector-image-tab]');
   await page.click('#contextualInspector [data-inspector-image-tab]');
   await page.waitForFunction(() => document.querySelector('#contextualInspector')?.dataset.inspectorMode === 'image');
+  await page.waitForSelector(editorSelector, { state: 'visible' });
 }
 
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -111,8 +113,7 @@ try {
   await page.waitForSelector('#catalogPreview .catalog-card[data-product-id="p1"] .catalog-card-visuals.single > img');
 
   await page.click('#catalogPreview .catalog-card[data-product-id="p1"]');
-  await page.waitForSelector('#contextualInspector [data-image-frame-editor="p1"]');
-  await enterImageMode(page);
+  await enterImageMode(page, '#contextualInspector [data-image-frame-editor="p1"]');
   await page.check('#contextualInspector [data-image-frame-editor="p1"] input[data-image-frame-field="fit"][value="cover"]');
   await page.locator('#contextualInspector [data-image-frame-editor="p1"] input[data-image-frame-field="zoom"]').evaluate(input => {
     input.value = '1.8';
@@ -151,8 +152,7 @@ try {
   }
 
   await page.click('#catalogPreview .catalog-collection[data-collection-id="collection-frame"] .catalog-collection-item[data-product-id="p2"]');
-  await page.waitForSelector('#contextualInspector [data-image-frame-editor="p2"]');
-  await enterImageMode(page);
+  await enterImageMode(page, '#contextualInspector [data-image-frame-editor="p2"]');
   await page.locator('#contextualInspector [data-image-frame-editor="p2"] input[data-image-frame-field="zoom"]').evaluate(input => {
     input.value = '1.5';
     input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -192,8 +192,8 @@ try {
   await printPage.close();
 
   await page.click('#catalogPreview .catalog-card[data-product-id="p1"]');
+  await enterImageMode(page, '#contextualInspector [data-image-frame-editor="p1"]');
   await page.waitForSelector('#contextualInspector [data-image-frame-reset="p1"]');
-  await enterImageMode(page);
   await page.click('#contextualInspector [data-image-frame-reset="p1"]');
   await page.waitForFunction(() => !Object.prototype.hasOwnProperty.call(window.CatalogoTop.Core.getState().catalog.presentation.imageFrames, 'p1'));
   const reset = await page.evaluate(() => {
