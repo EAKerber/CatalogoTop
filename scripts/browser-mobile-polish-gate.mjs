@@ -129,7 +129,12 @@ try {
   await page.waitForSelector('#editorOrderFloater:not([hidden]) [data-editor-settings]');
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.click('[data-editor-settings]');
-  await page.waitForTimeout(420);
+  await page.waitForFunction(() => {
+    const header = document.querySelector('.app-shell-header');
+    const inspector = document.querySelector('#contextualInspector');
+    if (!header || !inspector) return false;
+    return Math.abs(inspector.getBoundingClientRect().top - header.getBoundingClientRect().bottom) <= 38;
+  }, null, { timeout: 2500 });
   const anchor = await page.evaluate(() => ({
     header: document.querySelector('.app-shell-header').getBoundingClientRect().bottom,
     inspector: document.querySelector('#contextualInspector').getBoundingClientRect().top,
@@ -137,7 +142,7 @@ try {
     mode: document.querySelector('#contextualInspector').dataset.inspectorMode,
     returning: document.querySelector('[data-editor-settings]').classList.contains('is-returning')
   }));
-  if (Math.abs(anchor.inspector - anchor.header) > 38 || anchor.filter <= anchor.inspector || anchor.mode !== 'general' || !anchor.returning) throw new Error(`⚙ mobile não ancorou no topo da configuração: ${JSON.stringify(anchor)}`);
+  if (anchor.filter <= anchor.inspector || anchor.mode !== 'general' || !anchor.returning) throw new Error(`⚙ mobile não ancorou no topo da configuração: ${JSON.stringify(anchor)}`);
 
   console.log('PASS browser mobile polish gate: lista, rails, callout, escopo editorial e anchor contextual');
 } finally {
