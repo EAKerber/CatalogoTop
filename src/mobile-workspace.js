@@ -2,6 +2,14 @@
   'use strict';
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
+  if (!document.querySelector('link[data-editor-command-layout]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'editor-command-layout.css';
+    link.dataset.editorCommandLayout = 'true';
+    document.head.appendChild(link);
+  }
+
   const products = document.querySelector('#products');
   const workspace = products?.querySelector('.product-workspace');
   const tabs = Array.from(products?.querySelectorAll('[data-mobile-workspace-target]') || []);
@@ -92,10 +100,10 @@
     if (!historyControls) return;
     const active = isCatalogActive();
     historyControls.hidden = !active;
-    const undo = historyControls.querySelector('[data-editor-history="undo"]');
-    const redo = historyControls.querySelector('[data-editor-history="redo"]');
-    if (undo) undo.disabled = !active || history.undo.length === 0;
-    if (redo) redo.disabled = !active || history.redo.length === 0;
+    const undoButton = historyControls.querySelector('[data-editor-history="undo"]');
+    const redoButton = historyControls.querySelector('[data-editor-history="redo"]');
+    if (undoButton) undoButton.disabled = !active || history.undo.length === 0;
+    if (redoButton) redoButton.disabled = !active || history.redo.length === 0;
     historyControls.dataset.undoCount = String(history.undo.length);
     historyControls.dataset.redoCount = String(history.redo.length);
   }
