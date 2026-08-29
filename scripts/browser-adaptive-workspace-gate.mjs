@@ -80,11 +80,14 @@ try {
   const orderBefore = await page.evaluate(() => JSON.stringify(window.CatalogoTop.Core.getState().catalog.presentation.order));
   const selectedBefore = await page.evaluate(() => JSON.stringify(window.CatalogoTop.ComposerSelection.get()));
   await page.click('[data-tab="products"]');
+  await page.waitForSelector('#products.panel.active');
+  await page.waitForFunction(() => document.querySelector('#editorOrderFloater')?.hidden === true);
   const scope = await page.evaluate(() => ({ floaterHidden: document.querySelector('#editorOrderFloater')?.hidden, moved: window.CatalogoTop.GroupingControls.moveSelectionRelative(1), order: JSON.stringify(window.CatalogoTop.Core.getState().catalog.presentation.order), selected: JSON.stringify(window.CatalogoTop.ComposerSelection.get()) }));
   await page.keyboard.press('Escape');
   const selectedAfterEscape = await page.evaluate(() => JSON.stringify(window.CatalogoTop.ComposerSelection.get()));
   if (!scope.floaterHidden || scope.moved || scope.order !== orderBefore || scope.selected !== selectedBefore || selectedAfterEscape !== selectedBefore) throw new Error(`controles editoriais vazaram para fora de Catálogo: ${JSON.stringify({ scope, orderBefore, selectedBefore, selectedAfterEscape })}`);
   await page.click('[data-tab="catalog"]');
+  await page.waitForSelector('#catalog.panel.active');
   if (await page.evaluate(() => JSON.stringify(window.CatalogoTop.ComposerSelection.get())) !== selectedBefore) throw new Error('seleção editorial não sobreviveu ao retorno para Catálogo');
 
   await page.setViewportSize({ width: 1100, height: 800 });
@@ -97,6 +100,7 @@ try {
   await page.click('#catalogPanelBackdrop');
 
   await page.click('[data-tab="products"]');
+  await page.waitForSelector('#products.panel.active');
   const productMedium = await page.evaluate(() => {
     const folders = document.querySelector('#categoryFolders'); const table = document.querySelector('.table-wrap');
     return { display: getComputedStyle(folders).display, wrap: getComputedStyle(folders).flexWrap, overflowX: getComputedStyle(folders).overflowX, tableOverflow: table.scrollWidth - table.clientWidth };
@@ -115,6 +119,7 @@ try {
   if (mobile.rowHeight < 88 || mobile.thumbWidth < 46 || mobile.thumbDisplay === 'none' || mobile.clamp !== '3' || mobile.folderGap > 1 || mobile.libraryAlign !== 'start') throw new Error(`biblioteca mobile inválida: ${JSON.stringify(mobile)}`);
 
   await page.click('[data-tab="catalog"]');
+  await page.waitForSelector('#catalog.panel.active');
   await page.evaluate(() => window.CatalogoTop.ContextualInspector.selectProductFromList('p6'));
   await page.waitForSelector('#editorOrderFloater:not([hidden]) [data-editor-settings]');
   await page.click('[data-editor-settings]');
