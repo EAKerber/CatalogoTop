@@ -40,6 +40,8 @@ function installFixture() {
   window.__dispatchEditorShortcut = (key, options = {}) => window.dispatchEvent(new KeyboardEvent('keydown', {
     key, ctrlKey: true, altKey: Boolean(options.altKey), shiftKey: Boolean(options.shiftKey), bubbles: true, cancelable: true
   }));
+  window.__tabLifecycle = [];
+  window.addEventListener('catalogotop:tab-changed', event => window.__tabLifecycle.push(event.detail?.tabId || ''));
   window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));
   NS.App.renderAll();
 }
@@ -52,7 +54,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.CatalogoTop?.Core && window.CatalogoTop?.App && window.CatalogoTop?.GroupingControls && window.CatalogoTop?.EditorHistory));
-  await page.waitForFunction(() => Boolean(document.querySelector('link[data-editor-command-layout]')?.sheet));
+  await page.waitForFunction(() => Boolean(document.querySelector('link[rel="stylesheet"][href="editor-command-layout.css"]')?.sheet));
   await page.evaluate(installFixture);
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#catalog.panel.active .desktop-editor-actions');
@@ -182,12 +184,51 @@ try {
       tabsTop: t.top,
       tabsRight: t.right,
       historyLeft: h.left,
-      headerBottom: header.getBoundingClientRect().bottom
+      headerBottom: header.getBoundingClientRect().bottom,
+      headerHeight: header.getBoundingClientRect().height
     };
   });
   if (!mobile.parentClass.includes('app-primary-tools') || mobile.historyHidden || Math.abs(mobile.historyTop - mobile.tabsTop) > 8 || mobile.tabsRight > mobile.historyLeft + 2) throw new Error(`undo/redo mobile não ocupa a segunda linha do header: ${JSON.stringify(mobile)}`);
 
-  console.log('PASS editor shortcut/history gate: ações compactas, rail, Ctrl+G/T, undo/redo e densidade contextual');
+  const mobileSnapshot = await page.evaluate(() => JSON.stringify(window.CatalogoTop.EditorHistory.snapshot()));
+  for (const tabId of ['products', 'templates']) {
+    await page.click(`[data-tab="${tabId}"]`);
+    await page.waitForSelector(`#${tabId}.panel.active`);
+    await page.waitForTimeout(50);
+    const outsideMobile = await page.evaluate(() => ({
+      hidden: document.querySelector('.editor-history-controls').hidden,
+      parentClass: document.querySelector('.editor-history-controls').parentElement?.className || '',
+      snapshot: JSON.stringify(window.CatalogoTop.EditorHistory.snapshot())
+    }));
+    if (!outsideMobile.hidden || !outsideMobile.parentClass.includes('app-primary-tools')) throw new Error(`histórico mobile visível fora de Catálogo em ${tabId}: ${JSON.stringify(outsideMobile)}`);
+    await page.evaluate(() => { window.__dispatchEditorShortcut('z'); window.__dispatchEditorShortcut('y'); });
+    const afterShortcut = await page.evaluate(() => JSON.stringify(window.CatalogoTop.EditorHistory.snapshot()));
+    if (outsideMobile.snapshot !== mobileSnapshot || afterShortcut !== mobileSnapshot) throw new Error(`atalho de histórico alterou estado fora de Catálogo em ${tabId}`);
+    await page.click('[data-tab="catalog"]');
+    await page.waitForSelector('#catalog.panel.active');
+    await page.waitForTimeout(50);
+    const restored = await page.evaluate(() => {
+      const header = document.querySelector('.app-shell-header');
+      const history = document.querySelector('.editor-history-controls');
+      const tabs = document.querySelector('.app-tabs');
+      const h = history.getBoundingClientRect();
+      const t = tabs.getBoundingClientRect();
+      return {
+        hidden: history.hidden,
+        historyTop: h.top,
+        tabsTop: t.top,
+        headerHeight: header.getBoundingClientRect().height,
+        snapshot: JSON.stringify(window.CatalogoTop.EditorHistory.snapshot())
+      };
+    });
+    if (restored.hidden || Math.abs(restored.historyTop - restored.tabsTop) > 8 || restored.headerHeight > mobile.headerHeight + 2 || restored.snapshot !== mobileSnapshot) throw new Error(`histórico mobile não restaurou corretamente após ${tabId}: ${JSON.stringify(restored)}`);
+  }
+
+  const lifecycle = await page.evaluate(() => window.__tabLifecycle.slice());
+  const expectedTail = ['products', 'catalog', 'products', 'catalog', 'templates', 'catalog'];
+  if (expectedTail.some((tabId, index) => lifecycle[lifecycle.length - expectedTail.length + index] !== tabId)) throw new Error(`lifecycle de abas incompleto: ${JSON.stringify(lifecycle)}`);
+
+  console.log('PASS editor shortcut/history gate: ações compactas, rail, Ctrl+G/T, undo/redo, lifecycle mobile e densidade contextual');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
