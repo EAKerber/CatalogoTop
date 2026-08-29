@@ -1,33 +1,38 @@
-/* v0.11.2.1 — superfícies do compositor com altura útil e scroll independente. */
+/* v0.11.2.5 — workspace adaptativo: o A4 recebe prioridade e o painel degrada antes do preview. */
 
 .catalog-controls.editorial-controls {
   grid-template-columns: minmax(220px, 1fr) 220px auto auto;
 }
 
-/* Aposentadoria suave: backups continuam preservando distribution/typography,
- * mas novos catálogos não pedem mais duas decisões globais pouco previsíveis. */
+/* Aposentadoria suave: backups continuam preservando distribution/typography. */
 .catalog-controls.editorial-controls > label:has(#catalogDistribution),
 .catalog-controls.editorial-controls > label:has(#catalogTypography) {
   display: none;
 }
 
 .selection-layout {
-  --composer-available-height: calc(100dvh - 94px);
   grid-template-columns: clamp(370px, 28vw, 430px) minmax(0, 1fr);
+  gap: 20px;
   align-items: start;
 }
 
 .selection-panel {
   container-type: inline-size;
   container-name: catalog-selection-panel;
-  height: var(--composer-available-height);
-  max-height: var(--composer-available-height);
-  min-height: 0;
+  min-width: 0;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  position: sticky;
+  top: calc(var(--app-shell-height, 64px) + 12px);
+  display: grid;
   grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  align-self: start;
 }
 
 .selectable-products {
   min-height: 0;
+  max-height: min(56dvh, 620px);
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior-y: auto;
@@ -40,23 +45,20 @@
 }
 
 .preview-column {
-  position: sticky;
-  top: 72px;
+  position: static;
   min-width: 0;
   min-height: 0;
-  height: var(--composer-available-height);
-  max-height: var(--composer-available-height);
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
+  height: auto;
+  max-height: none;
+  display: block;
+  overflow: visible;
 }
 
-.preview-column .catalog-preview-viewport {
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior-y: auto;
-  -webkit-overflow-scrolling: touch;
+/* Overflow e touch do A4 pertencem exclusivamente a preview-viewport.css. */
+
+.catalog-panel-toggle,
+.catalog-panel-backdrop {
+  display: none;
 }
 
 @container catalog-selection-panel (max-width: 400px) {
@@ -66,15 +68,79 @@
   }
 }
 
-@media (max-width: 959px) {
+/* Desktop médio: o painel vira drawer antes de comprimir o A4. */
+@media (min-width: 960px) and (max-width: 1239px) {
   .selection-layout {
     grid-template-columns: 1fr;
   }
 
   .selection-panel {
+    position: fixed;
+    z-index: 72;
+    top: calc(var(--app-shell-height, 60px) + 12px);
+    bottom: 14px;
+    left: 14px;
+    width: min(420px, calc(100vw - 28px));
+    max-height: none;
+    overflow: hidden;
+    transform: translateX(calc(-100% - 28px));
+    transition: transform 180ms ease;
+    box-shadow: 0 20px 60px rgba(18, 22, 28, .22);
+  }
+
+  body.catalog-drawer-open .selection-panel {
+    transform: translateX(0);
+  }
+
+  .selection-panel .selectable-products {
+    max-height: none;
+    min-height: 0;
+  }
+
+  .catalog-panel-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255,255,255,.94);
+    color: var(--ink-2);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .catalog-panel-backdrop:not([hidden]) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    border: 0;
+    background: rgba(18,22,28,.18);
+    backdrop-filter: blur(1px);
+  }
+}
+
+/* Mobile/tablet: painel em fluxo; configuração pode crescer e a lista tem sua própria janela útil. */
+@media (max-width: 959px) {
+  .selection-layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .selection-panel {
     position: static;
-    height: min(72dvh, 680px);
-    max-height: min(72dvh, 680px);
+    top: auto;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .selection-panel .selectable-products {
+    min-height: 220px;
+    max-height: clamp(280px, 38dvh, 360px);
+    overflow-y: auto;
   }
 
   .preview-column {
@@ -84,17 +150,15 @@
     display: block;
     overflow: visible;
   }
-
-  /* Touch vertical no A4 permanece scroll da página; não capturamos o gesto. */
-  .preview-column .catalog-preview-viewport {
-    max-height: none;
-    overflow-y: visible;
-    overflow-x: hidden;
-  }
 }
 
 @media (max-width: 639px) {
   .catalog-controls.editorial-controls {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .selection-panel .selectable-products {
+    min-height: 300px;
+    max-height: clamp(310px, 42dvh, 390px);
   }
 }

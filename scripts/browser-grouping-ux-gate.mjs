@@ -124,6 +124,8 @@ try {
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.blocks.some(block => block.type === 'collection'));
   const collectionId = await page.evaluate(() => window.CatalogoTop.Core.getState().catalog.presentation.blocks.find(block => block.type === 'collection').id);
   await assertMembership(page, 'criar Collection');
+  await page.waitForSelector('#contextualInspector [data-inspector-mode="order"]');
+  await page.click('#contextualInspector [data-inspector-mode="order"]');
   await page.waitForSelector(`#contextualInspector [data-inspector-member-order="${collectionId}"]`);
 
   await page.keyboard.press('Escape');
@@ -163,11 +165,10 @@ try {
   selected = await page.evaluate(() => window.CatalogoTop.ComposerSelection.get());
   if (selected?.kind !== 'table-row' || selected.blockId !== tableId || selected.productId !== 'p3') throw new Error(`linha da Table não virou target específico: ${JSON.stringify(selected)}`);
 
-  const listHeightBefore = await page.evaluate(() => document.querySelector('#selectableProducts').clientHeight);
   await page.click('#contextualInspector [data-inspector-toggle]');
   await page.waitForSelector('#contextualInspector.is-minimized');
-  const collapsed = await page.evaluate(() => ({ target: window.CatalogoTop.ComposerSelection.get(), listHeight: document.querySelector('#selectableProducts').clientHeight }));
-  if (collapsed.target?.kind !== 'table-row' || collapsed.listHeight <= listHeightBefore) throw new Error(`recolher inspector não preservou target/devolveu altura: ${JSON.stringify({ listHeightBefore, ...collapsed })}`);
+  const collapsed = await page.evaluate(() => ({ target: window.CatalogoTop.ComposerSelection.get(), minimized: document.querySelector('#contextualInspector')?.classList.contains('is-minimized') }));
+  if (collapsed.target?.kind !== 'table-row' || !collapsed.minimized) throw new Error(`recolher inspector não preservou target: ${JSON.stringify(collapsed)}`);
   await page.click('#contextualInspector [data-inspector-toggle]');
   await page.waitForSelector('#contextualInspector [data-inspector-table-row]');
 

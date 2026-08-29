@@ -6,7 +6,15 @@
   if (!Core || !Composition || !ComposerSelection || !CatalogOrder || !PresentationActions) return;
   const $ = selector => document.querySelector(selector);
 
+  let inspectorMode = 'general';
+  let lastInspectorTargetKey = '';
+  let navigationMode = 'target';
+  let drawerOpen = false;
+  let augmentFrame = 0;
+
   function state() { return Core.getState(); }
+  function activeTab() { return document.querySelector('.tab.active')?.dataset.tab || ''; }
+  function isCatalogActive() { return activeTab() === 'catalog' && Boolean($('#catalog')?.classList.contains('active')); }
 
   function uniqueIds(values) {
     const seen = new Set();
@@ -84,6 +92,7 @@
   }
 
   function prepareGrouping(maxMembers) {
+    if (!isCatalogActive()) return [];
     const ids = candidateIds(maxMembers);
     if (ids.length < 2) return ids;
     const current = state();
@@ -107,6 +116,7 @@
   }
 
   function selectedMovePlan(delta) {
+    if (!isCatalogActive()) return null;
     const current = state();
     const direction = Number(delta) < 0 ? -1 : 1;
     const target = ComposerSelection.get();
@@ -163,6 +173,7 @@
   }
 
   function moveSelectionRelative(delta) {
+    if (!isCatalogActive()) return false;
     const plan = selectedMovePlan(delta);
     if (!plan) return false;
     if (plan.type === 'member') PresentationActions.moveBlockMember(plan.blockId, plan.productId, plan.delta);
@@ -171,7 +182,7 @@
   }
 
   function canMoveSelection(delta) {
-    return Boolean(selectedMovePlan(delta));
+    return isCatalogActive() && Boolean(selectedMovePlan(delta));
   }
 
   function styleValueForProduct(productId, key) {
@@ -210,40 +221,130 @@
     return 'Mover item';
   }
 
-  let augmentFrame = 0;
-  let composerMeasureFrame = 0;
-
-  function measureComposerHeight() {
-    composerMeasureFrame = 0;
-    const layout = $('.selection-layout');
-    if (!layout) return;
-    if (matchMedia('(max-width: 959px)').matches || !$('#catalog')?.classList.contains('active')) {
-      layout.style.removeProperty('--composer-available-height');
-      return;
-    }
-    const documentTop = layout.getBoundingClientRect().top + window.scrollY;
-    const available = Math.max(360, Math.floor(window.innerHeight - documentTop - 16));
-    layout.style.setProperty('--composer-available-height', `${available}px`);
+  function targetKey(target) {
+    if (!target) return '';
+    return [target.kind, target.blockId || '', target.productId || '', target.rowId || ''].join(':');
   }
 
-  function scheduleComposerMeasure() {
-    if (composerMeasureFrame) cancelAnimationFrame(composerMeasureFrame);
-    composerMeasureFrame = requestAnimationFrame(measureComposerHeight);
+  function setInspectorMode(mode, { focus = false } = {}) {
+    inspectorMode = mode === 'order' ? 'order' : 'general';
+    const root = $('#contextualInspector');
+    if (root) {
+      root.dataset.inspectorMode = inspectorMode;
+      root.querySelectorAll('[data-inspector-mode]').forEach(button => {
+        const active = button.dataset.inspectorMode === inspectorMode;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', String(active));
+        button.tabIndex = active ? 0 : -1;
+      });
+      if (focus) root.querySelector(`[data-inspector-mode="${inspectorMode}"]`)?.focus({ preventScroll: true });
+    }
+  }
+
+  function ensureInspectorModes(root, target) {
+    if (!root || !target || root.classList.contains('is-minimized')) return;
+    const key = targetKey(target);
+    if (key !== lastInspectorTargetKey) {
+      lastInspectorTargetKey = key;
+      inspectorMode = 'general';
+      navigationMode = 'target';
+    }
+    let tabs = root.querySelector('.inspector-mode-tabs');
+    if (!tabs) {
+      tabs = document.createElement('div');
+      tabs.className = 'inspector-mode-tabs';
+      tabs.setAttribute('role', 'tablist');
+      tabs.setAttribute('aria-label', 'Modo do inspector');
+      tabs.innerHTML = '<button type="button" data-inspector-mode="general" role="tab">Configuração</button><button type="button" data-inspector-mode="order" role="tab">Ordenação</button>';
+      const head = root.querySelector('.inspector-head');
+      if (head) head.insertAdjacentElement('afterend', tabs);
+      else root.prepend(tabs);
+    }
+    setInspectorMode(inspectorMode);
+  }
+
+  function headerOffset() {
+    return Math.ceil($('.app-shell-header')?.getBoundingClientRect().height || 0) + 10;
+  }
+
+  function scrollElementToEditorPosition(node, { target = false } = {}) {
+    if (!node) return false;
+    const rect = node.getBoundingClientRect();
+    const desired = target ? headerOffset() + Math.min(140, window.innerHeight * .2) : headerOffset();
+    const top = Math.max(0, Math.round(window.scrollY + rect.top - desired));
+    window.scrollTo({ top, behavior: 'smooth' });
+    return true;
   }
 
   function focusEditorSettings() {
-    const inspector = $('#contextualInspector');
-    if (!inspector || !ComposerSelection.get()) return false;
+    if (!isCatalogActive() || !ComposerSelection.get()) return false;
+    navigationMode = 'settings';
+    setInspectorMode('general');
     NS.ContextualInspector?.setMinimized?.(false);
+    scheduleEditorAugment();
     requestAnimationFrame(() => {
-      const current = $('#contextualInspector');
-      if (!current) return;
-      current.scrollTop = 0;
-      if (matchMedia('(max-width: 959px)').matches) {
-        current.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
-      }
+      const toolbar = $('.selection-toolbar');
+      scrollElementToEditorPosition(toolbar || $('#contextualInspector'));
     });
     return true;
+  }
+
+  function focusEditorTarget() {
+    if (!isCatalogActive()) return false;
+    const target = ComposerSelection.get();
+    if (!target) return focusEditorSettings();
+    const node = NS.ContextualInspector?.previewNodeForTarget?.(target);
+    if (!node) return focusEditorSettings();
+    navigationMode = 'target';
+    scheduleEditorAugment();
+    return scrollElementToEditorPosition(node, { target: true });
+  }
+
+  function toggleEditorContext() {
+    return navigationMode === 'settings' ? focusEditorTarget() : focusEditorSettings();
+  }
+
+  function ensureDrawerUi() {
+    const toolbar = $('.preview-toolbar');
+    if (toolbar && !$('#catalogPanelToggle')) {
+      const button = document.createElement('button');
+      button.id = 'catalogPanelToggle';
+      button.className = 'catalog-panel-toggle';
+      button.type = 'button';
+      button.textContent = 'Painel';
+      button.setAttribute('aria-controls', 'contextualInspector');
+      button.setAttribute('aria-expanded', 'false');
+      toolbar.prepend(button);
+    }
+    if (!$('#catalogPanelBackdrop')) {
+      const backdrop = document.createElement('button');
+      backdrop.type = 'button';
+      backdrop.id = 'catalogPanelBackdrop';
+      backdrop.className = 'catalog-panel-backdrop';
+      backdrop.setAttribute('aria-label', 'Fechar painel do catálogo');
+      document.body.appendChild(backdrop);
+    }
+  }
+
+  function isMediumWorkspace() {
+    return matchMedia('(min-width: 960px) and (max-width: 1239px)').matches;
+  }
+
+  function setDrawerOpen(value) {
+    drawerOpen = Boolean(value && isCatalogActive() && isMediumWorkspace());
+    document.body.classList.toggle('catalog-drawer-open', drawerOpen);
+    const toggle = $('#catalogPanelToggle');
+    if (toggle) toggle.setAttribute('aria-expanded', String(drawerOpen));
+  }
+
+  function syncDrawerUi() {
+    ensureDrawerUi();
+    const toggle = $('#catalogPanelToggle');
+    const medium = isCatalogActive() && isMediumWorkspace();
+    if (toggle) toggle.hidden = !medium;
+    const backdrop = $('#catalogPanelBackdrop');
+    if (backdrop) backdrop.hidden = !medium || !drawerOpen;
+    if (!medium && drawerOpen) setDrawerOpen(false);
   }
 
   function scheduleEditorAugment() {
@@ -258,7 +359,7 @@
     const root = $('#contextualInspector');
     const target = ComposerSelection.get();
     const ids = uniqueIds(editorialIds());
-    if (root && target) {
+    if (root && target && isCatalogActive()) {
       root.querySelectorAll('[data-inspector-card-field]').forEach(select => augmentMixedSelect(select, select.dataset.inspectorCardField));
       root.querySelectorAll('[data-inspector-member-field]').forEach(select => augmentMixedSelect(select, select.dataset.inspectorMemberField));
       if (ids.length > 1 && ['card', 'collection-member'].includes(target.kind)) {
@@ -288,6 +389,7 @@
         section.innerHTML = `<div class="inspector-subhead"><strong>Ordem no catálogo</strong><span>${orderLabel(target, ids.length)}</span></div><div class="inspector-selection-order-actions"><button type="button" data-editor-move="-1" aria-label="Mover para cima">↑</button><button type="button" data-editor-move="1" aria-label="Mover para baixo">↓</button></div>`;
         root.appendChild(section);
       }
+      ensureInspectorModes(root, target);
       const up = root.querySelector('[data-editor-move="-1"]');
       const down = root.querySelector('[data-editor-move="1"]');
       if (up) up.disabled = !canMoveSelection(-1);
@@ -299,22 +401,30 @@
       floater = document.createElement('div');
       floater.id = 'editorOrderFloater';
       floater.className = 'editor-order-floater';
-      floater.setAttribute('aria-label', 'Reordenar seleção e abrir ajustes');
+      floater.setAttribute('aria-label', 'Reordenar seleção e alternar ajustes');
       floater.innerHTML = '<button type="button" data-editor-move="-1" aria-label="Mover seleção para cima">↑</button><button type="button" class="editor-settings-jump" data-editor-settings aria-label="Ir para ajustes" title="Ir para ajustes">⚙</button><button type="button" data-editor-move="1" aria-label="Mover seleção para baixo">↓</button>';
       document.body.appendChild(floater);
     }
-    floater.hidden = !$('#catalog')?.classList.contains('active') || !target || !ids.length;
+    floater.hidden = !isCatalogActive() || !target || !ids.length;
+    const settings = floater.querySelector('[data-editor-settings]');
+    if (settings) {
+      const returning = navigationMode === 'settings';
+      settings.classList.toggle('is-returning', returning);
+      settings.setAttribute('aria-label', returning ? 'Voltar ao item selecionado' : 'Ir para ajustes');
+      settings.title = returning ? 'Voltar ao item selecionado' : 'Ir para ajustes';
+    }
     const floatUp = floater.querySelector('[data-editor-move="-1"]');
     const floatDown = floater.querySelector('[data-editor-move="1"]');
     if (floatUp) floatUp.disabled = !canMoveSelection(-1);
     if (floatDown) floatDown.disabled = !canMoveSelection(1);
+    syncDrawerUi();
   }
 
   function refreshToolbar() {
     const selected = editorialIds();
     const valid = candidateIds(Number.POSITIVE_INFINITY);
     const context = $('#groupingActions');
-    if (context) context.hidden = selected.length < 2;
+    if (context) context.hidden = !isCatalogActive() || selected.length < 2;
     const status = $('#blockSelectionStatus');
     if (status) {
       if (valid.length) status.textContent = isContiguousSameCategory(valid) ? `${valid.length} produtos selecionados` : `${valid.length} selecionados · serão reunidos ao agrupar`;
@@ -327,16 +437,29 @@
   }
 
   function refreshAndEmit() {
+    navigationMode = 'target';
     refreshToolbar();
     window.dispatchEvent(new CustomEvent('catalogotop:grouping-selection-changed', {
       detail: { ids: editorialIds(), candidates: candidateIds(Number.POSITIVE_INFINITY) }
     }));
   }
 
+  function handleTabChange() {
+    if (!isCatalogActive()) {
+      setDrawerOpen(false);
+      navigationMode = 'target';
+      const floater = $('#editorOrderFloater');
+      if (floater) floater.hidden = true;
+    }
+    refreshToolbar();
+    syncDrawerUi();
+    window.dispatchEvent(new CustomEvent('catalogotop:tab-changed', { detail: { tab: activeTab() } }));
+  }
+
   function bindGroupingPreparation() {
     document.addEventListener('click', event => {
       const button = event.target.closest('#btnCreateCollection,#btnCreateTableBlock');
-      if (!button || button.disabled) return;
+      if (!button || button.disabled || !isCatalogActive()) return;
       const max = button.id === 'btnCreateCollection' ? (NS.Collection?.MAX_MEMBERS || 12) : (NS.TableBlock?.MAX_MEMBERS || 30);
       prepareGrouping(max);
     }, true);
@@ -344,20 +467,59 @@
 
   function bindOrderCommands() {
     document.addEventListener('click', event => {
+      const tab = event.target.closest('[data-tab]');
+      if (tab) {
+        requestAnimationFrame(handleTabChange);
+        return;
+      }
+      const drawerToggle = event.target.closest('#catalogPanelToggle');
+      if (drawerToggle) {
+        event.preventDefault();
+        setDrawerOpen(!drawerOpen);
+        syncDrawerUi();
+        return;
+      }
+      if (event.target.closest('#catalogPanelBackdrop')) {
+        event.preventDefault();
+        setDrawerOpen(false);
+        syncDrawerUi();
+        return;
+      }
+      const mode = event.target.closest('.inspector-mode-tabs button[data-inspector-mode]');
+      if (mode && isCatalogActive()) {
+        event.preventDefault();
+        setInspectorMode(mode.dataset.inspectorMode, { focus: false });
+        return;
+      }
       const settings = event.target.closest('[data-editor-settings]');
       if (settings) {
+        if (!isCatalogActive()) return;
         event.preventDefault();
-        focusEditorSettings();
+        toggleEditorContext();
         return;
       }
       const button = event.target.closest('[data-editor-move]');
-      if (!button || button.disabled) return;
+      if (!button || button.disabled || !isCatalogActive()) return;
       event.preventDefault();
       moveSelectionRelative(Number(button.dataset.editorMove));
     });
+
     window.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        if (!isCatalogActive()) {
+          event.stopImmediatePropagation();
+          return;
+        }
+        if (drawerOpen) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          setDrawerOpen(false);
+          syncDrawerUi();
+          return;
+        }
+      }
       if (!['ArrowUp', 'ArrowDown'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-      if (!$('#catalog')?.classList.contains('active') || !ComposerSelection.get()) return;
+      if (!isCatalogActive() || !ComposerSelection.get()) return;
       if (event.target?.closest?.('input,textarea,select,button,a,[contenteditable="true"]')) return;
       const active = document.activeElement;
       if (!(active === document.body || active?.closest?.('#selectableProducts,#catalogPreview,.contextual-inspector'))) return;
@@ -368,24 +530,14 @@
     });
   }
 
-  function bindComposerSizing() {
-    const controls = $('.catalog-controls');
-    const header = $('.app-shell-header');
-    if (window.ResizeObserver) {
-      const observer = new ResizeObserver(scheduleComposerMeasure);
-      if (controls) observer.observe(controls);
-      if (header) observer.observe(header);
-    }
-    document.addEventListener('click', event => {
-      if (event.target.closest('[data-tab="catalog"]')) requestAnimationFrame(scheduleComposerMeasure);
-    });
-    window.addEventListener('orientationchange', scheduleComposerMeasure);
-    scheduleComposerMeasure();
+  function bindWorkspaceLayout() {
+    window.addEventListener('orientationchange', () => { setDrawerOpen(false); scheduleEditorAugment(); });
+    window.addEventListener('resize', () => { syncDrawerUi(); scheduleEditorAugment(); });
   }
 
   bindGroupingPreparation();
   bindOrderCommands();
-  bindComposerSizing();
+  bindWorkspaceLayout();
 
   NS.GroupingControls = {
     ids: editorialIds,
@@ -396,15 +548,19 @@
     moveSelectionRelative,
     canMoveSelection,
     focusEditorSettings,
-    measureComposerHeight,
+    focusEditorTarget,
+    toggleEditorContext,
+    setInspectorMode,
+    activeTab,
+    isCatalogActive,
     refresh: refreshToolbar
   };
   NS.EditorOrder = { consolidatedOrder, selectedMovePlan, moveSelectionRelative, canMoveSelection };
+  NS.EditorWorkspace = { activeTab, isCatalogActive, setDrawerOpen, isDrawerOpen: () => drawerOpen, inspectorMode: () => inspectorMode };
 
   window.addEventListener('catalogotop:editor-selection-changed', refreshAndEmit);
   window.addEventListener('catalogotop:selection-rendered', refreshToolbar);
-  window.addEventListener('catalogotop:catalog-rendered', () => { scheduleEditorAugment(); scheduleComposerMeasure(); });
+  window.addEventListener('catalogotop:catalog-rendered', scheduleEditorAugment);
   window.addEventListener('catalogotop:products-updated', refreshToolbar);
-  window.addEventListener('resize', () => { scheduleEditorAugment(); scheduleComposerMeasure(); });
   refreshToolbar();
 })();

@@ -1,4 +1,4 @@
-/* v0.11.2.2 — seleção editorial única, inspector recolhível e ações contextuais. */
+/* Seleção editorial, grouping, inspector modes e reorder contextual. */
 
 /* Membership não é seleção editorial. */
 .select-product.selected {
@@ -18,7 +18,6 @@
 }
 .select-product.editor-selected-row > span { cursor: pointer; }
 
-/* Ações de agrupamento aparecem somente quando a seleção editorial tem 2+ itens. */
 #groupingActions {
   gap: 6px;
   align-items: center;
@@ -35,13 +34,7 @@
 #groupingActions .grouping-status::before { content: none !important; }
 #groupingActions .button { flex: 1 1 0; min-width: 108px; }
 
-/* O painel tem cinco regiões: filtro, inspector, ações de membership,
- * ações contextuais e a lista que consome todo o restante rolável. */
-.selection-panel {
-  grid-template-rows: auto auto auto auto minmax(0, 1fr) !important;
-}
-
-/* Inspector: recolher mantém o target e devolve altura à lista. */
+/* Inspector: recolher mantém o target. */
 .inspector-head-actions {
   display: inline-flex;
   gap: 4px;
@@ -89,9 +82,7 @@
   white-space: nowrap;
   font-size: 10px;
 }
-.inspector-row-facts {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
+.inspector-row-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .inspector-row-facts > div {
   min-width: 0;
   display: grid;
@@ -115,6 +106,100 @@
   font-size: 9px;
 }
 
+/* Configuração e Ordenação são tarefas diferentes, não uma pilha vertical. */
+.inspector-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  margin: 0 0 9px;
+  padding: 3px;
+  border: 1px solid #e2e5e8;
+  border-radius: 9px;
+  background: #f2f3f5;
+}
+.inspector-mode-tabs button {
+  min-height: 30px;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 820;
+}
+.inspector-mode-tabs button.active {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(22,25,31,.08);
+}
+
+/* Configuração geral cresce naturalmente: nenhuma segunda scrollbar. */
+.contextual-inspector[data-inspector-mode="general"]:not(.is-minimized) {
+  max-height: none;
+  overflow: visible;
+  scrollbar-gutter: auto;
+}
+.contextual-inspector[data-inspector-mode="general"]:not(.is-minimized) > .inspector-member-order,
+.contextual-inspector[data-inspector-mode="general"]:not(.is-minimized) > .inspector-selection-order {
+  display: none !important;
+}
+
+/* Ordenação é a única aba do inspector que pode crescer muito. */
+.contextual-inspector[data-inspector-mode="order"]:not(.is-minimized) {
+  max-height: min(52dvh, 540px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.contextual-inspector[data-inspector-mode="order"]:not(.is-minimized) > :not(.inspector-head):not(.inspector-mode-tabs):not(.inspector-member-order):not(.inspector-selection-order) {
+  display: none !important;
+}
+.contextual-inspector[data-inspector-mode="order"]:not(.is-minimized) > .inspector-member-order,
+.contextual-inspector[data-inspector-mode="order"]:not(.is-minimized) > .inspector-selection-order {
+  display: block !important;
+}
+
+.inspector-bulk-count {
+  color: var(--brand-deep) !important;
+  font-size: 8px !important;
+  font-weight: 760;
+  white-space: normal !important;
+}
+.inspector-bulk-mixed {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.3;
+}
+.inspector-selection-order {
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.inspector-selection-order-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.inspector-selection-order-actions button {
+  min-height: 31px;
+  border: 1px solid #dfe2e6;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 850;
+}
+.inspector-selection-order-actions button:disabled {
+  opacity: .28;
+  cursor: not-allowed;
+}
+.inspector-member-order-list {
+  max-height: none;
+  overflow: visible;
+}
+
 /* Chrome no A4: target primário e seleção múltipla são efêmeros. */
 #catalogPreview .editor-multi-selected:not(.editor-selected) {
   outline: .42mm solid rgba(239, 23, 27, .42) !important;
@@ -134,63 +219,19 @@
   box-shadow: inset -.55mm 0 0 rgba(239, 23, 27, .82), inset 0 .55mm 0 rgba(239, 23, 27, .82), inset 0 -.55mm 0 rgba(239, 23, 27, .82);
 }
 
-/* v0.11.2.3 — inspector limitado, bulk explícito e reorder unificado. */
-.contextual-inspector:not(.is-collapsed):not(.is-minimized) {
-  max-height: min(46dvh, 520px);
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-.inspector-bulk-count {
+.editor-order-floater { display: none; }
+.editor-settings-jump {
   color: var(--brand-deep) !important;
-  font-size: 8px !important;
-  font-weight: 760;
-  white-space: normal !important;
+  border-color: rgba(239, 23, 27, .22) !important;
 }
-.inspector-bulk-mixed {
-  display: block;
-  margin-top: 5px;
-  color: var(--muted);
-  font-size: 8px;
-  line-height: 1.3;
-}
-.inspector-selection-order {
-  margin-top: 9px;
-  padding-top: 8px;
-  border-top: 1px solid #eceef0;
-}
-.inspector-selection-order-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
-}
-.inspector-selection-order-actions button {
-  min-height: 29px;
-  border: 1px solid #dfe2e6;
-  border-radius: 7px;
-  background: #fff;
-  color: var(--ink-2);
-  font-size: 14px;
-  font-weight: 850;
-}
-.inspector-selection-order-actions button:disabled {
-  opacity: .28;
-  cursor: not-allowed;
-}
-.editor-order-floater {
-  display: none;
+.editor-settings-jump.is-returning {
+  background: #fff0f0 !important;
+  box-shadow: inset 0 0 0 1px rgba(239,23,27,.14), 0 2px 7px rgba(18,22,28,.08) !important;
 }
 
-/* v0.11.2.4 — um dono de scroll por região e chrome coerente. */
-.inspector-member-order-list {
-  max-height: none;
-  overflow: visible;
-}
-
+/* Scrollbars editoriais discretas. */
 .selectable-products,
-.catalog-preview-viewport,
-.contextual-inspector,
+.contextual-inspector[data-inspector-mode="order"],
 .category-folders,
 .category-picker,
 .table-wrap {
@@ -198,8 +239,7 @@
   scrollbar-color: rgba(115, 121, 130, .52) transparent;
 }
 .selectable-products::-webkit-scrollbar,
-.catalog-preview-viewport::-webkit-scrollbar,
-.contextual-inspector::-webkit-scrollbar,
+.contextual-inspector[data-inspector-mode="order"]::-webkit-scrollbar,
 .category-folders::-webkit-scrollbar,
 .category-picker::-webkit-scrollbar,
 .table-wrap::-webkit-scrollbar {
@@ -207,16 +247,12 @@
   height: 8px;
 }
 .selectable-products::-webkit-scrollbar-track,
-.catalog-preview-viewport::-webkit-scrollbar-track,
-.contextual-inspector::-webkit-scrollbar-track,
+.contextual-inspector[data-inspector-mode="order"]::-webkit-scrollbar-track,
 .category-folders::-webkit-scrollbar-track,
 .category-picker::-webkit-scrollbar-track,
-.table-wrap::-webkit-scrollbar-track {
-  background: transparent;
-}
+.table-wrap::-webkit-scrollbar-track { background: transparent; }
 .selectable-products::-webkit-scrollbar-thumb,
-.catalog-preview-viewport::-webkit-scrollbar-thumb,
-.contextual-inspector::-webkit-scrollbar-thumb,
+.contextual-inspector[data-inspector-mode="order"]::-webkit-scrollbar-thumb,
 .category-folders::-webkit-scrollbar-thumb,
 .category-picker::-webkit-scrollbar-thumb,
 .table-wrap::-webkit-scrollbar-thumb {
@@ -227,8 +263,7 @@
   background-clip: padding-box;
 }
 .selectable-products::-webkit-scrollbar-thumb:hover,
-.catalog-preview-viewport::-webkit-scrollbar-thumb:hover,
-.contextual-inspector::-webkit-scrollbar-thumb:hover,
+.contextual-inspector[data-inspector-mode="order"]::-webkit-scrollbar-thumb:hover,
 .category-folders::-webkit-scrollbar-thumb:hover,
 .category-picker::-webkit-scrollbar-thumb:hover,
 .table-wrap::-webkit-scrollbar-thumb:hover {
@@ -236,18 +271,14 @@
   background-clip: padding-box;
 }
 
-.editor-settings-jump {
-  color: var(--brand-deep) !important;
-  border-color: rgba(239, 23, 27, .22) !important;
-}
-
 @media (max-width: 639px) {
   .inspector-row-facts { grid-template-columns: 1fr; }
   #groupingActions .button { min-width: 84px; }
-  /* 34dvh mantém Tables grandes roláveis, mas reserva altura útil para a lista. */
-  .contextual-inspector:not(.is-collapsed):not(.is-minimized) {
-    max-height: 34dvh;
+
+  .contextual-inspector[data-inspector-mode="order"]:not(.is-minimized) {
+    max-height: 44dvh;
   }
+
   .editor-order-floater:not([hidden]) {
     position: fixed;
     right: max(12px, env(safe-area-inset-right));
@@ -276,9 +307,7 @@
     font-weight: 900;
     box-shadow: 0 2px 7px rgba(18, 22, 28, .08);
   }
-  .editor-order-floater button:disabled {
-    opacity: .28;
-  }
+  .editor-order-floater button:disabled { opacity: .28; }
 }
 
 @media print {
@@ -289,5 +318,8 @@
   #catalogPreview .catalog-table-block tr.editor-selected > td,
   #catalogPreview .catalog-table-block tr.editor-multi-selected > td { box-shadow: none !important; }
   .editor-order-floater,
-  .inspector-selection-order { display: none !important; }
+  .inspector-selection-order,
+  .inspector-mode-tabs,
+  .catalog-panel-toggle,
+  .catalog-panel-backdrop { display: none !important; }
 }

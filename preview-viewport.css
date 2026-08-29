@@ -1,4 +1,4 @@
-/* v0.8.3 — preview A4 com fit real, zoom e scroll touch encadeável. */
+/* Preview A4 com fit real, zoom e scroll horizontal quando necessário. */
 
 .preview-toolbar {
   justify-content: space-between;
@@ -38,10 +38,7 @@
   color: var(--ink);
 }
 
-.preview-zoom-controls .preview-fit-button {
-  min-width: 58px;
-}
-
+.preview-zoom-controls .preview-fit-button { min-width: 58px; }
 .preview-zoom-value {
   min-width: 42px;
   color: var(--muted);
@@ -54,8 +51,8 @@
 .catalog-preview-viewport {
   width: 100%;
   min-width: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
+  overflow-x: auto;
+  overflow-y: clip;
   overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
   touch-action: pan-x pan-y pinch-zoom;
@@ -82,29 +79,15 @@
     gap: 8px;
     margin-bottom: 7px;
   }
-
-  .preview-toolbar-meta {
-    gap: 5px;
-  }
-
-  .preview-toolbar span {
-    padding: 4px 7px;
-    font-size: 10px;
-  }
-
-  .preview-zoom-controls {
-    margin-left: auto;
-  }
-
+  .preview-toolbar-meta { gap: 5px; }
+  .preview-toolbar span { padding: 4px 7px; font-size: 10px; }
+  .preview-zoom-controls { margin-left: auto; }
   .catalog-preview-viewport {
     width: 100%;
     max-width: 100%;
     padding-inline: 0;
   }
-
-  .catalog-preview {
-    gap: 14px;
-  }
+  .catalog-preview { gap: 14px; }
 }
 
 @media (max-width: 480px) {
@@ -112,7 +95,6 @@
     width: 100%;
     justify-content: flex-end;
   }
-
   .preview-zoom-controls {
     width: 100%;
     justify-content: center;
