@@ -156,8 +156,11 @@ try {
   });
   if (!mobileCatalog.previewCanceled || mobileCatalog.outsideCanceled || mobileCatalog.draggable || mobileCatalog.draggableAttr !== 'false' || mobileCatalog.userSelect !== 'none' || mobileCatalog.selectDisplay !== 'none' || mobileCatalog.railDisplay !== 'flex' || mobileCatalog.railOverflowX !== 'auto' || !(mobileCatalog.verticalOrder[0] < mobileCatalog.verticalOrder[1] && mobileCatalog.verticalOrder[1] < mobileCatalog.verticalOrder[2])) throw new Error(`polimento do Catálogo mobile inválido: ${JSON.stringify(mobileCatalog)}`);
 
+  const dobradicasChip = page.locator('.selection-category-chip[data-selection-category-value="DOBRADIÇAS"]');
+  await dobradicasChip.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(40);
   const beforeCategoryScroll = await page.evaluate(() => document.scrollingElement.scrollTop);
-  await page.click('.selection-category-chip[data-selection-category-value="DOBRADIÇAS"]');
+  await dobradicasChip.click();
   await page.waitForFunction(() => document.querySelector('#selectionCategory').value === 'DOBRADIÇAS');
   const categoryFilter = await page.evaluate(() => {
     const state = window.CatalogoTop.Core.getState();
