@@ -74,7 +74,21 @@
   zoom: var(--preview-scale);
 }
 
-@media (max-width: 959px) {
+/* No desktop autoral, o A4 ocupa todo o território direito e volta a ser o owner
+ * de seu scroll vertical. A diferença para o desenho antigo é que não há UI acima
+ * sacrificando a altura útil do documento. */
+@media (min-width: 1080px) {
+  .catalog-preview-viewport {
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    touch-action: auto;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media (max-width: 1079px) {
   .preview-toolbar {
     gap: 8px;
     margin-bottom: 7px;
