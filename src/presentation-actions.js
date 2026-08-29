@@ -159,30 +159,6 @@
     });
   }
 
-  function ensureImageFramingStyles() {
-    if (typeof document === 'undefined' || document.getElementById('catalogotop-image-framing-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'catalogotop-image-framing-styles';
-    style.textContent = `
-      .inspector-image-frame{margin-top:9px;padding-top:8px;border-top:1px solid #eceef0;display:grid;gap:7px}
-      .inspector-image-frame.is-unavailable{gap:4px}
-      .inspector-image-frame.is-unavailable>small{color:var(--muted);font-size:8px;line-height:1.35}
-      .inspector-frame-fit{margin:0;padding:5px;display:grid;grid-template-columns:1fr 1fr;gap:4px;border:1px solid #e5e7e9;border-radius:8px}
-      .inspector-frame-fit legend{padding:0 3px;color:var(--muted);font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
-      .inspector-frame-fit label{min-height:28px;display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:6px;background:#f7f8f9;color:var(--ink-2);font-size:9px;font-weight:700}
-      .inspector-frame-fit input{accent-color:var(--brand)}
-      .inspector-frame-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-      .inspector-frame-range{display:grid;gap:4px;color:var(--muted);font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
-      .inspector-frame-range>span{display:flex;justify-content:space-between;gap:8px;align-items:center}
-      .inspector-frame-range output{color:var(--ink);font-size:8px;font-variant-numeric:tabular-nums}
-      .inspector-frame-range input[type=range]{width:100%;min-height:20px;padding:0;accent-color:var(--brand)}
-      .inspector-frame-reset{margin-top:0!important}
-      @media(max-width:639px){.inspector-frame-grid{grid-template-columns:1fr}}
-      @media print{.inspector-image-frame{display:none!important}}
-    `;
-    document.head.appendChild(style);
-  }
-
   function updateCollection(blockId, patch) {
     return mutatePresentation(presentation => {
       const index = blockIndex(presentation, blockId, 'collection');
@@ -292,6 +268,4 @@
     moveOrderUnitRelative,
     moveBlockMember
   };
-
-  ensureImageFramingStyles();
 })();
