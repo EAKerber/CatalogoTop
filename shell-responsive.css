@@ -323,9 +323,14 @@
     grid-template-columns: 64px 72px minmax(0, 1fr) auto;
     align-items: center;
   }
-  .product-table tbody tr { min-height: 92px; }
+  .product-table tbody tr {
+    min-height: 92px;
+    border-bottom: 1px solid #eceef0;
+  }
+  .product-table tbody tr:last-child { border-bottom: 0; }
   .product-table th,
   .product-table td { min-width: 0; padding: 10px 7px; }
+  .product-table tbody td { border-bottom: 0; }
   .product-table th:nth-child(4), .product-table td:nth-child(4),
   .product-table th:nth-child(5), .product-table td:nth-child(5) { display: none; }
   .product-table th:nth-child(1), .product-table td:nth-child(1) { grid-column: 1; }

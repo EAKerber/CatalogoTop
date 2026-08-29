@@ -7,11 +7,13 @@
   const tabs = Array.from(products?.querySelectorAll('[data-mobile-workspace-target]') || []);
   const panels = Array.from(products?.querySelectorAll('[data-mobile-workspace-panel]') || []);
   const mobile = window.matchMedia('(max-width: 639px)');
-
-  if (!products || !workspace || tabs.length !== 2 || panels.length !== 2) return;
+  const catalogPreviewViewport = document.querySelector('#catalogPreviewViewport');
+  const selectionToolbar = document.querySelector('#catalog .selection-toolbar');
+  const selectionCategory = document.querySelector('#selectionCategory');
 
   let current = 'form';
   let gesture = null;
+  let selectionCategoryRail = null;
 
   function show(name) {
     if (!panels.some(panel => panel.dataset.mobileWorkspacePanel === name)) return;
@@ -29,26 +31,96 @@
     });
   }
 
+  function ensureSelectionCategoryRail() {
+    if (!selectionToolbar || !selectionCategory) return null;
+    if (selectionCategoryRail?.isConnected) return selectionCategoryRail;
+
+    selectionCategoryRail = document.createElement('div');
+    selectionCategoryRail.className = 'selection-category-rail';
+    selectionCategoryRail.setAttribute('aria-label', 'Filtrar produtos por categoria');
+    selectionToolbar.appendChild(selectionCategoryRail);
+
+    selectionCategoryRail.addEventListener('click', event => {
+      const button = event.target.closest('[data-selection-category-value]');
+      if (!button || !mobile.matches) return;
+      const nextValue = button.dataset.selectionCategoryValue || '';
+      if (selectionCategory.value === nextValue) {
+        renderSelectionCategoryRail();
+        return;
+      }
+      selectionCategory.value = nextValue;
+      selectionCategory.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    return selectionCategoryRail;
+  }
+
+  function keepActiveCategoryVisible(rail) {
+    if (!mobile.matches || !rail?.clientWidth) return;
+    const active = rail.querySelector('.active');
+    if (!active) return;
+    const left = active.offsetLeft;
+    const right = left + active.offsetWidth;
+    const visibleLeft = rail.scrollLeft;
+    const visibleRight = visibleLeft + rail.clientWidth;
+
+    if (left < visibleLeft + 8) rail.scrollTo({ left: Math.max(0, left - 8), behavior: 'auto' });
+    else if (right > visibleRight - 8) rail.scrollTo({ left: Math.max(0, right - rail.clientWidth + 8), behavior: 'auto' });
+  }
+
+  function renderSelectionCategoryRail() {
+    const rail = ensureSelectionCategoryRail();
+    if (!rail || !selectionCategory) return;
+    const previousScroll = rail.scrollLeft;
+    const selected = selectionCategory.value;
+    const buttons = Array.from(selectionCategory.options).map(option => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'selection-category-chip';
+      button.dataset.selectionCategoryValue = option.value;
+      button.textContent = option.textContent || 'Todas as categorias';
+      const active = option.value === selected;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+      return button;
+    });
+    rail.replaceChildren(...buttons);
+    rail.scrollLeft = previousScroll;
+    requestAnimationFrame(() => keepActiveCategoryVisible(rail));
+  }
+
+  function protectPreviewImages() {
+    if (!catalogPreviewViewport || !mobile.matches) return;
+    catalogPreviewViewport.querySelectorAll('img').forEach(image => {
+      image.draggable = false;
+      image.setAttribute('draggable', 'false');
+    });
+  }
+
   function syncMode() {
-    products.classList.toggle('mobile-workspace-enabled', mobile.matches);
-    show(current);
+    if (products && workspace && tabs.length === 2 && panels.length === 2) {
+      products.classList.toggle('mobile-workspace-enabled', mobile.matches);
+      show(current);
+    }
+    renderSelectionCategoryRail();
+    protectPreviewImages();
   }
 
   tabs.forEach(tab => tab.addEventListener('click', () => show(tab.dataset.mobileWorkspaceTarget)));
 
-  products.addEventListener('click', event => {
+  products?.addEventListener('click', event => {
     if (!mobile.matches) return;
     if (event.target.closest('[data-edit-product], #btnNewProduct')) show('form');
   });
 
-  workspace.addEventListener('touchstart', event => {
+  workspace?.addEventListener('touchstart', event => {
     if (!mobile.matches || event.touches.length !== 1) return;
     if (event.target.closest('input, textarea, select, button, a, [contenteditable="true"]')) return;
     const touch = event.touches[0];
     gesture = { x: touch.clientX, y: touch.clientY, time: performance.now() };
   }, { passive: true });
 
-  workspace.addEventListener('touchend', event => {
+  workspace?.addEventListener('touchend', event => {
     if (!gesture || !mobile.matches || event.changedTouches.length !== 1) {
       gesture = null;
       return;
@@ -64,6 +136,20 @@
     if (dx < 0 && current === 'form') show('library');
     if (dx > 0 && current === 'library') show('form');
   }, { passive: true });
+
+  catalogPreviewViewport?.addEventListener('contextmenu', event => {
+    if (!mobile.matches) return;
+    event.preventDefault();
+  });
+
+  catalogPreviewViewport?.addEventListener('dragstart', event => {
+    if (!mobile.matches || !event.target.closest('img')) return;
+    event.preventDefault();
+  });
+
+  selectionCategory?.addEventListener('change', renderSelectionCategoryRail);
+  window.addEventListener('catalogotop:selection-rendered', renderSelectionCategoryRail);
+  window.addEventListener('catalogotop:catalog-rendered', protectPreviewImages);
 
   if (typeof mobile.addEventListener === 'function') mobile.addEventListener('change', syncMode);
   else mobile.addListener(syncMode);
