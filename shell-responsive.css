@@ -311,11 +311,6 @@
 
   .list-toolbar { grid-template-columns: 1fr auto; }
   .list-toolbar #filterCategory { display: none; }
-  .product-library { grid-template-columns: 1fr; align-content: start; }
-  .category-browser { overflow: hidden; border-right: 0; border-bottom: 1px solid var(--line); }
-  .category-browser-head { display: none; }
-  .category-folders { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; overflow-y: hidden; padding: 8px; scrollbar-width: none; }
-  .category-folders::-webkit-scrollbar { display: none; }
 
   .product-table-pane { align-self: start; width: 100%; }
   .table-wrap { overflow-x: hidden; max-height: none; }
@@ -325,7 +320,7 @@
   .product-table tr {
     width: 100%;
     display: grid;
-    grid-template-columns: 58px 72px minmax(0, 1fr) auto;
+    grid-template-columns: 64px 72px minmax(0, 1fr) auto;
     align-items: center;
   }
   .product-table tbody tr { min-height: 92px; }
