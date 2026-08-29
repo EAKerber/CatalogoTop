@@ -351,7 +351,10 @@
     grid-column: 1 / -1;
   }
   .inspector-grid-two { gap: 6px 8px; }
-  .inspector-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .inspector-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .contextual-inspector .inspector-segmented { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .contextual-inspector .inspector-price-style { padding: 6px; }
+  .contextual-inspector .inspector-segmented span { min-height: 28px; padding: 4px 5px; }
   .inspector-row-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .inspector-inline-actions { margin-top: 4px; }
   .inspector-image-frame { margin-top: 0; }
@@ -367,6 +370,48 @@
   }
   .select-product img { width: 42px !important; height: 40px !important; }
 }
+
+/* v0.11.2.9 — coerência de controles e folga de scroll entre desktop/mobile. */
+.app-main input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  margin: 0;
+  padding: 0 !important;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1.5px solid #8d939b;
+  border-radius: 3px;
+  background: #fff;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 12px 12px;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: border-color .12s ease, background-color .12s ease, box-shadow .12s ease;
+}
+.app-main input[type="checkbox"]:checked {
+  border-color: var(--brand);
+  background-color: var(--brand);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.4 6.4 12 13 4.7' fill='none' stroke='white' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.app-main input[type="checkbox"]:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(239, 23, 27, .16);
+}
+.app-main input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+}
+.app-main input[type="radio"] { accent-color: var(--brand); }
+
+/* O último produto deve conseguir afastar-se da borda inferior e ficar integralmente legível. */
+.selectable-products {
+  padding-bottom: 36px !important;
+  scroll-padding-bottom: 36px;
+}
+.selectable-products > :last-child { margin-bottom: 2px; }
 
 @media print {
   .contextual-inspector,
