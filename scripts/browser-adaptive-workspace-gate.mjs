@@ -21,7 +21,7 @@ function installFixture() {
   const NS = window.CatalogoTop;
   const products = Array.from({ length: 14 }, (_, index) => ({
     id: `p${index + 1}`, code: String(1201 + index),
-    description: `PRODUTO ${index + 1} COM DESCRIÇÃO LONGA PARA TESTAR TRÊS LINHAS NO MOBILE E LEITURA SEM COLISÃO`,
+    description: `PRODUTO ${index + 1}${index === 10 ? ' SUPER' : ''} COM DESCRIÇÃO LONGA PARA TESTAR TRÊS LINHAS NO MOBILE E LEITURA SEM COLISÃO`,
     category: index < 9 ? 'CORREDIÇAS' : index < 13 ? 'DOBRADIÇAS' : 'SUPORTES', subcategory: '',
     price: `R$ ${10 + index},90`, status: 'Ativo', notes: '',
     image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="90"%3E%3Crect width="120" height="90" fill="white"/%3E%3Crect x="12" y="34" width="96" height="22" rx="5" fill="%23999"/%3E%3C/svg%3E',
@@ -114,12 +114,72 @@ try {
     const first = document.querySelector('#productRows tr'); const thumb = first.querySelector('.product-thumb'); const description = first.querySelector('.table-product-link');
     const folderRow = document.querySelector('#categoryFolders .category-folder-row:not(.all)'); const folder = folderRow?.querySelector('.category-folder'); const trash = folderRow?.querySelector('.category-delete-button');
     const a = folder?.getBoundingClientRect(); const b = trash?.getBoundingClientRect();
-    return { rowHeight: first.getBoundingClientRect().height, thumbWidth: thumb.getBoundingClientRect().width, thumbDisplay: getComputedStyle(first.children[0]).display, clamp: getComputedStyle(description).webkitLineClamp, folderGap: a && b ? Math.abs(a.right - b.left) : 999, libraryAlign: getComputedStyle(document.querySelector('.product-library')).alignContent };
+    return {
+      rowHeight: first.getBoundingClientRect().height,
+      thumbWidth: thumb.getBoundingClientRect().width,
+      thumbDisplay: getComputedStyle(first.children[0]).display,
+      clamp: getComputedStyle(description).webkitLineClamp,
+      folderGap: a && b ? Math.abs(a.right - b.left) : 999,
+      libraryAlign: getComputedStyle(document.querySelector('.product-library')).alignContent,
+      rowBorderWidth: getComputedStyle(first).borderBottomWidth,
+      rowBorderStyle: getComputedStyle(first).borderBottomStyle,
+      cellBorders: Array.from(first.children).map(cell => getComputedStyle(cell).borderBottomWidth)
+    };
   });
-  if (mobile.rowHeight < 88 || mobile.thumbWidth < 46 || mobile.thumbDisplay === 'none' || mobile.clamp !== '3' || mobile.folderGap > 1 || mobile.libraryAlign !== 'start') throw new Error(`biblioteca mobile inválida: ${JSON.stringify(mobile)}`);
+  if (mobile.rowHeight < 88 || mobile.thumbWidth < 46 || mobile.thumbDisplay === 'none' || mobile.clamp !== '3' || mobile.folderGap > 1 || mobile.libraryAlign !== 'start' || parseFloat(mobile.rowBorderWidth) < 1 || mobile.rowBorderStyle === 'none' || mobile.cellBorders.some(width => parseFloat(width) > .1)) throw new Error(`biblioteca mobile inválida: ${JSON.stringify(mobile)}`);
 
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#catalog.panel.active');
+  await page.waitForSelector('.selection-category-rail .selection-category-chip');
+
+  const mobileCatalog = await page.evaluate(() => {
+    const preview = document.querySelector('#catalogPreviewViewport');
+    const previewImage = preview.querySelector('img');
+    const search = document.querySelector('#searchSelection');
+    const rail = document.querySelector('.selection-category-rail');
+    const list = document.querySelector('#selectableProducts');
+    const select = document.querySelector('#selectionCategory');
+    const previewEvent = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    const outsideEvent = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    const searchRect = search.getBoundingClientRect(); const railRect = rail.getBoundingClientRect(); const listRect = list.getBoundingClientRect();
+    return {
+      previewCanceled: !previewImage.dispatchEvent(previewEvent),
+      outsideCanceled: !search.dispatchEvent(outsideEvent),
+      draggable: previewImage.draggable,
+      draggableAttr: previewImage.getAttribute('draggable'),
+      userSelect: getComputedStyle(preview).userSelect,
+      selectDisplay: getComputedStyle(select).display,
+      railDisplay: getComputedStyle(rail).display,
+      railOverflowX: getComputedStyle(rail).overflowX,
+      verticalOrder: [searchRect.top, railRect.top, listRect.top]
+    };
+  });
+  if (!mobileCatalog.previewCanceled || mobileCatalog.outsideCanceled || mobileCatalog.draggable || mobileCatalog.draggableAttr !== 'false' || mobileCatalog.userSelect !== 'none' || mobileCatalog.selectDisplay !== 'none' || mobileCatalog.railDisplay !== 'flex' || mobileCatalog.railOverflowX !== 'auto' || !(mobileCatalog.verticalOrder[0] < mobileCatalog.verticalOrder[1] && mobileCatalog.verticalOrder[1] < mobileCatalog.verticalOrder[2])) throw new Error(`polimento do Catálogo mobile inválido: ${JSON.stringify(mobileCatalog)}`);
+
+  const beforeCategoryScroll = await page.evaluate(() => document.scrollingElement.scrollTop);
+  await page.click('.selection-category-chip[data-selection-category-value="DOBRADIÇAS"]');
+  await page.waitForFunction(() => document.querySelector('#selectionCategory').value === 'DOBRADIÇAS');
+  const categoryFilter = await page.evaluate(() => {
+    const state = window.CatalogoTop.Core.getState();
+    const byId = new Map(state.products.map(product => [String(product.id), product]));
+    const ids = Array.from(document.querySelectorAll('#selectableProducts [data-product-row]')).map(row => row.dataset.productRow);
+    return {
+      value: document.querySelector('#selectionCategory').value,
+      active: document.querySelector('.selection-category-chip.active')?.dataset.selectionCategoryValue,
+      categories: Array.from(new Set(ids.map(id => byId.get(String(id))?.category))),
+      scrollTop: document.scrollingElement.scrollTop
+    };
+  });
+  if (categoryFilter.value !== 'DOBRADIÇAS' || categoryFilter.active !== 'DOBRADIÇAS' || categoryFilter.categories.length !== 1 || categoryFilter.categories[0] !== 'DOBRADIÇAS' || Math.abs(categoryFilter.scrollTop - beforeCategoryScroll) > 3) throw new Error(`rail não sincronizou filtro sem salto vertical: ${JSON.stringify({ beforeCategoryScroll, categoryFilter })}`);
+
+  await page.fill('#searchSelection', 'SUPER');
+  await page.waitForTimeout(60);
+  const composedFilter = await page.evaluate(() => ({ rows: document.querySelectorAll('#selectableProducts [data-product-row]').length, category: document.querySelector('#selectionCategory').value }));
+  if (composedFilter.rows !== 1 || composedFilter.category !== 'DOBRADIÇAS') throw new Error(`busca + categoria não compuseram filtro: ${JSON.stringify(composedFilter)}`);
+  await page.fill('#searchSelection', '');
+  await page.click('.selection-category-chip[data-selection-category-value=""]');
+  await page.waitForFunction(() => document.querySelector('#selectionCategory').value === '');
+
   await page.evaluate(() => window.CatalogoTop.ContextualInspector.selectProductFromList('p6'));
   await page.waitForSelector('#editorOrderFloater:not([hidden]) [data-editor-settings]');
   await page.click('[data-editor-settings]');
@@ -131,7 +191,16 @@ try {
   const targetPosition = await page.evaluate(() => { const target = window.CatalogoTop.ComposerSelection.get(); const node = window.CatalogoTop.ContextualInspector.previewNodeForTarget(target); const rect = node?.getBoundingClientRect(); return { top: rect?.top, bottom: rect?.bottom, viewport: innerHeight, returning: document.querySelector('[data-editor-settings]').classList.contains('is-returning') }; });
   if (targetPosition.top == null || targetPosition.bottom < 0 || targetPosition.top > targetPosition.viewport || targetPosition.returning) throw new Error(`segundo ⚙ não voltou ao target: ${JSON.stringify(targetPosition)}`);
 
-  console.log('PASS browser adaptive workspace gate: tabs, scope, drawer, products rail/mobile and settings toggle');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(100);
+  const desktopPolish = await page.evaluate(() => {
+    const select = document.querySelector('#selectionCategory'); const rail = document.querySelector('.selection-category-rail'); const image = document.querySelector('#catalogPreviewViewport img');
+    const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    return { selectDisplay: getComputedStyle(select).display, railDisplay: getComputedStyle(rail).display, contextCanceled: !image.dispatchEvent(event) };
+  });
+  if (desktopPolish.selectDisplay === 'none' || desktopPolish.railDisplay !== 'none' || desktopPolish.contextCanceled) throw new Error(`polimento mobile vazou para desktop: ${JSON.stringify(desktopPolish)}`);
+
+  console.log('PASS browser adaptive workspace gate: tabs, scope, drawer, products mobile, preview callout, catalog rail and settings toggle');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
