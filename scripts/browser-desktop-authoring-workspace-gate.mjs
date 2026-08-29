@@ -20,9 +20,10 @@ const server = createServer(async (request, response) => {
 function installFixture() {
   const NS = window.CatalogoTop;
   const categories = ['CORREDIÇAS', 'DOBRADIÇAS', 'SUPORTES', 'PUXADORES', 'PERFIS'];
+  const image = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="80"%3E%3Crect width="120" height="80" fill="white"/%3E%3Crect x="20" y="25" width="80" height="30" rx="4" fill="silver"/%3E%3C/svg%3E';
   const products = Array.from({ length: 28 }, (_, index) => ({
     id: `p${index + 1}`, code: String(1201 + index), description: `PRODUTO ${index + 1} COM DESCRIÇÃO COMERCIAL PARA TESTE DO WORKSPACE DESKTOP`,
-    category: categories[index % categories.length], subcategory: '', price: `R$ ${10 + index},90`, status: 'Ativo', notes: '', image: '', specs: [], variants: [], tableRows: [], updatedAt: '2026-08-28T00:00:00.000Z'
+    category: categories[index % categories.length], subcategory: '', price: `R$ ${10 + index},90`, status: 'Ativo', notes: '', image: index === 1 ? image : '', specs: [], variants: [], tableRows: [], updatedAt: '2026-08-28T00:00:00.000Z'
   }));
   NS.Core.setState({
     schemaVersion: NS.Core.SCHEMA_VERSION,
@@ -42,67 +43,130 @@ const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => Boolean(window.CatalogoTop?.Core && window.CatalogoTop?.GroupingControls && window.CatalogoTop?.ContextualInspector));
+  await page.waitForFunction(() => Boolean(window.CatalogoTop?.Core && window.CatalogoTop?.GroupingControls && window.CatalogoTop?.ContextualInspector && window.CatalogoTop?.PreviewZoom));
   await page.evaluate(installFixture);
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#catalog.panel.active .catalog-page');
-  await page.waitForTimeout(100);
+  await page.waitForFunction(() => document.querySelector('.desktop-editor-actions') && document.querySelector('.selection-category-rail')?.children.length > 1);
+  await page.waitForTimeout(120);
 
-  const desktop = await page.evaluate(() => {
+  const emptyDesktop = await page.evaluate(() => {
     const catalog = document.querySelector('#catalog.panel.active');
-    const heading = catalog.querySelector('.catalog-heading');
     const controls = catalog.querySelector('.catalog-controls');
+    const inspector = catalog.querySelector('#contextualInspector');
     const panel = catalog.querySelector('.selection-panel');
     const previewColumn = catalog.querySelector('.preview-column');
     const preview = catalog.querySelector('#catalogPreviewViewport');
+    const toolbar = catalog.querySelector('.preview-toolbar');
+    const headingActions = toolbar.querySelector('.heading-actions');
+    const zoom = toolbar.querySelector('.preview-zoom-controls');
+    const actions = catalog.querySelector('.desktop-editor-actions');
     const list = catalog.querySelector('#selectableProducts');
-    const rects = { heading: heading.getBoundingClientRect(), controls: controls.getBoundingClientRect(), panel: panel.getBoundingClientRect(), preview: previewColumn.getBoundingClientRect() };
+    const firstRow = list.querySelector('.select-product');
+    const actionNodes = [document.querySelector('#btnSelectVisible'), document.querySelector('#btnCreateCollection'), document.querySelector('#btnCreateTableBlock'), actions.querySelector('.desktop-action-overflow > summary')];
+    const actionTops = actionNodes.map(node => node?.getBoundingClientRect().top ?? -1000);
     return {
       bodyOverflow: getComputedStyle(document.body).overflow,
       catalogOverflow: getComputedStyle(catalog).overflow,
-      catalogRange: Math.max(0, catalog.scrollHeight - catalog.clientHeight),
-      catalogHeight: catalog.getBoundingClientRect().height,
-      headingLeft: rects.heading.left, controlsLeft: rects.controls.left, panelLeft: rects.panel.left,
-      leftWidth: rects.panel.width, previewLeft: rects.preview.left, previewWidth: rects.preview.width,
+      controlsDisplay: getComputedStyle(controls).display,
+      inspectorDisplay: getComputedStyle(inspector).display,
+      leftWidth: panel.getBoundingClientRect().width,
+      previewWidth: previewColumn.getBoundingClientRect().width,
       previewHeight: preview.getBoundingClientRect().height,
       previewOverflowY: getComputedStyle(preview).overflowY,
-      previewRange: Math.max(0, preview.scrollHeight - preview.clientHeight),
-      listOverflowY: getComputedStyle(list).overflowY,
-      listRange: Math.max(0, list.scrollHeight - list.clientHeight),
-      drawerDisplay: document.querySelector('#catalogPanelToggle') ? getComputedStyle(document.querySelector('#catalogPanelToggle')).display : 'none'
+      previewOverflowX: getComputedStyle(preview).overflowX,
+      previewRangeY: Math.max(0, preview.scrollHeight - preview.clientHeight),
+      previewRangeX: Math.max(0, preview.scrollWidth - preview.clientWidth),
+      toolbarHeight: toolbar.getBoundingClientRect().height,
+      actionsInToolbar: Boolean(headingActions && headingActions.parentElement === toolbar),
+      actionsTop: headingActions?.getBoundingClientRect().top || 0,
+      zoomTop: zoom?.getBoundingClientRect().top || 0,
+      actionSpread: Math.max(...actionTops) - Math.min(...actionTops),
+      listHeight: list.clientHeight,
+      rowHeight: firstRow?.getBoundingClientRect().height || 1,
+      listOverflow: getComputedStyle(list).overflowY,
+      drawerDisplay: document.querySelector('#catalogPanelToggle') ? getComputedStyle(document.querySelector('#catalogPanelToggle')).display : 'none',
+      zoomScale: window.CatalogoTop.PreviewZoom.getScale(),
+      zoomMax: window.CatalogoTop.PreviewZoom.getMaxScale(),
+      zoomValue: document.querySelector('#previewZoomValue').textContent,
+      zoomInDisabled: document.querySelector('#btnPreviewZoomIn').disabled
     };
   });
-  if (desktop.bodyOverflow !== 'hidden' || desktop.catalogOverflow !== 'hidden' || desktop.catalogRange > 3) throw new Error(`shell desktop voltou a rolar: ${JSON.stringify(desktop)}`);
-  if (Math.max(Math.abs(desktop.headingLeft - desktop.panelLeft), Math.abs(desktop.controlsLeft - desktop.panelLeft)) > 3) throw new Error(`metadados não pertencem à coluna autoral: ${JSON.stringify(desktop)}`);
-  if (desktop.leftWidth < 340 || desktop.leftWidth > 440 || desktop.previewLeft <= desktop.panelLeft + desktop.leftWidth - 2 || desktop.previewWidth < 760) throw new Error(`distribuição horizontal desktop inadequada: ${JSON.stringify(desktop)}`);
-  if (desktop.previewHeight < 700 || desktop.previewOverflowY !== 'auto' || desktop.previewRange < 200) throw new Error(`A4 não recebeu território vertical rolável suficiente: ${JSON.stringify(desktop)}`);
-  if (desktop.listOverflowY !== 'auto' || desktop.listRange < 100 || desktop.drawerDisplay !== 'none') throw new Error(`painel autoral/lista incorretos: ${JSON.stringify(desktop)}`);
 
-  await page.evaluate(() => { const node = document.querySelector('#catalogPreviewViewport'); node.scrollTop = 0; node.scrollBy(0, 500); });
-  const scrollOwnership = await page.evaluate(() => ({ preview: document.querySelector('#catalogPreviewViewport').scrollTop, page: document.querySelector('#catalog').scrollTop }));
-  if (scrollOwnership.preview < 20 || scrollOwnership.page > 2) throw new Error(`A4 não reteve o próprio scroll desktop: ${JSON.stringify(scrollOwnership)}`);
+  if (emptyDesktop.bodyOverflow !== 'hidden' || emptyDesktop.catalogOverflow !== 'hidden') throw new Error(`shell desktop voltou a rolar: ${JSON.stringify(emptyDesktop)}`);
+  if (emptyDesktop.controlsDisplay === 'none' || emptyDesktop.inspectorDisplay !== 'none') throw new Error(`metadados não são o estado default sem target: ${JSON.stringify(emptyDesktop)}`);
+  if (emptyDesktop.leftWidth < 470 || emptyDesktop.leftWidth > 600 || emptyDesktop.previewWidth < 760) throw new Error(`largura autoral não aproveita o novo teto do preview: ${JSON.stringify(emptyDesktop)}`);
+  if (emptyDesktop.previewHeight < 760 || emptyDesktop.previewOverflowY !== 'auto' || emptyDesktop.previewRangeY < 160) throw new Error(`A4 não recebeu território vertical suficiente: ${JSON.stringify(emptyDesktop)}`);
+  if (emptyDesktop.previewOverflowX !== 'hidden' || emptyDesktop.previewRangeX > 3) throw new Error(`novo 100% não deveria exigir scroll horizontal: ${JSON.stringify(emptyDesktop)}`);
+  if (!emptyDesktop.actionsInToolbar || Math.abs(emptyDesktop.actionsTop - emptyDesktop.zoomTop) > 10 || emptyDesktop.toolbarHeight > 48) throw new Error(`ações principais não cabem na toolbar do preview: ${JSON.stringify(emptyDesktop)}`);
+  if (emptyDesktop.actionSpread > 4) throw new Error(`toolbar contextual voltou a empilhar ações: ${JSON.stringify(emptyDesktop)}`);
+  if (emptyDesktop.listOverflow !== 'auto' || emptyDesktop.listHeight < emptyDesktop.rowHeight * 4) throw new Error(`lista deve manter ao menos quatro itens visíveis: ${JSON.stringify(emptyDesktop)}`);
+  if (emptyDesktop.drawerDisplay !== 'none') throw new Error(`drawer desktop não deve reaparecer: ${JSON.stringify(emptyDesktop)}`);
+  if (Math.abs(emptyDesktop.zoomScale - .8) > .01 || Math.abs(emptyDesktop.zoomMax - .8) > .01 || emptyDesktop.zoomValue !== '100%' || !emptyDesktop.zoomInDisabled) throw new Error(`antigo 80% não virou o novo teto de 100%: ${JSON.stringify(emptyDesktop)}`);
 
-  await page.setViewportSize({ width: 1100, height: 800 });
-  await page.waitForTimeout(120);
-  const compactDesktop = await page.evaluate(() => ({
-    panelPosition: getComputedStyle(document.querySelector('.selection-panel')).position,
-    panelWidth: document.querySelector('.selection-panel').getBoundingClientRect().width,
-    previewWidth: document.querySelector('.preview-column').getBoundingClientRect().width,
-    drawerDisplay: document.querySelector('#catalogPanelToggle') ? getComputedStyle(document.querySelector('#catalogPanelToggle')).display : 'none'
+  await page.click('#btnPreviewZoomOut');
+  await page.waitForTimeout(40);
+  const zoomOut = await page.evaluate(() => ({ value: document.querySelector('#previewZoomValue').textContent, scale: window.CatalogoTop.PreviewZoom.getScale(), plusDisabled: document.querySelector('#btnPreviewZoomIn').disabled }));
+  if (!(zoomOut.scale < .8) || zoomOut.value === '100%' || zoomOut.plusDisabled) throw new Error(`zoom out desktop não usa escala normalizada: ${JSON.stringify(zoomOut)}`);
+  await page.click('#btnPreviewZoomIn');
+  await page.waitForFunction(() => document.querySelector('#previewZoomValue').textContent === '100%');
+
+  await page.evaluate(() => window.CatalogoTop.ContextualInspector.selectProductFromList('p2'));
+  await page.waitForSelector('#contextualInspector:not(.is-collapsed)');
+  await page.waitForFunction(() => Boolean(document.querySelector('[data-inspector-image-tab]')));
+  const selectedDesktop = await page.evaluate(() => {
+    const controls = document.querySelector('#catalog > .catalog-controls');
+    const inspector = document.querySelector('#contextualInspector');
+    const fields = [...inspector.querySelectorAll('[data-inspector-card-field]')].map(node => node.getBoundingClientRect());
+    const imageTab = inspector.querySelector('[data-inspector-image-tab]');
+    const general = inspector.querySelector('[data-inspector-mode="general"]');
+    return {
+      controlsDisplay: getComputedStyle(controls).display,
+      inspectorDisplay: getComputedStyle(inspector).display,
+      inspectorHeight: inspector.getBoundingClientRect().height,
+      fieldsSameRow: fields.length >= 3 && Math.max(...fields.map(rect => rect.top)) - Math.min(...fields.map(rect => rect.top)) < 5,
+      imageTab: Boolean(imageTab),
+      generalActive: general?.classList.contains('active') || false
+    };
+  });
+  if (selectedDesktop.controlsDisplay !== 'none' || selectedDesktop.inspectorDisplay === 'none' || !selectedDesktop.fieldsSameRow || !selectedDesktop.imageTab || !selectedDesktop.generalActive) throw new Error(`target não substituiu metadados por configuração compacta: ${JSON.stringify(selectedDesktop)}`);
+
+  await page.click('[data-inspector-image-tab]');
+  await page.waitForFunction(() => document.querySelector('#contextualInspector')?.dataset.inspectorMode === 'image');
+  const imageMode = await page.evaluate(() => ({
+    frameDisplay: getComputedStyle(document.querySelector('.inspector-image-frame:not(.is-unavailable)')).display,
+    fieldsDisplay: getComputedStyle(document.querySelector('.inspector-fields[data-inspector-card]')).display,
+    sliderColor: getComputedStyle(document.querySelector('.inspector-frame-range input[type="range"]')).accentColor
   }));
-  if (compactDesktop.panelPosition !== 'static' || compactDesktop.panelWidth < 340 || compactDesktop.previewWidth < 600 || compactDesktop.drawerDisplay !== 'none') throw new Error(`desktop compacto voltou a drawer: ${JSON.stringify(compactDesktop)}`);
+  if (imageMode.frameDisplay === 'none' || imageMode.fieldsDisplay !== 'none') throw new Error(`tab Imagem não isolou enquadramento: ${JSON.stringify(imageMode)}`);
 
   await page.click('[data-tab="products"]');
   await page.waitForSelector('#products.panel.active');
   const products = await page.evaluate(() => {
     const folders = document.querySelector('#categoryFolders');
     const table = document.querySelector('.table-wrap');
-    return { foldersDisplay: getComputedStyle(folders).display, wrap: getComputedStyle(folders).flexWrap, overflowX: getComputedStyle(folders).overflowX, tableOverflow: Math.max(0, table.scrollWidth - table.clientWidth) };
+    const filter = document.querySelector('#filterCategory');
+    return {
+      filterDisplay: getComputedStyle(filter).display,
+      foldersDisplay: getComputedStyle(folders).display,
+      wrap: getComputedStyle(folders).flexWrap,
+      overflowX: getComputedStyle(folders).overflowX,
+      tableOverflow: Math.max(0, table.scrollWidth - table.clientWidth)
+    };
   });
-  if (products.foldersDisplay !== 'flex' || products.wrap !== 'nowrap' || products.overflowX !== 'auto' || products.tableOverflow > 3) throw new Error(`filesystem desktop não virou rail sem roubar a tabela: ${JSON.stringify(products)}`);
+  if (products.filterDisplay !== 'none' || products.foldersDisplay !== 'flex' || products.wrap !== 'nowrap' || products.overflowX !== 'auto' || products.tableOverflow > 3) throw new Error(`Produtos deve usar busca + filesystem rail sem select redundante: ${JSON.stringify(products)}`);
+
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.click('[data-tab="catalog"]');
+  await page.waitForSelector('#catalog.panel.active');
+  const tablet = await page.evaluate(() => ({
+    layoutColumns: getComputedStyle(document.querySelector('.selection-layout')).gridTemplateColumns,
+    panelPosition: getComputedStyle(document.querySelector('.selection-panel')).position,
+    drawerDisplay: document.querySelector('#catalogPanelToggle') ? getComputedStyle(document.querySelector('#catalogPanelToggle')).display : 'none'
+  }));
+  if (tablet.layoutColumns.trim().split(/\s+/).length !== 1 || tablet.panelPosition !== 'static' || tablet.drawerDisplay !== 'none') throw new Error(`abaixo do desktop deve voltar diretamente ao fluxo vertical: ${JSON.stringify(tablet)}`);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#selectableProducts [data-product-row="p2"]');
   await page.evaluate(() => window.CatalogoTop.ContextualInspector.selectProductFromList('p2'));
   await page.waitForSelector('#editorOrderFloater:not([hidden]) [data-editor-settings]');
@@ -118,12 +182,11 @@ try {
     headerBottom: document.querySelector('.app-shell-header').getBoundingClientRect().bottom,
     inspectorTop: document.querySelector('#contextualInspector').getBoundingClientRect().top,
     filterTop: document.querySelector('.selection-toolbar').getBoundingClientRect().top,
-    mode: document.querySelector('#contextualInspector').dataset.inspectorMode,
     returning: document.querySelector('[data-editor-settings]').classList.contains('is-returning')
   }));
-  if (mobileAnchor.filterTop <= mobileAnchor.inspectorTop || mobileAnchor.mode !== 'general' || !mobileAnchor.returning) throw new Error(`⚙ mobile não ancora no topo da configuração: ${JSON.stringify(mobileAnchor)}`);
+  if (mobileAnchor.filterTop <= mobileAnchor.inspectorTop || !mobileAnchor.returning) throw new Error(`⚙ mobile deve ancorar na configuração, antes do filtro: ${JSON.stringify(mobileAnchor)}`);
 
-  console.log('PASS desktop authoring workspace gate: painel persistente, A4 maximizado, filesystem rail e anchor mobile contextual');
+  console.log('PASS desktop panel ergonomics gate: metadata contextual, actions compactas, 100%=0.8, tabs e lista útil');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

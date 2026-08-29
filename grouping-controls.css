@@ -106,7 +106,7 @@
   font-size: 9px;
 }
 
-/* Configuração e Ordenação são tarefas diferentes, não uma pilha vertical. */
+/* Configuração, Ordenação e Imagem são tarefas separadas. */
 .inspector-mode-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -116,6 +116,9 @@
   border: 1px solid #e2e5e8;
   border-radius: 9px;
   background: #f2f3f5;
+}
+.inspector-mode-tabs:has([data-inspector-image-tab]) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .inspector-mode-tabs button {
   min-height: 30px;
@@ -140,7 +143,8 @@
   scrollbar-gutter: auto;
 }
 .contextual-inspector[data-inspector-mode="general"]:not(.is-minimized) > .inspector-member-order,
-.contextual-inspector[data-inspector-mode="general"]:not(.is-minimized) > .inspector-selection-order {
+.contextual-inspector[data-inspector-mode="general"]:not(.is-minimized) > .inspector-selection-order,
+.contextual-inspector[data-has-image-mode="true"][data-inspector-mode="general"]:not(.is-minimized) > .inspector-image-frame:not(.is-unavailable) {
   display: none !important;
 }
 
@@ -158,6 +162,19 @@
 .contextual-inspector[data-inspector-mode="order"]:not(.is-minimized) > .inspector-member-order,
 .contextual-inspector[data-inspector-mode="order"]:not(.is-minimized) > .inspector-selection-order {
   display: block !important;
+}
+
+/* Imagem só existe quando o target possui enquadramento editável. */
+.contextual-inspector[data-inspector-mode="image"]:not(.is-minimized) {
+  max-height: none;
+  overflow: visible;
+}
+.contextual-inspector[data-inspector-mode="image"]:not(.is-minimized) > :not(.inspector-head):not(.inspector-mode-tabs):not(.inspector-image-frame) {
+  display: none !important;
+}
+.contextual-inspector[data-inspector-mode="image"]:not(.is-minimized) > .inspector-image-frame {
+  display: grid !important;
+  margin-top: 0;
 }
 
 .inspector-bulk-count {
@@ -274,10 +291,7 @@
 @media (max-width: 639px) {
   .inspector-row-facts { grid-template-columns: 1fr; }
   #groupingActions .button { min-width: 84px; }
-
-  .contextual-inspector[data-inspector-mode="order"]:not(.is-minimized) {
-    max-height: 44dvh;
-  }
+  .contextual-inspector[data-inspector-mode="order"]:not(.is-minimized) { max-height: 44dvh; }
 
   .editor-order-floater:not([hidden]) {
     position: fixed;
