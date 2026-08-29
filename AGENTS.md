@@ -44,6 +44,8 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 - O pipeline de documento é `state → CatalogOrder → CatalogDocument → preview / print`. Preview pode conter chrome editorial auxiliar; o documento print contém somente `.catalog-page`.
 - `Composition.normalizePresentation`, `CatalogDocument.build` e `src/catalog-renderer.js` são as autoridades únicas de apresentação, materialização e render editorial. Módulos de Collection/Table não podem substituir essas funções por wrapping/monkey patch.
 - O bootstrap editorial deve ser explícito no `index.html`; módulos de ordenação, controles ou UI não devem carregar scripts/CSS como efeito colateral.
+- Trocas de aba materializadas por `App.switchTab` devem publicar `catalogotop:tab-changed` depois da atualização de tab/panel; chrome reparentado ou global deve reagir a esse lifecycle, não inferir transições por CSS ou posição DOM.
+- Estilos estruturais do inspector pertencem a stylesheets estáticos. `PresentationActions` pode aplicar estado visual ao target, mas não deve injetar CSS em runtime.
 - `renderSelection()` é a autoridade da lista `#selectableProducts`. Badges, ordem efetiva e handles de reorder devem nascer do render explícito; propriedades editoriais do objeto selecionado pertencem ao inspector contextual. Não reintroduzir `MutationObserver` para redecorar/reordenar essa lista.
 - `PresentationActions` é a fronteira para mutações editoriais disparadas pelo inspector/lista. Não duplicar mutações equivalentes em managers paralelos de Collection/Table.
 - Patches derivados de `MutationObserver` em outras superfícies precisam ser idempotentes e observar a menor fronteira DOM possível. Não observar e escrever indiscriminadamente sobre a mesma árvore.
@@ -60,7 +62,7 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 - Categorias funcionam como pastas de primeiro nível para navegação; não introduzir árvore hierárquica genérica sem um caso real que a justifique.
 - No cadastro manual, categoria deve ser escolhida ou criada pelo mesmo campo sobrescrevível; não criar um CRUD paralelo de pastas vazias enquanto isso não for necessário.
 - Presets de conteúdo, ênfase, largura, ordem e blocos pertencem ao catálogo local, nunca ao produto remoto. `Visual` e `Simples` são os defaults atuais para cards sem override.
-- Enquadramento futuro de imagem pertence à apresentação local (`presentation.imageFrames`), não ao asset/produto remoto. Reservar o contrato não autoriza interpretação antes do recorte específico.
+- Enquadramento de imagem pertence à apresentação local (`presentation.imageFrames`), não ao asset/produto remoto. O renderer aplica o frame de forma não destrutiva ao uso editorial suportado; não promover esse estado ao ProductStore.
 - Netlify está autorizado como backend **estreito** para a base compartilhada de produtos e assets. Não promover seleção atual, template escolhido, estado de UI ou catálogo em elaboração a estado remoto sem decisão explícita.
 - Produtos remotos usam snapshot revisionado e escrita protegida; não fazer overwrite silencioso quando `expectedRevision` divergir.
 - Deploy Preview nunca deve gravar no store global de produção. Produção usa store global; previews/branches usam store ligado ao deploy.
@@ -84,5 +86,11 @@ Recorte v0.11.0.1 consolidado na `main`: o estado de sincronização permanece s
 Recorte v0.11.1 consolidado na `main`: `selectedIds` representa membership, `presentation.order` representa ordem editorial persistida, `CatalogOrder` resolve a sequência antes do `CatalogDocument`, o preview seleciona Card/Collection/member/Table para um inspector contextual e o reorder acontece exclusivamente pela lista com Collection/Table como unidades atômicas. Ver `docs/contextual-inspector-v0.11.1.md`.
 
 Recorte v0.11.1.1 consolidado na `main`: a data do catálogo acompanha o dia local atual por padrão e aceita um override date-only por um controle compacto `Hoje / escolher outra data`, sem alterar ProductStore ou o documento estrutural. Ver `docs/catalog-date-v0.11.1.1.md`.
+
+Recorte v0.11.2 consolidado na `main`: enquadramento de imagem é apresentação local não destrutiva em `presentation.imageFrames`, com controles contextuais de fit/zoom/foco e paridade preview/print para usos suportados. Ver `docs/image-framing-v0.11.2.md` e os recortes de ergonomia v0.11.2.x.
+
+Recorte v0.11.3.0 consolidado na `main`: comandos compactos do compositor, atalhos de Collection/Table e histórico editorial efêmero com undo/redo foram introduzidos sem alterar schema, ProductStore, `CatalogDocument` ou A4. Ver `docs/editor-shortcuts-history-v0.11.3.0.md`.
+
+Recorte v0.11.3.1 corrige o lifecycle de tabs usado pelo history mobile e reduz autoridades redundantes de runtime: `App.switchTab` publica `catalogotop:tab-changed`; CSS de comandos e framing volta ao bootstrap/stylesheet estático; o browser gate cobre Catálogo → Produtos/Templates em mobile; `runtime-boundaries-fixture` impede regressão desses contratos. Ver `docs/editor-shortcuts-history-v0.11.3.0.md`.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.
