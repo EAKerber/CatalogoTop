@@ -283,8 +283,9 @@
     NS.ContextualInspector?.setMinimized?.(false);
     scheduleEditorAugment();
     requestAnimationFrame(() => {
-      const toolbar = $('.selection-toolbar');
-      scrollElementToEditorPosition(toolbar || $('#contextualInspector'));
+      const mobile = matchMedia('(max-width: 1079px)').matches;
+      const anchor = mobile ? $('#contextualInspector') : ($('.selection-toolbar') || $('#contextualInspector'));
+      scrollElementToEditorPosition(anchor);
     });
     return true;
   }

@@ -1,4 +1,4 @@
-/* v0.11.2.5 — workspace adaptativo: o A4 recebe prioridade e o painel degrada antes do preview. */
+/* v0.11.2.7 — workspace desktop de autoria: painel persistente + A4 maximizado. */
 
 .catalog-controls.editorial-controls {
   grid-template-columns: minmax(220px, 1fr) 220px auto auto;
@@ -58,11 +58,9 @@
   overflow: visible;
 }
 
-/* Overflow e touch do A4 pertencem exclusivamente a preview-viewport.css. */
-
 .catalog-panel-toggle,
 .catalog-panel-backdrop {
-  display: none;
+  display: none !important;
 }
 
 @container catalog-selection-panel (max-width: 400px) {
@@ -72,62 +70,177 @@
   }
 }
 
-/* Desktop médio: o painel vira drawer antes de comprimir o A4. */
-@media (min-width: 960px) and (max-width: 1239px) {
-  .selection-layout {
-    grid-template-columns: 1fr;
+/* Desktop: ferramenta de autoria, não página responsiva empilhada.
+ * O shell não rola; painel e A4 possuem seus próprios territórios. */
+@media (min-width: 1080px) {
+  body:has(#catalog.panel.active) {
+    overflow: hidden;
   }
 
-  .selection-panel {
-    position: fixed;
-    z-index: 72;
-    top: calc(var(--app-shell-height, 60px) + 12px);
-    bottom: 14px;
-    left: 14px;
-    width: min(420px, calc(100vw - 28px));
+  body:has(#catalog.panel.active) .app-main {
+    height: calc(100dvh - var(--app-shell-height, 64px));
+    max-width: none;
+    padding: 10px 12px 12px;
+    overflow: hidden;
+  }
+
+  #catalog.panel.active {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: clamp(360px, 25vw, 420px) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 9px 14px;
+    align-items: stretch;
+  }
+
+  #catalog > .catalog-heading {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 11px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #fff;
+  }
+
+  #catalog > .catalog-heading .eyebrow {
+    margin: 0 0 2px;
+    font-size: 8px;
+  }
+
+  #catalog > .catalog-heading h2 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.08;
+    letter-spacing: -.02em;
+  }
+
+  #catalog > .catalog-heading .muted {
+    display: none;
+  }
+
+  #catalog > .catalog-heading .heading-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  #catalog > .catalog-heading .heading-actions .button {
+    min-height: 34px;
+    padding: 7px 9px;
+    font-size: 10px;
+  }
+
+  #catalog > .catalog-controls.editorial-controls {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    margin: 0;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    align-items: end;
+  }
+
+  #catalog > .catalog-controls.editorial-controls > label:first-child {
+    grid-column: 1 / -1;
+  }
+
+  #catalog > .catalog-controls.editorial-controls > label:has(#catalogTemplate) {
+    grid-column: 1 / -1;
+  }
+
+  #catalog > .catalog-controls.editorial-controls input,
+  #catalog > .catalog-controls.editorial-controls select {
+    min-height: 36px;
+  }
+
+  #catalog > .catalog-controls.editorial-controls .checkbox-label {
+    min-height: 36px;
+    align-self: stretch;
+  }
+
+  #catalog > .catalog-controls.editorial-controls .catalog-meta {
+    min-width: 0;
+    align-self: stretch;
+  }
+
+  #catalog > .selection-layout {
+    display: contents;
+  }
+
+  #catalog .selection-panel {
+    grid-column: 1;
+    grid-row: 3;
+    position: static;
+    top: auto;
+    width: auto;
+    height: 100%;
+    min-height: 0;
     max-height: none;
     overflow: hidden;
-    transform: translateX(calc(-100% - 28px));
-    transition: transform 180ms ease;
-    box-shadow: 0 20px 60px rgba(18, 22, 28, .22);
+    align-self: stretch;
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
   }
 
-  body.catalog-drawer-open .selection-panel {
-    transform: translateX(0);
+  #catalog .selection-panel .selection-toolbar {
+    padding-top: 9px;
+    padding-bottom: 8px;
   }
 
-  .selection-panel .selectable-products {
-    max-height: none;
+  #catalog .selection-panel .selectable-products {
+    height: auto;
     min-height: 0;
+    max-height: none;
+    overflow-y: auto;
   }
 
-  .catalog-panel-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 34px;
-    padding: 6px 12px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: rgba(255,255,255,.94);
-    color: var(--ink-2);
-    font-size: 11px;
-    font-weight: 800;
+  #catalog .preview-column {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-self: stretch;
   }
 
-  .catalog-panel-backdrop:not([hidden]) {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 70;
-    border: 0;
-    background: rgba(18,22,28,.18);
-    backdrop-filter: blur(1px);
+  #catalog .preview-toolbar {
+    min-height: 42px;
+    margin: 0 0 7px;
+    padding: 0 2px;
+  }
+
+  #catalog .catalog-preview-viewport {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 2px 4px 18px;
+    scrollbar-gutter: stable;
+  }
+
+  #catalog .catalog-preview {
+    min-height: 100%;
+    align-content: start;
   }
 }
 
-/* Mobile/tablet: painel em fluxo; configuração pode crescer e a lista tem sua própria janela útil. */
-@media (max-width: 959px) {
+/* Tablet/mobile: mantém o fluxo que já foi validado no recorte mobile. */
+@media (max-width: 1079px) {
   .selection-layout {
     grid-template-columns: 1fr;
     gap: 14px;
