@@ -26,21 +26,6 @@
   const quantityMinField = document.getElementById('quantityMin');
   const quantityPriceField = document.getElementById('quantityPrice');
 
-  let pendingDetails = null;
-  const normalizeProduct = Core.normalizeProduct;
-
-  Core.normalizeProduct = product => {
-    const normalized = normalizeProduct(product);
-    if (!pendingDetails) return normalized;
-    const productId = String(product?.id || normalized.id || '');
-    if (pendingDetails.id && pendingDetails.id !== productId) return normalized;
-    normalized.quantityPrice = pendingDetails.quantityPrice;
-    normalized.variants = pendingDetails.variants;
-    normalized.tableRows = pendingDetails.tableRows;
-    pendingDetails = null;
-    return normalized;
-  };
-
   function setQuantityEnabled(enabled) {
     const active = Boolean(enabled);
     quantityToggle.checked = active;
@@ -151,25 +136,17 @@
     return null;
   }
 
-  priceField.addEventListener('input', () => priceField.setCustomValidity(''));
-  priceField.addEventListener('blur', () => {
-    if (normalizeSinglePriceField()) return;
-    priceField.setCustomValidity('Informe um valor monetário válido, por exemplo R$ 54,90.');
-  });
-  quantityToggle.addEventListener('change', () => setQuantityEnabled(quantityToggle.checked));
-  quantityMinField.addEventListener('input', () => quantityMinField.setCustomValidity(''));
-  quantityMinField.addEventListener('blur', () => {
-    if (quantityToggle.checked) normalizeQuantityPriceFields();
-  });
-  quantityPriceField.addEventListener('input', () => quantityPriceField.setCustomValidity(''));
-  quantityPriceField.addEventListener('blur', () => {
-    if (quantityToggle.checked) normalizeQuantityPriceFields();
-  });
-  tableRowsField.addEventListener('input', () => tableRowsField.setCustomValidity(''));
-  tableRowsField.addEventListener('blur', normalizeCommercialRowsField);
+  function read() {
+    return {
+      quantityPrice: quantityToggle.checked
+        ? Core.normalizeQuantityPrice({ minQuantity: quantityMinField.value, price: quantityPriceField.value })
+        : null,
+      variants: Core.parseVariantsText(variantsField.value),
+      tableRows: Core.parseTableRowsText(tableRowsField.value)
+    };
+  }
 
-  form.addEventListener('submit', event => {
-    pendingDetails = null;
+  function validateSubmit(event) {
     if (!normalizeSinglePriceField()) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -196,16 +173,27 @@
       document.querySelector('[data-form-step-target="3"]')?.click();
       tableRowsField.reportValidity();
       tableRowsField.focus();
-      return;
     }
+  }
 
-    pendingDetails = {
-      id: document.getElementById('productId')?.value || '',
-      quantityPrice: quantity.value,
-      variants: Core.parseVariantsText(variantsField.value),
-      tableRows: Core.parseTableRowsText(tableRowsField.value)
-    };
-  }, true);
+  priceField.addEventListener('input', () => priceField.setCustomValidity(''));
+  priceField.addEventListener('blur', () => {
+    if (normalizeSinglePriceField()) return;
+    priceField.setCustomValidity('Informe um valor monetário válido, por exemplo R$ 54,90.');
+  });
+  quantityToggle.addEventListener('change', () => setQuantityEnabled(quantityToggle.checked));
+  quantityMinField.addEventListener('input', () => quantityMinField.setCustomValidity(''));
+  quantityMinField.addEventListener('blur', () => {
+    if (quantityToggle.checked) normalizeQuantityPriceFields();
+  });
+  quantityPriceField.addEventListener('input', () => quantityPriceField.setCustomValidity(''));
+  quantityPriceField.addEventListener('blur', () => {
+    if (quantityToggle.checked) normalizeQuantityPriceFields();
+  });
+  tableRowsField.addEventListener('input', () => tableRowsField.setCustomValidity(''));
+  tableRowsField.addEventListener('blur', normalizeCommercialRowsField);
+
+  form.addEventListener('submit', validateSubmit, true);
 
   document.getElementById('productRows')?.addEventListener('click', event => {
     if (!event.target.closest('[data-edit-product]')) return;
@@ -214,5 +202,11 @@
 
   ['btnNewProduct', 'btnCancelEdit'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', () => queueMicrotask(clearDetails));
+  });
+
+  NS.ProductDetails = Object.freeze({
+    read,
+    loadDetails,
+    clearDetails
   });
 })();
