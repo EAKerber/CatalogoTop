@@ -57,6 +57,8 @@ Pasta, contador e lixeira formam uma única superfície visual, mantendo os bot�
 
 Listas curtas ficam sempre alinhadas ao topo; espaço excedente fica abaixo.
 
+`category-browser.css` é a autoridade do rail de categorias. `shell-responsive.css` mantém apenas o layout tabular mobile; a primeira coluna reserva 64 px para materializar uma miniatura de 50 px após o padding da célula.
+
 ## Fora de escopo
 
 - nenhuma mudança de schema;
@@ -88,11 +90,12 @@ Correções feitas no próprio recorte:
 - o click handler de modos do inspector foi restrito aos botões reais `Configuração / Ordenação`, evitando cancelar labels/radios internos;
 - gates antigos deixaram de codificar a viewport vertical rígida aposentada;
 - assertions de scroll usam o owner real do shell em desktop largo (`#catalog`) e não `window`;
-- `touch-action: pan-x pan-y pinch-zoom` pode ser serializado pelo Chromium como `manipulation`; os gates tratam as duas formas como semanticamente equivalentes.
+- `touch-action: pan-x pan-y pinch-zoom` pode ser serializado pelo Chromium como `manipulation`; os gates tratam as duas formas como semanticamente equivalentes;
+- removidas as declarações mobile duplicadas do rail em `shell-responsive.css`; `category-browser.css` passou a ser a autoridade única dessa navegação;
+- a geometria da primeira coluna mobile foi alinhada ao tamanho declarado da miniatura, evitando uma regra de 50 px que só conseguia materializar 44 px.
 
-Pendências de higiene não bloqueantes identificadas:
+Pendência de higiene não bloqueante identificada:
 
-- `grouping-controls.js` preserva a seleção fora de Catálogo interceptando `Escape` com `stopImmediatePropagation()`; o comportamento está coberto, mas o mecanismo é mais amplo do que o ideal e deve ser substituído por escopo explícito no listener de `contextual-inspector.js` quando esse módulo for tocado;
-- `shell-responsive.css` e `category-browser.css` ainda possuem declarações mobile parcialmente sobrepostas para o rail de categorias. Hoje convergem visualmente, mas uma futura limpeza de Produtos deve deixar `category-browser.css` como autoridade única dessa navegação.
+- `grouping-controls.js` preserva a seleção fora de Catálogo interceptando `Escape` com `stopImmediatePropagation()`; o comportamento está coberto, mas o mecanismo é mais amplo do que o ideal e deve ser substituído por escopo explícito no listener de `contextual-inspector.js` quando esse módulo for tocado.
 
-Esses dois itens não alteram dados, print ou resultado visual do recorte e não justificam reescrever módulos grandes no fechamento de v0.11.2.5.
+Esse item não altera dados, print ou resultado visual do recorte e não justifica reescrever um módulo grande no fechamento de v0.11.2.5.
