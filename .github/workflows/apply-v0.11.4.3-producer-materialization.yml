@@ -18,23 +18,26 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Verify state, apply, validate and self-clean
+      - name: Verify state, repair, apply, validate and self-clean
         shell: bash
         run: |
           set -euo pipefail
           expected_main='cd70e3bf9998a1060d7b48360ab7767afbc54ce4'
-          expected_parent='6215e4332de6fb74af8ef1945182d9a5cb6fdaf5'
+          expected_parent='68a19ad28a1f78e38787660b26995fe5a72aa224'
           branch='fix/v0.11.4.3-producer-source-materialization'
           test "$GITHUB_REF_NAME" = "$branch"
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$expected_main"
           test "$(git rev-parse HEAD^)" = "$expected_parent"
+          python3 scripts/_repair-apply-v0.11.4.3.py
+          python3 -m py_compile scripts/_apply-v0.11.4.3.py scripts/_refine-v0.11.4.3.py
           python3 scripts/_apply-v0.11.4.3.py
           python3 scripts/_refine-v0.11.4.3.py
           node --version
           npm test
           git config user.name 'CatalogoTop Automation'
           git config user.email 'catalogotop-automation@users.noreply.github.com'
-          git rm scripts/_apply-v0.11.4.3.py scripts/_refine-v0.11.4.3.py .github/workflows/apply-v0.11.4.3-producer-materialization.yml
+          git rm scripts/_apply-v0.11.4.3.py scripts/_refine-v0.11.4.3.py scripts/_repair-apply-v0.11.4.3.py .github/workflows/apply-v0.11.4.3-producer-materialization.yml
+          rm -rf scripts/__pycache__
           git add AGENTS.md package.json src/asset-client.js src/variation-bundle.js src/variation-bundle-controls.js netlify/functions/assets.mts netlify/lib/remote-product-source.mts scripts/variation-bundle-request-fixture.mjs scripts/variation-bundle-static-fixture.mjs scripts/storage-contract-fixture.mjs scripts/remote-product-source-fixture.mjs docs/v0.11.4.3-producer-source-materialization.md
           git commit -m 'fix: embed authoritative remote product sources producer-side'
           git push origin HEAD:"$branch"
