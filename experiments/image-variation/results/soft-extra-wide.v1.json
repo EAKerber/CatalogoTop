@@ -1,0 +1,57 @@
+{
+  "kind": "catalogotop.image-variation-benchmark-result",
+  "version": 1,
+  "caseId": "soft-extra-wide",
+  "status": "provisional-human-review-required",
+  "sourceEvidence": {
+    "sourceId": "soft-extra",
+    "sourceUrl": "https://trentoferramentas.cdn.magazord.com.br/img/2024/11/produto/1035/corredica-14-soft-closing.png?ims=fit-in%2F1210x",
+    "mimeType": "image/png",
+    "byteLength": 54347,
+    "sha256": "07edaca7d481149a3703a0b70cda099afcd88612bacaaee33f2d107c37d7628b",
+    "widthPx": 800,
+    "heightPx": 800,
+    "materializationTransport": "github-actions-public-https",
+    "materializationRunId": 33332404497,
+    "artifactId": 9738020897
+  },
+  "target": {
+    "profile": "card-wide",
+    "widthPx": 440,
+    "heightPx": 180,
+    "safeMarginRatio": 0.07
+  },
+  "segmentation": {
+    "method": "connected-light-neutral-border",
+    "threshold": 242,
+    "chromaTolerance": 24,
+    "foregroundPixels": 21001,
+    "foregroundBBox": {
+      "minX": 162,
+      "minY": 236,
+      "maxX": 621,
+      "maxY": 539,
+      "width": 460,
+      "height": 304
+    }
+  },
+  "geometry": {
+    "principalAxisDeg": -31.5418,
+    "originalContainBBoxUtilization": 0.066110,
+    "segmentedPreserveBBoxUtilization": 0.457827,
+    "alignHorizontalBBoxUtilization": 0.522139,
+    "alignHorizontalGainVsOriginal": 7.8980,
+    "alignHorizontalGainVsSegmentedPreserve": 1.1405
+  },
+  "interpretation": {
+    "utility": "strong-canvas-removal-gain-modest-rotation-gain",
+    "fidelity": "not-automatically-approved",
+    "candidateClass": "B",
+    "notes": [
+      "The dominant benefit comes from removing the large neutral source canvas and scaling the factual group to the target.",
+      "Horizontal alignment adds only a modest additional geometric benefit over preserving the source orientation.",
+      "This case argues against an unconditional rotate-elongated-product heuristic.",
+      "Human review is still required for piece count, fittings and characteristic slide geometry."
+    ]
+  }
+}
