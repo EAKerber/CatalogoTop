@@ -1,0 +1,41 @@
+name: Research Raster Quality Self-Test
+
+on:
+  push:
+    branches:
+      - research/source-readback-h45
+
+permissions:
+  contents: read
+
+jobs:
+  raster-selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v4
+        with:
+          ref: research/semantic-image-variation-v2
+
+      - name: Execute committed raster-quality sampler self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research-artifact
+          node scripts/research/image-raster-quality-probe.mjs | tee research-artifact/raster-quality-self-test.json
+          node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('research-artifact/raster-quality-self-test.json','utf8')); if(x.status!=='pass') process.exit(1)"
+
+      - name: Record authority head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee research-artifact/research-head.txt
+
+      - name: Upload self-test evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: raster-quality-self-test
+          path: research-artifact/
+          if-no-files-found: error
+          retention-days: 7
