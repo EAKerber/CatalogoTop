@@ -1,4 +1,4 @@
-name: Research H45 Source Readback
+name: Research Elongated Source Readback
 
 on:
   push:
@@ -21,16 +21,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Materialize authoritative public source
+      - name: Materialize public benchmark sources
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p research-artifact
-          curl --fail --location --silent --show-error \
+          curl --fail --location --silent --show-error -A 'Mozilla/5.0 CatalogoTop-Research/1.0' \
             --connect-timeout 15 --max-time 45 \
-            --output research-artifact/h45-source.jpg \
+            --output research-artifact/h45-source.bin \
             'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg'
-          test -s research-artifact/h45-source.jpg
+          curl --fail --location --silent --show-error -A 'Mozilla/5.0 CatalogoTop-Research/1.0' \
+            --connect-timeout 15 --max-time 45 \
+            --output research-artifact/soft-extra-source.bin \
+            'https://trentoferramentas.cdn.magazord.com.br/img/2024/11/produto/1035/corredica-14-soft-closing.png?ims=fit-in%2F1210x'
+          curl --fail --location --silent --show-error -A 'Mozilla/5.0 CatalogoTop-Research/1.0' \
+            --connect-timeout 15 --max-time 45 \
+            --output research-artifact/soft-close-source.bin \
+            'https://gmad.fbitsstatic.net/img/p/corredica-telescopica-com-amortecedor-300mm-renna-152536/343303-2.jpg?h=420&v=202604291612&w=420'
+          test -s research-artifact/h45-source.bin
+          test -s research-artifact/soft-extra-source.bin
+          test -s research-artifact/soft-close-source.bin
 
       - name: Record passive byte evidence
         shell: python
@@ -38,10 +48,20 @@ jobs:
           from pathlib import Path
           import hashlib, json, struct
 
-          path = Path('research-artifact/h45-source.jpg')
-          data = path.read_bytes()
-          if not data.startswith(b'\xff\xd8\xff'):
-              raise SystemExit('source is not JPEG by magic bytes')
+          SOURCES = {
+              'h45': {
+                  'file': 'h45-source.bin',
+                  'url': 'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg'
+              },
+              'soft-extra': {
+                  'file': 'soft-extra-source.bin',
+                  'url': 'https://trentoferramentas.cdn.magazord.com.br/img/2024/11/produto/1035/corredica-14-soft-closing.png?ims=fit-in%2F1210x'
+              },
+              'soft-close': {
+                  'file': 'soft-close-source.bin',
+                  'url': 'https://gmad.fbitsstatic.net/img/p/corredica-telescopica-com-amortecedor-300mm-renna-152536/343303-2.jpg?h=420&v=202604291612&w=420'
+              }
+          }
 
           def jpeg_size(blob):
               i = 2
@@ -61,32 +81,51 @@ jobs:
                   if marker in {0xC0,0xC1,0xC2,0xC3,0xC5,0xC6,0xC7,0xC9,0xCA,0xCB,0xCD,0xCE,0xCF}:
                       if i + 7 > len(blob):
                           break
-                      height = struct.unpack('>H', blob[i+3:i+5])[0]
-                      width = struct.unpack('>H', blob[i+5:i+7])[0]
-                      return width, height
+                      return struct.unpack('>H', blob[i+5:i+7])[0], struct.unpack('>H', blob[i+3:i+5])[0]
                   i += seglen
               raise ValueError('JPEG dimensions not found')
 
-          width, height = jpeg_size(data)
+          def sniff(blob):
+              if blob.startswith(b'\x89PNG\r\n\x1a\n'):
+                  if len(blob) < 24:
+                      raise ValueError('truncated PNG')
+                  return 'image/png', struct.unpack('>I', blob[16:20])[0], struct.unpack('>I', blob[20:24])[0]
+              if blob.startswith(b'\xff\xd8\xff'):
+                  width, height = jpeg_size(blob)
+                  return 'image/jpeg', width, height
+              if len(blob) >= 30 and blob[:4] == b'RIFF' and blob[8:12] == b'WEBP':
+                  return 'image/webp', None, None
+              raise ValueError('unsupported image magic')
+
+          records = []
+          for source_id, spec in SOURCES.items():
+              path = Path('research-artifact') / spec['file']
+              data = path.read_bytes()
+              mime, width, height = sniff(data)
+              record = {
+                  'sourceId': source_id,
+                  'sourceUrl': spec['url'],
+                  'mimeType': mime,
+                  'byteLength': len(data),
+                  'sha256': hashlib.sha256(data).hexdigest(),
+                  'widthPx': width,
+                  'heightPx': height,
+                  'transport': 'github-actions-public-https'
+              }
+              records.append(record)
+              print(json.dumps(record, indent=2))
+
           evidence = {
-              'kind': 'catalogotop.research-source-readback',
+              'kind': 'catalogotop.research-source-readback-set',
               'version': 1,
-              'sourceId': 'h45',
-              'sourceUrl': 'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg',
-              'mimeType': 'image/jpeg',
-              'byteLength': len(data),
-              'sha256': hashlib.sha256(data).hexdigest(),
-              'widthPx': width,
-              'heightPx': height,
-              'transport': 'github-actions-public-https'
+              'sources': records
           }
-          Path('research-artifact/h45-source.json').write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
-          print(json.dumps(evidence, indent=2))
+          Path('research-artifact/sources.json').write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
 
       - name: Upload source readback artifact
         uses: actions/upload-artifact@v4
         with:
-          name: h45-source-readback
+          name: elongated-source-readback
           path: research-artifact/
           if-no-files-found: error
           retention-days: 7
