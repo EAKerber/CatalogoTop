@@ -145,10 +145,13 @@
     const normalized = NS.Composition?.normalizePresentation
       ? NS.Composition.normalizePresentation(value)
       : { distribution: 'balanced', typography: 'neutral', order: [], itemStyles: {}, blocks: [], imageFrames: {}, imageSelections: {}, imageVariants: {} };
+    const retired = NS.V1Retirement?.cleanPresentation
+      ? NS.V1Retirement.cleanPresentation(normalized)
+      : normalized;
     return {
-      ...normalized,
-      order: uniqueIds(normalized.order || value?.order),
-      blocks: Array.isArray(normalized.blocks) ? normalized.blocks : preservedBlocks(value)
+      ...retired,
+      order: uniqueIds(retired.order || value?.order),
+      blocks: Array.isArray(retired.blocks) ? retired.blocks : preservedBlocks(value)
     };
   }
 

@@ -2,6 +2,8 @@
 
 Gerador simplificado de catálogos A4 para a Top Mobili.
 
+**Versão estável: 1.0.0.**
+
 A aplicação parte de um princípio deliberadamente menor que um editor livre: **produtos são cadastrados/importados, organizados por categoria, selecionados e materializados em um documento A4 determinístico**. Card, Collection e Table formam o vocabulário estrutural atual; cabeçalho, rodapé, paginação e data são componentes compartilhados.
 
 ## Fluxo atual
@@ -10,7 +12,7 @@ A aplicação parte de um princípio deliberadamente menor que um editor livre: 
 2. Organize e navegue os produtos por categorias.
 3. Selecione os produtos que farão parte do catálogo.
 4. Ajuste Card, Collection ou Table pelo inspector contextual e escolha o template.
-5. Quando útil, escolha entre a imagem Original, alternativas reutilizáveis do produto ou derivados locais do catálogo.
+5. Quando útil, escolha entre a imagem Original e alternativas reutilizáveis do produto.
 6. Revise a paginação A4 e use **Gerar PDF / Imprimir**.
 
 A base compartilhada de produtos e os assets content-addressed ficam no backend Netlify. O catálogo **em elaboração** mantém seu estado editorial na sessão local da V1 e pode ser exportado/importado como backup JSON completo.
@@ -47,17 +49,13 @@ O cadastro permite adicionar/remover/rotular imagens alternativas. Para usos de 
 
 O contrato completo está em [`docs/image-variants-v0.11.4.md`](docs/image-variants-v0.11.4.md).
 
-## Variation Bundle
+## External image variations — retirado da V1
 
-O menu **Dados → Imagens** permite um fluxo externo/offline para produzir derivados fiéis sem embutir geração de IA no editor:
+O experimento de geração/importação externa de derivados foi retirado do produto V1 estável. A seção **Dados → Imagens** permanece no HTML com atributo `hidden` para preservar um caminho de compatibilidade, mas não faz parte da interface suportada.
 
-1. **Exportar pacote de variações…** gera um ZIP com manifest versionado, contexto do layout, medidas renderizadas, framing, fonte canônica e hashes SHA-256.
-2. Um agente/processo externo produz imagens preservando identidade e geometria do produto.
-3. **Importar resultado de variações…** valida o ZIP integralmente antes de preparar/uploadar qualquer asset e aplica resultados aceitos em uma única mutação local do catálogo.
+O schema 7 continua reconhecendo `presentation.imageVariants` e `presentation.imageSelections`. Na V1, a normalização remove apenas entradas com `provenance.kind = external-variation` e seleções que apontavam para elas. `product.image`, `product.imageGallery`, framing e alternativas reutilizáveis continuam válidos.
 
-Resultados externos entram somente em `presentation.imageVariants`. Eles **não** substituem `product.image`, não são promovidos automaticamente para `Product.imageGallery`, não publicam ProductStore e não são auto-selecionados.
-
-O importador aceita somente PNG/JPEG/WebP e verifica pacote, paths, CRC, MIME por bytes, SHA-256, request/job/placement/signature e transformações permitidas. Resultado stale ou incompatível falha fechado.
+A decisão evita uma migração destrutiva e reserva compatibilidade para uma capability futura, que exige um contrato mais profundo de composição/semântica visual antes de ser reativada. Veja [`docs/v1-stable.md`](docs/v1-stable.md).
 
 ## Importação de produtos
 
@@ -89,7 +87,7 @@ O ProductStore remoto usa snapshot revisionado e escrita protegida por sessão c
 O menu **Dados** concentra:
 
 - importação de produtos e CSV modelo;
-- exportação/importação do Variation Bundle;
+- fluxo externo de variações de imagem preservado apenas como capability `hidden`/reservada, não suportada na V1 estável;
 - exportação/importação de backup JSON.
 
 O backup JSON serializa o estado completo e, no schema 7, preserva `Product.imageGallery`, `presentation.imageVariants`, proveniência, `imageSelections` e `imageFrames`. Ao importar um backup, a publicação remota opcional continua limitada à base de produtos; o estado editorial do catálogo não é promovido ao ProductStore.
