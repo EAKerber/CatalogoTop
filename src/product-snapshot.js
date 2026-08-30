@@ -4,7 +4,8 @@
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const FolderTree = NS.FolderTree;
   const Migration = NS.ProductFolderMigration;
-  if (!FolderTree || !Migration) return;
+  const ProductDomain = NS.ProductDomain;
+  if (!FolderTree || !Migration || !ProductDomain) return;
 
   const SCHEMA_VERSION = 2;
   const MAX_PRODUCTS = 5000;
@@ -50,6 +51,7 @@
       }
       return Migration.applyLegacyProjection({ ...product, folderId }, folders);
     });
+    ProductDomain.assertUniqueCodes(products);
     return {
       schemaVersion: SCHEMA_VERSION,
       ...metadata(raw),

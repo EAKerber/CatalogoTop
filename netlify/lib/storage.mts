@@ -1,6 +1,7 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { getDeployStore, getStore } from '@netlify/blobs';
 import { validateProductFolders } from './product-folders.mts';
+import { validateUniqueProductCodes } from './product-codes.mts';
 
 declare const Netlify: {
   context?: { deploy?: { context?: string } };
@@ -145,6 +146,8 @@ function validImageGallery(value: unknown) {
 export function validateProducts(products: unknown) {
   if (!Array.isArray(products)) return 'products deve ser um array.';
   if (products.length > 5000) return 'Limite de 5000 produtos excedido.';
+  const codeError = validateUniqueProductCodes(products);
+  if (codeError) return codeError;
   for (const item of products) {
     if (!item || typeof item !== 'object') return 'Produto inválido.';
     const product = item as Record<string, unknown>;
