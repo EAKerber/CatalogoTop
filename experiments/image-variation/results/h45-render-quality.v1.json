@@ -1,0 +1,58 @@
+{
+  "kind": "catalogotop.image-variation-render-quality-result",
+  "version": 1,
+  "status": "research-only",
+  "caseId": "h45-wide-render-quality",
+  "purpose": "Test whether the presentation-quality objective reserved for the first grounded Class C trial can be achieved deterministically after the Class C producer failed to execute the edit contract.",
+  "source": {
+    "sourceId": "h45",
+    "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+    "widthPx": 450,
+    "heightPx": 450,
+    "authority": "stronger-product-match"
+  },
+  "target": {
+    "widthPx": 440,
+    "heightPx": 180,
+    "safeMarginRatio": 0.07
+  },
+  "geometry": {
+    "principalAxisDeg": 30.542133584100974,
+    "rotationDegApplied": 30.542133584100974,
+    "semanticOperation": "rotate the already isolated factual two-piece group as one unit into the reviewed horizontal wide-placement orientation"
+  },
+  "candidates": {
+    "nearestNeighbor": {
+      "role": "previous deterministic fidelity baseline",
+      "scale": 0.9052631578947368,
+      "opaquePixels": 17579,
+      "partialAlphaPixels": 0,
+      "coverageEquivalentPx": 17579.0
+    },
+    "premultipliedBicubicLanczos": {
+      "role": "deterministic presentation-quality control",
+      "rotationResampling": "bicubic over premultiplied-alpha RGBA",
+      "scaleResampling": "Lanczos over premultiplied-alpha RGBA",
+      "scale": 0.8966824644549762,
+      "opaquePixels": 14874,
+      "partialAlphaPixels": 4890,
+      "coverageEquivalentPx": 17230.623529411765
+    }
+  },
+  "fidelityInterpretation": [
+    "Both candidates derive only from the exact source pixels, the same factual foreground mask and deterministic interpolation.",
+    "No product piece, hole, slot, fitting, terminal or viewpoint is synthesized by the render-quality control.",
+    "Partial-alpha pixels are antialiasing evidence, not new factual detail.",
+    "Premultiplied-alpha processing reduces edge color contamination compared with naive transparent-edge resampling."
+  ],
+  "review": {
+    "outcome": "PASS FOR BENCHMARK COMPARISON",
+    "observedPresentationChange": "The alpha-aware candidate has visibly smoother, less jagged product boundaries at placement size and magnified inspection while preserving the reviewed H45 group geometry.",
+    "productionApproval": false
+  },
+  "architecturalReading": "For H45, the narrow presentation-quality objective predeclared for Class C can be substantially addressed by a deterministic renderer. This reduces the current evidence for needing generative reconstruction in the ordinary variation path.",
+  "relationshipToClassCTrial": {
+    "classCResult": "experiments/image-variation/results/h45-class-c-producer-failure.v1.json",
+    "conclusion": "Do not seek another generative candidate merely to obtain antialiasing/background cleanup. First treat high-quality deterministic resampling as the stronger baseline that any future Class C producer must materially outperform."
+  }
+}
