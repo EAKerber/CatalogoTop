@@ -29,7 +29,7 @@
     const conflict = findCodeConflict(products, code, options);
     if (!conflict) return true;
     throw issue('product_code_duplicate', `Código de produto já utilizado: ${String(code || '').trim()}.`, {
-      code: String(code || '').trim(),
+      productCode: String(code || '').trim(),
       conflictId: String(conflict.id || ''),
       conflictCode: String(conflict.code || '')
     });
@@ -48,7 +48,7 @@
       const first = firstByKey.get(key);
       duplicates.push({
         key,
-        code: String(product?.code || '').trim(),
+        productCode: String(product?.code || '').trim(),
         firstIndex: first.index,
         index,
         firstId: String(first.product?.id || ''),
@@ -61,7 +61,7 @@
   function assertUniqueCodes(products) {
     const conflict = duplicateCodes(products)[0];
     if (!conflict) return true;
-    throw issue('product_code_duplicate', `Código de produto duplicado: ${conflict.code}.`, conflict);
+    throw issue('product_code_duplicate', `Código de produto duplicado: ${conflict.productCode}.`, conflict);
   }
 
   function cloneValue(value) {
