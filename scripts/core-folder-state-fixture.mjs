@@ -69,6 +69,43 @@ const newProduct = afterCreate.products.find(product => product.id === 'p2');
 assert.ok(newProduct.folderId);
 assert.deepEqual(Array.from(FolderTree.pathOf(afterCreate.folders, newProduct.folderId), item => item.name), ['Ferragens', 'Telescópicas']);
 
+// Merge parcial não pode achatar uma hierarquia profunda só porque a UI/import legado
+// representa o restante do caminho em `subcategory` com " / ".
+const deepFolders = [
+  { id: 'deep-root', parentId: null, name: 'Ferragens' },
+  { id: 'deep-mid', parentId: 'deep-root', name: 'Corrediças' },
+  { id: 'deep-leaf', parentId: 'deep-mid', name: 'Telescópicas' }
+];
+Core.setState({
+  ...Core.createInitialState(),
+  schemaVersion: 8,
+  folders: deepFolders,
+  products: [{
+    id: 'deep-product', code: 'DEEP', description: 'Profundo', folderId: 'deep-leaf',
+    category: 'Ferragens', subcategory: 'Corrediças / Telescópicas', status: 'Ativo'
+  }]
+}, { persist: false });
+Core.mergeProducts([{ code: 'DEEP', description: 'Profundo atualizado', price: '25' }]);
+let deepState = Core.getState();
+assert.equal(deepState.products[0].folderId, 'deep-leaf', 'merge sem organização deve preservar folderId profundo');
+assert.equal(deepState.folders.some(folder => folder.name === 'Corrediças / Telescópicas'), false, 'merge sem organização não pode criar pasta achatada');
+
+Core.mergeProducts([{
+  code: 'DEEP', description: 'Profundo atualizado 2',
+  category: 'Ferragens', subcategory: 'Corrediças / Telescópicas'
+}]);
+deepState = Core.getState();
+assert.equal(deepState.products[0].folderId, 'deep-leaf', 'mirrors legados idênticos devem preservar folderId profundo');
+assert.equal(deepState.folders.some(folder => folder.name === 'Corrediças / Telescópicas'), false, 'mirrors idênticos não podem achatar a árvore');
+
+Core.mergeProducts([{
+  code: 'DEEP', description: 'Movido explicitamente',
+  category: 'Ferragens', subcategory: 'Invisíveis'
+}]);
+deepState = Core.getState();
+assert.notEqual(deepState.products[0].folderId, 'deep-leaf', 'mudança organizacional explícita deve poder mover o produto');
+assert.deepEqual(Array.from(FolderTree.pathOf(deepState.folders, deepState.products[0].folderId), item => item.name), ['Ferragens', 'Invisíveis']);
+
 const preservedEmpty = { id: 'folder-empty', parentId: null, name: 'Planejada' };
 Core.setState({
   ...afterCreate,
@@ -92,4 +129,4 @@ const backupRoundTrip = Core.migrate(JSON.parse(JSON.stringify(afterReplace)));
 assert.deepEqual(JSON.parse(JSON.stringify(backupRoundTrip.folders)), JSON.parse(JSON.stringify(afterReplace.folders)));
 assert.equal(backupRoundTrip.products[0].folderId, afterReplace.products[0].folderId);
 
-console.log('PASS core folder-state fixture: schema 8, legacy migration, explicit legacy adapter, replace preservation and backup round-trip');
+console.log('PASS core folder-state fixture: schema 8, legacy migration, deep-merge preservation, explicit moves, replace preservation and backup round-trip');
