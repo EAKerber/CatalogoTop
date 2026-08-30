@@ -1,0 +1,87 @@
+name: Research H45 Source Readback
+
+on:
+  push:
+    branches:
+      - research/source-readback-h45
+
+permissions:
+  contents: read
+
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Materialize authoritative public source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research-artifact
+          curl --fail --location --silent --show-error \
+            --connect-timeout 15 --max-time 45 \
+            --output research-artifact/h45-source.jpg \
+            'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg'
+          test -s research-artifact/h45-source.jpg
+
+      - name: Record passive byte evidence
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, json, struct
+
+          path = Path('research-artifact/h45-source.jpg')
+          data = path.read_bytes()
+          if not data.startswith(b'\xff\xd8\xff'):
+              raise SystemExit('source is not JPEG by magic bytes')
+
+          def jpeg_size(blob):
+              i = 2
+              while i + 9 < len(blob):
+                  if blob[i] != 0xFF:
+                      i += 1
+                      continue
+                  while i < len(blob) and blob[i] == 0xFF:
+                      i += 1
+                  marker = blob[i]
+                  i += 1
+                  if marker in (0xD8, 0xD9):
+                      continue
+                  if i + 2 > len(blob):
+                      break
+                  seglen = struct.unpack('>H', blob[i:i+2])[0]
+                  if marker in {0xC0,0xC1,0xC2,0xC3,0xC5,0xC6,0xC7,0xC9,0xCA,0xCB,0xCD,0xCE,0xCF}:
+                      if i + 7 > len(blob):
+                          break
+                      height = struct.unpack('>H', blob[i+3:i+5])[0]
+                      width = struct.unpack('>H', blob[i+5:i+7])[0]
+                      return width, height
+                  i += seglen
+              raise ValueError('JPEG dimensions not found')
+
+          width, height = jpeg_size(data)
+          evidence = {
+              'kind': 'catalogotop.research-source-readback',
+              'version': 1,
+              'sourceId': 'h45',
+              'sourceUrl': 'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg',
+              'mimeType': 'image/jpeg',
+              'byteLength': len(data),
+              'sha256': hashlib.sha256(data).hexdigest(),
+              'widthPx': width,
+              'heightPx': height,
+              'transport': 'github-actions-public-https'
+          }
+          Path('research-artifact/h45-source.json').write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(evidence, indent=2))
+
+      - name: Upload source readback artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: h45-source-readback
+          path: research-artifact/
+          if-no-files-found: error
+          retention-days: 7
