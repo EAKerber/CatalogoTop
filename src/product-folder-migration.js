@@ -46,10 +46,18 @@
     return FolderTree.displayName(value) || 'Sem categoria';
   }
 
+  function legacySubcategorySegments(value) {
+    const subcategory = FolderTree.displayName(value);
+    if (!subcategory) return [];
+    return subcategory
+      .split(/\s+\/\s+/)
+      .map(segment => FolderTree.displayName(segment))
+      .filter(Boolean);
+  }
+
   function legacyPathFromProduct(product) {
     const category = normalizeLegacyCategory(product?.category);
-    const subcategory = FolderTree.displayName(product?.subcategory);
-    return subcategory ? [category, subcategory] : [category];
+    return [category, ...legacySubcategorySegments(product?.subcategory)];
   }
 
   function pathKeys(path) {
