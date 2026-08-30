@@ -1,0 +1,62 @@
+{
+  "kind": "catalogotop.image-variation-master-render-result",
+  "version": 1,
+  "status": "research-only",
+  "caseId": "h45-wide",
+  "profile": "card-wide-4x",
+  "source": {
+    "sourceId": "h45",
+    "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+    "widthPx": 450,
+    "heightPx": 450,
+    "authority": "stronger-product-match"
+  },
+  "composition": {
+    "placementWidthPx": 440,
+    "placementHeightPx": 180,
+    "masterWidthPx": 1760,
+    "masterHeightPx": 720,
+    "masterScaleFactor": 4,
+    "safeMarginRatio": 0.07,
+    "orientation": "align-horizontal",
+    "principalAxisDeg": 30.542133584100974,
+    "placementScaleFromSource": 0.9054865788784296,
+    "masterScaleFromSource": 3.6219463155137186,
+    "bboxUtilization": 0.7390278643325526,
+    "relativeGeometryChangedBetweenPlacementAndMaster": false
+  },
+  "renderer": {
+    "path": "scripts/research/image-render-master.mjs",
+    "sampling": "inverse affine bilinear over premultiplied factual coverage",
+    "background": "opaque neutral white",
+    "placementDerivation": "4x4 deterministic box downsample from master"
+  },
+  "coverageEvidence": {
+    "placementDirectEquivalentPx": 17601.78431372549,
+    "masterEquivalentPxNormalizedToPlacement": 17599.67230392157,
+    "masterDownsampleEquivalentPx": 17599.67450980392,
+    "normalizedMasterVsDirectDeltaRatio": 0.0001199891798450798,
+    "partialCoveragePixels": {
+      "placementDirect": 1964,
+      "master": 31175,
+      "masterDownsample": 3437
+    }
+  },
+  "rasterComparison": {
+    "directPlacementVsMasterDownsampleRgbMeanAbsoluteChannelDifference": 0.8546927609427609,
+    "directPlacementVsMasterDownsampleMaxChannelDifference": 50,
+    "interpretation": "The master/downsample path is not pixel-identical to a direct placement render because it supersamples transform boundaries. Relative composition and factual coverage remain effectively unchanged."
+  },
+  "resolutionHonesty": {
+    "masterRequiresSourceUpscaling": true,
+    "claimOfNewFactualDetail": false,
+    "interpretation": "A 1760x720 master provides a denser transform raster and better downstream sampling, but the factual source remains the 450x450 JPEG."
+  },
+  "review": {
+    "presentationOutcome": "PASS FOR MASTER BASELINE",
+    "fidelityReference": "experiments/image-variation/reviews/elongated-wide-review.v1.json",
+    "fidelityOutcome": "PASS FOR BENCHMARK COMPARISON",
+    "productionApproval": false,
+    "reading": "H45 supports decoupling logical placement from master raster. The 4x path preserves the reviewed composition while giving a stronger deterministic presentation baseline for any future Class C comparison."
+  }
+}
