@@ -1,0 +1,57 @@
+{
+  "kind": "catalogotop.image-variation-benchmark-result",
+  "version": 1,
+  "caseId": "h45-wide",
+  "status": "provisional-human-review-required",
+  "sourceEvidence": {
+    "sourceId": "h45",
+    "sourceUrl": "https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg",
+    "mimeType": "image/jpeg",
+    "byteLength": 16417,
+    "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+    "widthPx": 450,
+    "heightPx": 450,
+    "materializationTransport": "github-actions-public-https",
+    "materializationRunId": 33332270953,
+    "artifactId": 9737982426
+  },
+  "target": {
+    "profile": "card-wide",
+    "widthPx": 440,
+    "heightPx": 180,
+    "safeMarginRatio": 0.07
+  },
+  "segmentation": {
+    "method": "connected-light-neutral-border",
+    "threshold": 242,
+    "chromaTolerance": 24,
+    "foregroundPixels": 21466,
+    "foregroundBBox": {
+      "minX": 39,
+      "minY": 91,
+      "maxX": 417,
+      "maxY": 367,
+      "width": 379,
+      "height": 277
+    }
+  },
+  "geometry": {
+    "principalAxisDeg": 30.5421,
+    "originalContainBBoxUtilization": 0.156859,
+    "segmentedPreserveBBoxUtilization": 0.413977,
+    "alignHorizontalBBoxUtilization": 0.739028,
+    "alignHorizontalGainVsOriginal": 4.7114,
+    "alignHorizontalGainVsSegmentedPreserve": 1.7852
+  },
+  "interpretation": {
+    "utility": "strong-geometric-gain",
+    "fidelity": "not-automatically-approved",
+    "candidateClass": "B",
+    "notes": [
+      "Most measured gain comes from removing neutral source canvas and fitting factual foreground rather than inventing detail.",
+      "Whole-group principal-axis alignment adds material additional utilization over segmentation with orientation preserved.",
+      "The current prototype copies factual foreground and treats semantic permission to rotate as external to geometry.",
+      "Human review is still required for piece count, characteristic rail geometry, holes/fittings and overall product identity before this can count as a benchmark pass."
+    ]
+  }
+}
