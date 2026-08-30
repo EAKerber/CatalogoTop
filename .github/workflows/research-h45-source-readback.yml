@@ -33,6 +33,10 @@ jobs:
             'https://trentoferramentas.cdn.magazord.com.br/img/2024/11/produto/1035/corredica-14-soft-closing.png?ims=fit-in%2F1210x'
           curl --fail --location --silent --show-error -A "$UA" --connect-timeout 15 --max-time 45 --output research-artifact/soft-close-source.bin \
             'https://gmad.fbitsstatic.net/img/p/corredica-telescopica-com-amortecedor-300mm-renna-152536/343303-2.jpg?h=420&v=202604291612&w=420'
+          curl --fail --location --silent --show-error -A "$UA" --connect-timeout 15 --max-time 45 --output research-artifact/hinge-source.bin \
+            'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258208402/banhomais-c337v5khji.jpg'
+          curl --fail --location --silent --show-error -A "$UA" --connect-timeout 15 --max-time 45 --output research-artifact/piston-source.bin \
+            'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186698/22-5q9ac2njj1-uxd9aksc9v.png'
           curl --fail --location --silent --show-error -A "$UA" --connect-timeout 15 --max-time 45 --output research-artifact/caster-source.bin \
             'https://product-hub-prd.madeiramadeira.com.br/292834998/images/7b563fa0-5fc2-4c71-82ec-1d09e4b730253298REN36503297REN36503296.jpg?bg-color=FFF&canvas=1%3A1&width=128'
           curl --fail --location --silent --show-error -A "$UA" -H 'Accept: image/png,image/jpeg,image/webp,*/*;q=0.8' --connect-timeout 15 --max-time 45 --output research-artifact/round-leg-source.bin \
@@ -49,6 +53,8 @@ jobs:
               'h45': ('h45-source.bin', 'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg'),
               'soft-extra': ('soft-extra-source.bin', 'https://trentoferramentas.cdn.magazord.com.br/img/2024/11/produto/1035/corredica-14-soft-closing.png?ims=fit-in%2F1210x'),
               'soft-close': ('soft-close-source.bin', 'https://gmad.fbitsstatic.net/img/p/corredica-telescopica-com-amortecedor-300mm-renna-152536/343303-2.jpg?h=420&v=202604291612&w=420'),
+              'hinge': ('hinge-source.bin', 'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258208402/banhomais-c337v5khji.jpg'),
+              'piston': ('piston-source.bin', 'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186698/22-5q9ac2njj1-uxd9aksc9v.png'),
               'caster': ('caster-source.bin', 'https://product-hub-prd.madeiramadeira.com.br/292834998/images/7b563fa0-5fc2-4c71-82ec-1d09e4b730253298REN36503297REN36503296.jpg?bg-color=FFF&canvas=1%3A1&width=128'),
               'round-leg': ('round-leg-source.bin', 'https://www.markferragens.com.br/_next/image?q=75&url=https%3A%2F%2Fimg.markferragens.com.br%2Fimagens%2F2623%2F1-pe-redondo-cromado-para-armarios-e-moveis-planejados-o3-x-10-cm.png%3Fw%3D800%26h%3D800%26r%3D10&w=1920')
           }
