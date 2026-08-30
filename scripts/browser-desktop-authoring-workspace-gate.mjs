@@ -143,18 +143,25 @@ try {
   await page.click('[data-tab="products"]');
   await page.waitForSelector('#products.panel.active');
   const products = await page.evaluate(() => {
-    const folders = document.querySelector('#categoryFolders');
-    const table = document.querySelector('.table-wrap');
-    const filter = document.querySelector('#filterCategory');
+    const workspace = document.querySelector('#products .product-workspace');
+    const form = document.querySelector('#productForm');
+    const contextual = document.querySelector('#productLibraryPanel');
+    const path = document.querySelector('#productFolderPath');
+    const legacyFolders = document.querySelector('#categoryFolders');
+    const visibleTable = document.querySelector('.cadastro-product-table')?.closest('.table-wrap');
     return {
-      filterDisplay: getComputedStyle(filter).display,
-      foldersDisplay: getComputedStyle(folders).display,
-      wrap: getComputedStyle(folders).flexWrap,
-      overflowX: getComputedStyle(folders).overflowX,
-      tableOverflow: Math.max(0, table.scrollWidth - table.clientWidth)
+      columns: getComputedStyle(workspace).gridTemplateColumns,
+      formDisplay: getComputedStyle(form).display,
+      contextualDisplay: getComputedStyle(contextual).display,
+      pathDisplay: getComputedStyle(path).display,
+      legacyFoldersDisplay: getComputedStyle(legacyFolders).display,
+      tableOverflow: visibleTable ? Math.max(0, visibleTable.scrollWidth - visibleTable.clientWidth) : -1,
+      destructiveVisible: [...contextual.querySelectorAll('[data-delete-product-direct], [data-delete-category]')].some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length)
     };
   });
-  if (products.filterDisplay !== 'none' || products.foldersDisplay !== 'flex' || products.wrap !== 'nowrap' || products.overflowX !== 'auto' || products.tableOverflow > 3) throw new Error(`Produtos deve usar busca + filesystem rail sem select redundante: ${JSON.stringify(products)}`);
+  if (products.formDisplay === 'none' || products.contextualDisplay === 'none' || products.pathDisplay === 'none' || products.legacyFoldersDisplay !== 'none' || products.tableOverflow > 3 || products.destructiveVisible) {
+    throw new Error(`Cadastro desktop deve usar formulário + consulta contextual, sem filesystem/destruição legados: ${JSON.stringify(products)}`);
+  }
 
   await page.setViewportSize({ width: 1100, height: 800 });
   await page.click('[data-tab="catalog"]');
@@ -186,7 +193,7 @@ try {
   }));
   if (mobileAnchor.filterTop <= mobileAnchor.inspectorTop || !mobileAnchor.returning) throw new Error(`⚙ mobile deve ancorar na configuração, antes do filtro: ${JSON.stringify(mobileAnchor)}`);
 
-  console.log('PASS desktop panel ergonomics gate: metadata contextual, actions compactas, 100%=0.8, tabs e lista útil');
+  console.log('PASS desktop panel ergonomics gate: metadata contextual, actions compactas, Cadastro contextual, 100%=0.8 e lista útil');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
