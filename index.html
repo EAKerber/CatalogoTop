@@ -53,6 +53,12 @@
             <a class="header-data-action" data-header-menu-close href="examples/produtos-modelo.csv" download>Baixar CSV modelo</a>
           </section>
           <div class="header-data-divider" aria-hidden="true"></div>
+          <section class="header-data-section" aria-label="Imagens">
+            <span class="header-data-label">Imagens</span>
+            <button class="header-data-action" id="btnExportImageVariationBundle" type="button" title="Exportar contexto e imagens para gerar variações fiéis fora do editor">Exportar pacote de variações…</button>
+            <div class="variation-bundle-status" id="variationBundleStatus" aria-live="polite" hidden></div>
+          </section>
+          <div class="header-data-divider" aria-hidden="true"></div>
           <section class="header-data-section" aria-label="Backup">
             <span class="header-data-label">Backup</span>
             <button class="header-data-action" data-header-menu-close id="btnExportBackup" type="button" title="Exportar backup JSON">Exportar backup</button>
@@ -184,9 +190,12 @@
   <script defer src="src/product-actions.js"></script>
   <script defer src="src/composer-selection.js"></script>
   <script defer src="src/presentation-actions.js"></script>
+  <script defer src="src/zip-store.js"></script>
+  <script defer src="src/variation-bundle.js"></script>
   <script defer src="src/catalog-selection-order.js"></script>
   <script defer src="src/app.js"></script>
   <script defer src="src/header-data-menu.js"></script>
+  <script defer src="src/variation-bundle-controls.js"></script>
   <script defer src="src/grouping-controls.js"></script>
   <script defer src="src/collection-controls.js"></script>
   <script defer src="src/table-controls.js"></script>
