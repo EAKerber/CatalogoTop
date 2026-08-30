@@ -4,6 +4,11 @@
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const REQUEST_KIND = 'catalogotop.image-variation-request';
   const REQUEST_VERSION = 2;
+  const RESULT_CONTRACT_KIND = 'catalogotop.image-variation-result-contract';
+  const RESULT_CONTRACT_VERSION = 1;
+  const RESULT_KIND = 'catalogotop.image-variation-result';
+  const RESULT_VERSION = 1;
+  const RESULT_MIME_TYPES = Object.freeze(['image/png', 'image/jpeg', 'image/webp']);
   const SOURCE_TIMEOUT_MS = 10000;
   const ALLOWED_TRANSFORMS = Object.freeze([
     'upscale',
@@ -649,11 +654,66 @@ if __name__ == "__main__":
 `;
 }
 
+  function resultContract(requestId = '') {
+    return {
+      kind: RESULT_CONTRACT_KIND,
+      version: RESULT_CONTRACT_VERSION,
+      requestManifest: {
+        kind: REQUEST_KIND,
+        version: REQUEST_VERSION,
+        requestId: String(requestId || '')
+      },
+      resultManifest: {
+        kind: RESULT_KIND,
+        version: RESULT_VERSION,
+        topLevelArray: 'variants',
+        forbiddenTopLevelArrays: ['results'],
+        required: ['kind', 'version', 'requestId', 'variants'],
+        variantRequired: ['jobId', 'usageSignature', 'productId', 'placementKey', 'asset'],
+        assetRequired: ['path', 'mimeType', 'sha256']
+      },
+      allowedMimeTypes: Array.from(RESULT_MIME_TYPES),
+      allowedTransforms: Array.from(ALLOWED_TRANSFORMS),
+      rules: [
+        'Request and Result versions are independent. Do not mirror the request version.',
+        'Return manifest.json with kind catalogotop.image-variation-result, version 1 and variants[]. Never return results[].',
+        'Copy requestId from the request manifest and copy jobId, usageSignature, productId and placementKey from each matching job.',
+        'Declare only transformation tokens present in allowedTransforms.',
+        'Raster resize/downscale needed to fit the declared target is output sizing, not an additional transform token named downscale.',
+        'Each asset sha256 must hash the exact bytes stored at asset.path.'
+      ],
+      example: {
+        kind: RESULT_KIND,
+        version: RESULT_VERSION,
+        requestId: '<copy manifest.requestId>',
+        generatedAt: '<ISO-8601 timestamp>',
+        generator: '<generator name>',
+        variants: [{
+          resultId: '<stable result id>',
+          jobId: '<copy job.jobId>',
+          usageSignature: '<copy job.usageSignature>',
+          productId: '<copy job.productId>',
+          placementKey: '<copy job.placementKey>',
+          label: 'Variação externa',
+          generator: '<generator name>',
+          transforms: ['focus-reframe'],
+          asset: {
+            path: 'images/<file>.png',
+            mimeType: 'image/png',
+            sha256: '<64 lowercase hex chars for the exact file bytes>'
+          }
+        }]
+      }
+    };
+  }
+
   function requestReadme() {
     return [
       'CatalogoTop — Image Variation Request v2',
       '',
-      'Use manifest.json as the authoritative contract.',
+      'Use manifest.json as the authoritative request contract.',
+      'IMPORTANT: Request manifest version = 2; Result manifest version = 1. These versions are independent. Do not mirror the request version.',
+      'Before generating output, read context/result-contract.json. Return manifest.json exactly as catalogotop.image-variation-result version 1 with variants[]. Never return version 2 or results[].',
       'For source.mode=embedded, source.path points to the canonical original included in this ZIP.',
       'For source.mode=remote-url, source.url is the last-resort canonical locator because the producer could not embed the real pixels, including producer-side managed materialization.',
       'If any job uses source.mode=remote-url, preferred path: python3 tools/materialize-sources.py . --mode fetch',
@@ -665,9 +725,10 @@ if __name__ == "__main__":
       'If the environment cannot materialize bytes or cannot apply a required edit to local pixels, report that job as capability-blocked rather than approximating it.',
       'Generate only faithful derivatives that preserve the product identity and geometry.',
       `Allowed transformations: ${ALLOWED_TRANSFORMS.join(', ')}.`,
+      'Only declare transform tokens from that list. Raster resize/downscale needed to fit target dimensions is output sizing and must not be emitted as a transform token named downscale.',
       `Forbidden transformations: ${FORBIDDEN_TRANSFORMS.join(', ')}.`,
       '',
-      'Do not modify commercial facts. Return generated images through the matching result-bundle contract using jobId and usageSignature.'
+      'Do not modify commercial facts. Return the Result Bundle v1 described by context/result-contract.json using the matching jobId and usageSignature.'
     ].join('\n');
   }
 
@@ -833,6 +894,7 @@ if __name__ == "__main__":
     const entries = [
       { path: 'manifest.json', data: `${JSON.stringify(manifest, null, 2)}\n` },
       { path: 'context/layout.json', data: `${JSON.stringify(layoutContext(documentModel), null, 2)}\n` },
+      { path: 'context/result-contract.json', data: `${JSON.stringify(resultContract(requestId), null, 2)}\n` },
       { path: 'README.txt', data: `${requestReadme()}\n` },
       { path: 'tools/materialize-sources.py', data: `${sourceMaterializerScript()}\n` }
     ];
@@ -850,6 +912,11 @@ if __name__ == "__main__":
   NS.VariationBundle = Object.freeze({
     REQUEST_KIND,
     REQUEST_VERSION,
+    RESULT_CONTRACT_KIND,
+    RESULT_CONTRACT_VERSION,
+    RESULT_KIND,
+    RESULT_VERSION,
+    RESULT_MIME_TYPES,
     SOURCE_TIMEOUT_MS,
     ALLOWED_TRANSFORMS,
     FORBIDDEN_TRANSFORMS,
@@ -869,6 +936,7 @@ if __name__ == "__main__":
     producerMaterializeRemoteSource,
     fetchSourceAsset,
     layoutContext,
+    resultContract,
     buildRequest
   });
 })();
