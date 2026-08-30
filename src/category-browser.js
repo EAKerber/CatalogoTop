@@ -3,329 +3,268 @@
 
   const NS = window.CatalogoTop;
   const Core = NS?.Core;
-  const foldersRoot = document.getElementById('categoryFolders');
-  const datalist = document.getElementById('categoryOptions');
+  const FolderTree = NS?.FolderTree;
+  const ProductQuery = NS?.ProductQuery;
+  const ProductDomain = NS?.ProductDomain;
+  const Migration = NS?.ProductFolderMigration;
+  const App = NS?.App;
+  const Render = NS?.Render;
+
+  const form = document.getElementById('productForm');
+  const panel = document.getElementById('productLibraryPanel');
   const categoryInput = document.getElementById('category');
-  const productFilter = document.getElementById('filterCategory');
-  const productRows = document.getElementById('productRows');
-  const productForm = document.getElementById('productForm');
+  const subcategoryInput = document.getElementById('subcategory');
+  const codeInput = document.getElementById('code');
+  const productIdInput = document.getElementById('productId');
+  if (!Core || !FolderTree || !ProductQuery || !ProductDomain || !Migration || !App || !Render || !form || !panel || !categoryInput || !subcategoryInput || !codeInput || !productIdInput) return;
 
-  if (!Core || !foldersRoot || !datalist || !categoryInput || !productFilter || !productRows) return;
+  const categoryLabel = categoryInput.closest('label');
+  const subcategoryLabel = subcategoryInput.closest('label');
+  const deleteButton = document.getElementById('btnDeleteProduct');
+  const mobileLibraryButton = document.querySelector('[data-mobile-workspace-target="library"]');
 
-  const folderIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h6l2 2h9v9.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6.5Z"/><path d="M3.5 10h17"/></svg>';
-  const allIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h6l2 2h8v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"/><path d="M6 4h5l2 2"/></svg>';
-  const trashIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15"/><path d="M9 3.8h6L16.3 7H7.7L9 3.8Z"/><path d="M7 7l.8 12.2h8.4L17 7"/><path d="M10 10.5v5.5M14 10.5v5.5"/></svg>';
+  if (categoryLabel) categoryLabel.hidden = true;
+  if (subcategoryLabel) subcategoryLabel.hidden = true;
+  if (deleteButton) deleteButton.hidden = true;
+  if (mobileLibraryButton) mobileLibraryButton.textContent = 'Existentes';
 
-  let pickerRoot = null;
-  let pickerToggle = null;
-  let activePickerIndex = -1;
-  let suppressFocusOpen = false;
-  let lastFolderCategory = null;
+  const folderField = document.createElement('label');
+  folderField.className = 'product-folder-path-field';
+  folderField.innerHTML = `Pasta *
+    <input id="productFolderPath" list="productFolderPathOptions" autocomplete="off" placeholder="Ex.: Ferragens / Corrediças / Telescópicas" />
+    <datalist id="productFolderPathOptions"></datalist>
+    <small>Escolha um caminho existente ou digite um novo. Pastas novas são criadas ao salvar o produto.</small>`;
+  categoryLabel?.before(folderField);
 
-  function esc(value) {
-    return String(value ?? '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
+  panel.innerHTML = `
+    <div class="form-head">
+      <div><p class="eyebrow">EXISTENTES</p><h3>Produtos nesta pasta e subpastas</h3></div>
+      <span id="cadastroScopedCount" class="counter">0 produtos</span>
+    </div>
+    <div class="list-toolbar"><input id="cadastroProductSearch" type="search" placeholder="Buscar código ou descrição" /></div>
+    <div class="table-wrap">
+      <table class="product-table cadastro-product-table">
+        <thead><tr><th>Código</th><th>Produto</th><th>Pasta</th><th></th></tr></thead>
+        <tbody id="cadastroProductRows"></tbody>
+      </table>
+    </div>
+    <div id="cadastroProductsEmpty" class="empty-state hidden"><strong>Nenhum produto neste escopo.</strong><span>Escolha outra pasta ou limpe a busca.</span></div>
+    <div hidden aria-hidden="true" data-r1d-legacy-product-list-compat>
+      <input id="searchProducts" type="search" />
+      <select id="filterCategory"><option value="">Todas as categorias</option></select>
+      <span id="productCount"></span>
+      <div id="categoryFolders"></div>
+      <table><tbody id="productRows"></tbody></table>
+      <div id="productsEmpty" class="hidden"></div>
+    </div>`;
+
+  const pathInput = document.getElementById('productFolderPath');
+  const pathOptions = document.getElementById('productFolderPathOptions');
+  const contextSearch = document.getElementById('cadastroProductSearch');
+  const contextRows = document.getElementById('cadastroProductRows');
+  const contextEmpty = document.getElementById('cadastroProductsEmpty');
+  const scopedCount = document.getElementById('cadastroScopedCount');
+
+  function pathSegments(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return [];
+    return raw
+      .split(/\s+\/\s+/)
+      .map(segment => FolderTree.displayName(segment))
+      .filter(Boolean);
   }
 
-  function normalize(value) {
-    return String(value || '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim();
+  function pathKey(segments) {
+    return segments.map(segment => FolderTree.nameKey(segment)).join('\u001f');
   }
 
-  function snapshot() {
-    const products = Core.getState().products || [];
-    const counts = new Map();
-    for (const product of products) {
-      const category = String(product.category || 'Sem categoria').trim() || 'Sem categoria';
-      counts.set(category, (counts.get(category) || 0) + 1);
-    }
-    const categories = Array.from(counts.keys()).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    return { products, counts, categories };
+  function folderRecords() {
+    const folders = Core.getState().folders || [];
+    return folders.map(folder => {
+      const path = FolderTree.pathOf(folders, folder.id).map(item => item.name);
+      return { folder, path, key: pathKey(path), label: path.join(' / ') };
+    }).sort((left, right) => left.label.localeCompare(right.label, 'pt-BR'));
   }
 
-  function renderDatalist(categories) {
-    datalist.innerHTML = categories.map(category => `<option value="${esc(category)}"></option>`).join('');
+  function folderRecordForPath(value) {
+    const segments = pathSegments(value);
+    if (!segments.length) return null;
+    const key = pathKey(segments);
+    return folderRecords().find(record => record.key === key) || null;
   }
 
-  function ensureFilterOption(category) {
-    if (!category) return;
-    if (Array.from(productFilter.options).some(option => option.value === category)) return;
-    const option = document.createElement('option');
-    option.value = category;
-    option.textContent = category;
-    productFilter.append(option);
+  function folderPathForId(folderId) {
+    const id = String(folderId || '').trim();
+    if (!id) return '';
+    const record = folderRecords().find(item => item.folder.id === id);
+    return record?.label || '';
   }
 
-  function closePicker() {
-    if (!pickerRoot || !pickerToggle) return;
-    pickerRoot.hidden = true;
-    categoryInput.setAttribute('aria-expanded', 'false');
-    pickerToggle.setAttribute('aria-expanded', 'false');
-    activePickerIndex = -1;
+  function renderFolderOptions() {
+    pathOptions.innerHTML = folderRecords().map(record => `<option value="${Render.esc(record.label)}"></option>`).join('');
   }
 
-  function suggestionScore(category, query) {
-    const value = normalize(category);
-    const needle = normalize(query);
-    if (!needle) return 4;
-    if (value === needle) return 0;
-    if (value.startsWith(needle)) return 1;
-    if (value.split(/\s+/).some(part => part.startsWith(needle))) return 2;
-    if (value.includes(needle)) return 3;
-    return 9;
+  function syncLegacyFields() {
+    const segments = pathSegments(pathInput.value);
+    categoryInput.value = segments[0] || '';
+    subcategoryInput.value = segments.slice(1).join(' / ');
+    return segments;
   }
 
-  function recommendedCategories(categories, counts, query) {
-    if (!categories.length) return [];
-    const needle = normalize(query);
-    if (!needle) {
-      return categories.slice().sort((a, b) => (counts.get(b) || 0) - (counts.get(a) || 0) || a.localeCompare(b, 'pt-BR')).slice(0, 3);
-    }
-    return categories
-      .map(category => ({ category, score: suggestionScore(category, needle) }))
-      .filter(item => item.score < 9)
-      .sort((a, b) => a.score - b.score || (counts.get(b.category) || 0) - (counts.get(a.category) || 0) || a.category.localeCompare(b.category, 'pt-BR'))
-      .slice(0, 3)
-      .map(item => item.category);
-  }
-
-  function pickerOption(category, { suggested = false } = {}) {
-    const count = snapshot().counts.get(category) || 0;
-    return `<button type="button" class="category-picker-option${suggested ? ' suggested' : ''}" role="option" data-category-choice="${esc(category)}">
-      <span>${esc(category)}</span><small>${suggested ? 'Sugestão · ' : ''}${count} ${count === 1 ? 'produto' : 'produtos'}</small>
-    </button>`;
-  }
-
-  function updateCategoryMode(categories) {
-    const value = categoryInput.value.trim();
-    const existing = categories.some(category => normalize(category) === normalize(value));
-    categoryInput.dataset.categoryMode = existing ? 'existing' : value ? 'new' : '';
-    const hint = categoryInput.closest('.product-category-field')?.querySelector('small');
-    if (!hint) return;
-    if (!value) hint.textContent = 'Digite para buscar uma categoria existente ou informe um novo nome.';
-    else if (existing) hint.textContent = 'Categoria existente selecionada.';
-    else hint.textContent = `“${value}” será criada como nova categoria ao salvar.`;
-  }
-
-  function renderPicker({ forceOpen = false } = {}) {
-    if (!pickerRoot) return;
-    const { categories, counts } = snapshot();
-    const query = categoryInput.value.trim();
-    const suggestions = recommendedCategories(categories, counts, query);
-    const suggestedSet = new Set(suggestions);
-    const remaining = categories.filter(category => !suggestedSet.has(category));
-    const exact = categories.some(category => normalize(category) === normalize(query));
-
-    const createOption = query && !exact
-      ? `<button type="button" class="category-picker-option create" role="option" data-category-create="${esc(query)}"><span>Criar “${esc(query)}”</span><small>Nova categoria</small></button>`
-      : '';
-    const suggestionsMarkup = suggestions.length
-      ? `<div class="category-picker-section"><span class="category-picker-label">Sugestões</span>${suggestions.map(category => pickerOption(category, { suggested: true })).join('')}</div>`
-      : '';
-    const allMarkup = categories.length
-      ? `<div class="category-picker-section category-picker-all"><span class="category-picker-label">Todas as categorias</span>${remaining.map(category => pickerOption(category)).join('')}${!remaining.length && !suggestions.length ? categories.map(category => pickerOption(category)).join('') : ''}</div>`
-      : '<div class="category-picker-empty">Nenhuma categoria cadastrada ainda.</div>';
-
-    pickerRoot.innerHTML = createOption + suggestionsMarkup + allMarkup;
-    updateCategoryMode(categories);
-    if (forceOpen || document.activeElement === categoryInput) {
-      pickerRoot.hidden = false;
-      categoryInput.setAttribute('aria-expanded', 'true');
-      pickerToggle?.setAttribute('aria-expanded', 'true');
-    }
-    activePickerIndex = -1;
-  }
-
-  function chooseCategory(category, { create = false } = {}) {
-    categoryInput.value = category;
-    categoryInput.dataset.categoryMode = create ? 'new' : 'existing';
-    categoryInput.dispatchEvent(new Event('input', { bubbles: true }));
-    closePicker();
-    suppressFocusOpen = true;
-    categoryInput.focus({ preventScroll: true });
-  }
-
-  function pickerButtons() {
-    return pickerRoot ? Array.from(pickerRoot.querySelectorAll('[role="option"]')) : [];
-  }
-
-  function movePickerFocus(delta) {
-    const buttons = pickerButtons();
-    if (!buttons.length) return;
-    activePickerIndex = Math.max(0, Math.min(buttons.length - 1, activePickerIndex + delta));
-    buttons.forEach((button, index) => button.classList.toggle('keyboard-active', index === activePickerIndex));
-    buttons[activePickerIndex].scrollIntoView({ block: 'nearest' });
-  }
-
-  function setupPicker() {
-    const field = categoryInput.closest('.product-category-field');
-    if (!field || pickerRoot) return;
-    categoryInput.removeAttribute('list');
-    datalist.hidden = true;
-
-    const shell = document.createElement('div');
-    shell.className = 'category-combobox';
-    categoryInput.before(shell);
-    shell.append(categoryInput);
-
-    pickerToggle = document.createElement('button');
-    pickerToggle.type = 'button';
-    pickerToggle.className = 'category-picker-toggle';
-    pickerToggle.setAttribute('aria-label', 'Ver todas as categorias');
-    pickerToggle.setAttribute('aria-expanded', 'false');
-    pickerToggle.textContent = '⌄';
-    shell.append(pickerToggle);
-
-    pickerRoot = document.createElement('div');
-    pickerRoot.id = 'categoryPicker';
-    pickerRoot.className = 'category-picker';
-    pickerRoot.setAttribute('role', 'listbox');
-    pickerRoot.hidden = true;
-    shell.append(pickerRoot);
-
-    categoryInput.setAttribute('role', 'combobox');
-    categoryInput.setAttribute('aria-autocomplete', 'list');
-    categoryInput.setAttribute('aria-controls', pickerRoot.id);
-    categoryInput.setAttribute('aria-expanded', 'false');
-
-    categoryInput.addEventListener('focus', () => {
-      if (suppressFocusOpen) {
-        suppressFocusOpen = false;
-        return;
-      }
-      renderPicker({ forceOpen: true });
-    });
-    categoryInput.addEventListener('input', () => renderPicker({ forceOpen: true }));
-    categoryInput.addEventListener('keydown', event => {
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        if (pickerRoot.hidden) renderPicker({ forceOpen: true });
-        movePickerFocus(1);
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        if (pickerRoot.hidden) renderPicker({ forceOpen: true });
-        movePickerFocus(-1);
-      } else if (event.key === 'Enter' && activePickerIndex >= 0) {
-        event.preventDefault();
-        pickerButtons()[activePickerIndex]?.click();
-      } else if (event.key === 'Escape') {
-        closePicker();
-      }
-    });
-
-    pickerToggle.addEventListener('click', () => {
-      if (pickerRoot.hidden) renderPicker({ forceOpen: true });
-      else closePicker();
-    });
-
-    pickerRoot.addEventListener('click', event => {
-      const choice = event.target.closest('[data-category-choice]');
-      if (choice) {
-        chooseCategory(choice.dataset.categoryChoice || '');
-        return;
-      }
-      const create = event.target.closest('[data-category-create]');
-      if (create) chooseCategory(create.dataset.categoryCreate || '', { create: true });
-    });
-
-    document.addEventListener('pointerdown', event => {
-      if (!shell.contains(event.target)) closePicker();
-    });
-
-    productForm?.addEventListener('reset', () => queueMicrotask(() => {
-      closePicker();
-      updateCategoryMode(snapshot().categories);
-    }));
-  }
-
-  function keepActiveFolderVisible(previousScroll, activeChanged) {
-    requestAnimationFrame(() => {
-      if (foldersRoot.scrollWidth <= foldersRoot.clientWidth + 2) return;
-      if (!activeChanged) {
-        foldersRoot.scrollLeft = previousScroll;
-        return;
-      }
-      const activeButton = foldersRoot.querySelector('.category-folder.active');
-      const row = activeButton?.closest('.category-folder-row');
-      if (!row) return;
-      const left = row.offsetLeft;
-      const right = left + row.offsetWidth;
-      const viewportLeft = foldersRoot.scrollLeft;
-      const viewportRight = viewportLeft + foldersRoot.clientWidth;
-      let next = viewportLeft;
-      if (left < viewportLeft + 8) next = Math.max(0, left - 8);
-      else if (right > viewportRight - 8) next = Math.max(0, right - foldersRoot.clientWidth + 8);
-      if (Math.abs(next - viewportLeft) > 1) foldersRoot.scrollTo({ left: next, behavior: 'smooth' });
+  function scopeProducts() {
+    const current = Core.getState();
+    const rawPath = pathInput.value.trim();
+    const folderRecord = folderRecordForPath(rawPath);
+    if (rawPath && !folderRecord) return [];
+    return ProductQuery.query({
+      products: current.products,
+      folders: current.folders,
+      folderId: folderRecord?.folder.id || null,
+      recursive: true,
+      text: contextSearch.value.trim()
     });
   }
 
-  function renderFolders() {
-    const { products, counts, categories } = snapshot();
-    const active = productFilter.value;
-    const previousScroll = foldersRoot.scrollLeft;
-    const activeChanged = active !== lastFolderCategory;
-    const allButton = `<div class="category-folder-row all"><button type="button" class="category-folder ${active ? '' : 'active'}" data-category-folder="">
-      ${allIcon}<span class="category-folder-label">Todos os produtos</span><span class="category-folder-count">${products.length}</span>
-    </button></div>`;
-
-    const categoryButtons = categories.map(category => `<div class="category-folder-row">
-      <button type="button" class="category-folder ${active === category ? 'active' : ''}" data-category-folder="${esc(category)}">
-        ${folderIcon}<span class="category-folder-label">${esc(category)}</span><span class="category-folder-count">${counts.get(category)}</span>
-      </button>
-      <button type="button" class="category-delete-button" data-delete-category="${esc(category)}" title="Excluir categoria e seus produtos" aria-label="Excluir categoria ${esc(category)}">${trashIcon}</button>
-    </div>`).join('');
-
-    foldersRoot.innerHTML = allButton + (categoryButtons || '<div class="category-browser-empty">As categorias aparecerão aqui conforme produtos forem cadastrados ou importados.</div>');
-    lastFolderCategory = active;
-    keepActiveFolderVisible(previousScroll, activeChanged);
-    renderDatalist(categories);
-    renderPicker();
+  function productPath(product) {
+    return folderPathForId(product.folderId) || [product.category, product.subcategory].filter(Boolean).join(' / ');
   }
 
-  foldersRoot.addEventListener('click', async event => {
-    const deleteButton = event.target.closest('[data-delete-category]');
+  function renderContext() {
+    renderFolderOptions();
+    const products = scopeProducts();
+    scopedCount.textContent = `${products.length} ${products.length === 1 ? 'produto' : 'produtos'}`;
+    contextRows.innerHTML = products.map(product => `
+      <tr data-cadastro-product="${Render.esc(product.id)}">
+        <td><strong>${Render.esc(product.code)}</strong></td>
+        <td>${Render.esc(product.description)}</td>
+        <td><small>${Render.esc(productPath(product) || '—')}</small></td>
+        <td><div class="product-row-actions">
+          <button class="button secondary compact" type="button" data-cadastro-edit="${Render.esc(product.id)}">Editar</button>
+          <button class="button secondary compact" type="button" data-cadastro-clone="${Render.esc(product.id)}">Usar como base</button>
+        </div></td>
+      </tr>`).join('');
+    contextEmpty.classList.toggle('hidden', products.length !== 0);
+  }
+
+  function setPathFromProduct(product) {
+    const path = folderPathForId(product?.folderId) || [product?.category, product?.subcategory].filter(Boolean).join(' / ');
+    pathInput.value = path;
+    syncLegacyFields();
+    renderContext();
+  }
+
+  function editProduct(id) {
+    const product = Core.getState().products.find(item => String(item.id) === String(id));
+    if (!product) return;
+    App.editProduct(product.id);
+    NS.ProductDetails?.loadDetails?.();
+    setPathFromProduct(product);
+    document.querySelector('[data-form-step-target="1"]')?.click();
+  }
+
+  function useAsBase(id) {
+    const source = Core.getState().products.find(item => String(item.id) === String(id));
+    if (!source) return;
+    const clone = ProductDomain.cloneAsNewProduct(source, {
+      idFactory: () => Core.uuid(),
+      now: () => new Date().toISOString()
+    });
+
+    App.editProduct(source.id);
+    NS.ProductDetails?.loadDetails?.();
+
+    productIdInput.value = clone.id;
+    codeInput.value = '';
+    document.getElementById('description').value = clone.description;
+    document.getElementById('status').value = clone.status;
+    document.getElementById('price').value = clone.price;
+    document.getElementById('notes').value = clone.notes;
+    document.getElementById('specs').value = Core.specsToText(clone.specs);
+    document.getElementById('imageUrl').value = clone.image;
+    document.getElementById('formTitle').textContent = `Novo produto baseado em ${source.code}`;
     if (deleteButton) {
+      deleteButton.hidden = true;
+      deleteButton.disabled = true;
+    }
+    setPathFromProduct(clone);
+    document.querySelector('[data-form-step-target="1"]')?.click();
+    codeInput.focus();
+  }
+
+  function resetCadastroPath() {
+    pathInput.value = '';
+    pathInput.setCustomValidity('');
+    codeInput.setCustomValidity('');
+    syncLegacyFields();
+    renderContext();
+  }
+
+  function validateBeforeSubmit(event) {
+    const segments = syncLegacyFields();
+    if (!segments.length) {
       event.preventDefault();
-      event.stopPropagation();
-      const category = deleteButton.dataset.deleteCategory || '';
-      try {
-        const deleted = await NS.ProductActions?.deleteCategory?.(category);
-        if (!deleted) return;
-        if (productFilter.value === category) {
-          productFilter.value = '';
-          productFilter.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        const currentProductId = document.getElementById('productId')?.value || '';
-        if (currentProductId && !Core.getState().products.some(product => String(product.id) === String(currentProductId))) {
-          document.getElementById('btnNewProduct')?.click();
-        }
-        renderFolders();
-      } catch (error) {
-        window.alert?.(error.message || 'Não foi possível excluir a categoria.');
-      }
+      event.stopImmediatePropagation();
+      pathInput.setCustomValidity('Escolha uma pasta para o produto.');
+      pathInput.reportValidity();
+      pathInput.focus();
       return;
     }
+    pathInput.setCustomValidity('');
 
-    const button = event.target.closest('[data-category-folder]');
-    if (!button) return;
-    const category = button.dataset.categoryFolder || '';
-    ensureFilterOption(category);
-    productFilter.value = category;
-    productFilter.dispatchEvent(new Event('change', { bubbles: true }));
-    renderFolders();
+    try {
+      ProductDomain.assertCodeAvailable(Core.getState().products, codeInput.value, {
+        exceptId: productIdInput.value || null
+      });
+      codeInput.setCustomValidity('');
+    } catch (error) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      codeInput.setCustomValidity(error.message || 'Código já utilizado por outro produto.');
+      codeInput.reportValidity();
+      codeInput.focus();
+    }
+  }
+
+  function selectedFolderId() {
+    return folderRecordForPath(pathInput.value)?.folder.id || '';
+  }
+
+  pathInput.addEventListener('input', () => {
+    pathInput.setCustomValidity('');
+    syncLegacyFields();
+    renderContext();
+  });
+  contextSearch.addEventListener('input', renderContext);
+  codeInput.addEventListener('input', () => codeInput.setCustomValidity(''));
+  form.addEventListener('submit', validateBeforeSubmit, true);
+  form.addEventListener('submit', () => setTimeout(renderContext, 0));
+
+  panel.addEventListener('click', event => {
+    const editButton = event.target.closest('[data-cadastro-edit]');
+    if (editButton) {
+      editProduct(editButton.dataset.cadastroEdit);
+      return;
+    }
+    const cloneButton = event.target.closest('[data-cadastro-clone]');
+    if (cloneButton) useAsBase(cloneButton.dataset.cadastroClone);
   });
 
-  productFilter.addEventListener('change', () => queueMicrotask(renderFolders));
-  productForm?.addEventListener('submit', () => queueMicrotask(renderFolders));
-  new MutationObserver(() => queueMicrotask(renderFolders)).observe(productRows, { childList: true });
+  ['btnNewProduct', 'btnCancelEdit'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', () => queueMicrotask(resetCadastroPath));
+  });
 
-  setupPicker();
-  renderFolders();
+  window.addEventListener('catalogotop:products-updated', renderContext);
+  window.addEventListener('catalogotop:tab-changed', event => {
+    if (event.detail?.tabId === 'products') renderContext();
+  });
+
+  renderContext();
+
+  NS.CadastroSurface = Object.freeze({
+    render: renderContext,
+    selectedFolderId,
+    editProduct,
+    useAsBase,
+    pathSegments
+  });
 })();
