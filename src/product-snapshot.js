@@ -115,7 +115,7 @@
         parentId,
         name
       };
-      existingIds.add(id);
+      existingIds.add(folder.id);
       next = FolderTree.createFolder(next, folder);
       parentId = folder.id;
     }
