@@ -63,3 +63,53 @@ new = "  ['estado local migra para schema v8 com folders', core.includes('SCHEMA
 if text.count(old) != 1:
     raise SystemExit('scripts/validate.mjs: schema gate anchor mismatch')
 p.write_text(text.replace(old, new), encoding='utf-8')
+
+replace_exact(
+    'scripts/collection-runtime-fixture.mjs',
+    "core.includes('SCHEMA_VERSION = 7')",
+    "core.includes('SCHEMA_VERSION = 8')"
+)
+
+replace_exact(
+    'scripts/quantity-pricing-fixture.mjs',
+    "if (Core.SCHEMA_VERSION !== 7) fail(`schema esperado 7, recebeu ${Core.SCHEMA_VERSION}`);",
+    "if (Core.SCHEMA_VERSION !== 8) fail(`schema esperado 8, recebeu ${Core.SCHEMA_VERSION}`);"
+)
+replace_exact(
+    'scripts/quantity-pricing-fixture.mjs',
+    "if (migrated.schemaVersion !== 7 || migrated.products[0]?.quantityPrice !== null) fail(`migração v5→v7 inesperada: ${JSON.stringify(migrated)}`);",
+    "if (migrated.schemaVersion !== 8 || migrated.products[0]?.quantityPrice !== null) fail(`migração v5→v8 inesperada: ${JSON.stringify(migrated)}`);"
+)
+replace_exact(
+    'scripts/quantity-pricing-fixture.mjs',
+    "console.log('PASS quantity pricing fixture: schema 7, normalização, merge conservador, importação e Table sem herança indevida');",
+    "console.log('PASS quantity pricing fixture: schema 8, normalização, merge conservador, importação e Table sem herança indevida');"
+)
+
+replace_exact(
+    'scripts/image-variants-fixture.mjs',
+    "if (legacy.schemaVersion !== 7) fail(`schema legado não migrou para v7: ${legacy.schemaVersion}`);",
+    "if (legacy.schemaVersion !== 8) fail(`schema legado não migrou para v8: ${legacy.schemaVersion}`);"
+)
+replace_exact(
+    'scripts/image-variants-fixture.mjs',
+    "console.log('PASS image variants fixture: schema 7, galeria, seleção local e fallback Original');",
+    "console.log('PASS image variants fixture: schema 8, galeria, seleção local e fallback Original');"
+)
+
+replace_exact(
+    'scripts/image-variants-backup-fixture.mjs',
+    "if (restored.schemaVersion !== 7) fail(`round-trip deve permanecer schema 7: ${restored.schemaVersion}`);",
+    "if (restored.schemaVersion !== 8) fail(`round-trip deve migrar para schema 8: ${restored.schemaVersion}`);"
+)
+replace_exact(
+    'scripts/image-variants-backup-fixture.mjs',
+    "console.log('PASS image variants backup fixture: schema 7, Original, gallery, local variants, selection, framing, sessão e publicação product-only');",
+    "console.log('PASS image variants backup fixture: schema 8, Original, gallery, local variants, selection, framing, sessão e publicação product-only');"
+)
+
+replace_exact(
+    'scripts/browser-inspector-gate.mjs',
+    "if (migration.schemaVersion !== 7 || migration.order.join(',') !== 'p2,p1') throw new Error(`migração legada→v7 não preservou ordem: ${JSON.stringify(migration)}`);",
+    "if (migration.schemaVersion !== 8 || migration.order.join(',') !== 'p2,p1') throw new Error(`migração legada→v8 não preservou ordem: ${JSON.stringify(migration)}`);"
+)
