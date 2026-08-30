@@ -44,7 +44,7 @@ const legacy = Core.migrate({
     presentation: { order: ['p1'], imageFrames: { p1: { fit: 'cover', zoom: 1.2, x: 50, y: 50 } } }
   }
 });
-if (legacy.schemaVersion !== 7) fail(`schema legado não migrou para v7: ${legacy.schemaVersion}`);
+if (legacy.schemaVersion !== 8) fail(`schema legado não migrou para v8: ${legacy.schemaVersion}`);
 if (legacy.products[0].imageGallery.length !== 0) fail('produto legado deve migrar com imageGallery vazia');
 if (Object.keys(legacy.catalog.presentation.imageSelections).length || Object.keys(legacy.catalog.presentation.imageVariants).length) fail('estado legado deve migrar com mapas de variantes vazios');
 if (legacy.products[0].variants.length !== 1 || legacy.products[0].variants[0].id !== 'white') fail('variantes comerciais não podem ser confundidas com imageGallery');
@@ -104,4 +104,4 @@ if (Core.getState().products[0].imageGallery.length !== 2) fail('importação se
 Core.mergeProducts([{ code: 'P2', description: 'Atualizado', category: 'Teste', imageGallery: [] }]);
 if (Core.getState().products[0].imageGallery.length !== 0) fail('imageGallery explícita vazia deve permitir limpeza intencional');
 
-console.log('PASS image variants fixture: schema 7, galeria, seleção local e fallback Original');
+console.log('PASS image variants fixture: schema 8, galeria, seleção local e fallback Original');

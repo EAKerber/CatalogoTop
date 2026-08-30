@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 
 const files = {
   storage: await readFile('netlify/lib/storage.mts', 'utf8'),
+  productFolders: await readFile('netlify/lib/product-folders.mts', 'utf8'),
   products: await readFile('netlify/functions/products.mts', 'utf8'),
   session: await readFile('netlify/functions/write-session.mts', 'utf8'),
   assets: await readFile('netlify/functions/assets.mts', 'utf8'),
@@ -31,6 +32,8 @@ const checks = [
   ['GET de produtos é público', getBranch >= 0 && putBranch > getBranch && writeGuard > putBranch],
   ['PUT exige sessão de escrita assíncrona', files.products.includes("request.method !== 'PUT'") && files.products.includes('if (!await hasWriteSession(request))')],
   ['PUT exige expectedRevision', files.products.includes('expectedRevision') && files.products.includes('revision_conflict')],
+  ['PUT publica ProductSnapshot v2 com folders', files.products.includes('PRODUCT_SNAPSHOT_VERSION') && files.products.includes('folders: body.folders || []') && files.products.includes('validateProductSnapshot(body.folders, body.products)')],
+  ['backend valida hierarquia e mirrors de folderId', files.storage.includes('validateProductFolders') && files.productFolders.includes('folderId inexistente') && files.productFolders.includes('divergentes de folderId') && files.productFolders.includes('duplicado entre irmãos')],
   ['snapshot anterior entra em history', files.products.includes('history/${String(current.revision)')],
   ['concorrência preserva candidato conflitante', files.products.includes('concurrent_write') && files.products.includes('conflicts/${Date.now()}')],
   ['sessão usa cookie HttpOnly Secure Strict', files.storage.includes('HttpOnly; Secure; SameSite=Strict')],
@@ -47,10 +50,13 @@ const checks = [
   ['fonte remota autorizada pode virar asset gerenciado sem reescrever produto', files.assetClient.includes('materializeProductSource') && files.assetClient.includes('/api/assets/materialize-product-source') && !files.assetClient.includes('product.image = await materializeProductSource')],
   ['imageGallery usa o mesmo pipeline content-addressed', files.assetClient.includes('product.imageGallery') && files.assetClient.includes('entry.image = await materializeImageValue(entry.image)') && files.storage.includes('validImageGallery')],
   ['cache local usa IndexedDB', files.cache.includes('indexedDB.open') && files.cache.includes('products-current')],
+  ['ProductStore publica folders e products no mesmo expectedRevision', files.client.includes('putSnapshot(localFolders, materialized)') && files.client.includes('folders: candidate.folders') && files.client.includes('products: candidate.products')],
+  ['ProductStore lê snapshots v1/v2 pela autoridade ProductSnapshot', files.client.includes('ProductSnapshot.read(raw)') && files.client.includes('snapshotMigrationPending')],
   ['base remota vazia não publica local automaticamente', files.client.includes('migrationNeeded = true') && files.client.includes('Local · publicar')],
   ['alteração pendente é preservada no cache', files.client.includes('pendingWrite: true')],
   ['conflito não sobrescreve silenciosamente', files.client.includes('Conflito de revisão') && files.client.includes('reloadRemote')],
   ['estado de sincronização aparece no shell', files.html.includes('id="productSyncStatus"')],
+  ['contratos de folder/snapshot carregam antes do Core', files.html.indexOf('src/folder-tree.js') < files.html.indexOf('src/product-folder-migration.js') && files.html.indexOf('src/product-folder-migration.js') < files.html.indexOf('src/product-snapshot.js') && files.html.indexOf('src/product-snapshot.js') < files.html.indexOf('src/core.js')],
   ['clientes de storage carregam antes do app', files.html.indexOf('src/product-store.js') < files.html.indexOf('src/app.js')]
 ];
 

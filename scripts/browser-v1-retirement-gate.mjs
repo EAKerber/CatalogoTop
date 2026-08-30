@@ -52,7 +52,7 @@ try {
     ];
 
     NS.Core.setState({
-      schemaVersion: NS.Core.SCHEMA_VERSION,
+      schemaVersion: 7,
       products,
       selectedIds: ['p1', 'p2'],
       catalog: {

@@ -71,7 +71,7 @@ function installFixture() {
   NS.ProductStore.publishCurrent = async () => true;
   window.confirm = () => true;
   NS.Core.setState({
-    schemaVersion: NS.Core.SCHEMA_VERSION,
+    schemaVersion: 7,
     products,
     selectedIds: products.slice(0, 4).map(product => product.id),
     catalog: {

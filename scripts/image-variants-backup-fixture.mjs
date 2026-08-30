@@ -74,7 +74,7 @@ Core.setState(Core.createInitialState(), { persist: false });
 const restored = Core.setState(JSON.parse(backupJson), { persist: false });
 const product = restored.products[0];
 const presentation = restored.catalog.presentation;
-if (restored.schemaVersion !== 7) fail(`round-trip deve permanecer schema 7: ${restored.schemaVersion}`);
+if (restored.schemaVersion !== 8) fail(`round-trip deve migrar para schema 8: ${restored.schemaVersion}`);
 if (product.image !== original) fail('Original canônico mudou no round-trip');
 if (product.imageGallery.length !== 1 || product.imageGallery[0].image !== reusable || product.imageGallery[0].provenance?.kind !== 'manual-upload') fail('Product.imageGallery não sobreviveu ao round-trip');
 if (presentation.imageVariants.p1?.length !== 1 || presentation.imageVariants.p1[0].image !== local) fail('variante local do catálogo não sobreviveu ao round-trip');
@@ -103,6 +103,7 @@ if (!backupHandler.includes('JSON.stringify(state(), null, 2)') || !backupHandle
 if (!backupImportHandler.includes('Core.setState(parsed)')) fail('import de backup deve continuar passando pelo migrador/normalizador Core');
 if (!backupImportHandler.includes('await publishProducts()')) fail('publicação opcional após backup deve continuar explícita');
 if (!app.includes('return ProductStore.publishCurrent()')) fail('app deve publicar a base atual somente pela fronteira ProductStore');
-if (!productStore.includes('publishCurrent: () => publishProducts(Core.getState().products)')) fail('ProductStore.publishCurrent deve continuar limitado a Core.products, nunca ao catálogo editorial');
+if (!productStore.includes('publishCurrent: () => publishProducts(Core.getState().products, { folders: Core.getState().folders })')) fail('ProductStore.publishCurrent deve publicar folders + products como uma biblioteca atômica');
+if (productStore.includes('catalog: Core.getState().catalog')) fail('ProductStore não pode publicar o catálogo editorial junto da biblioteca');
 
-console.log('PASS image variants backup fixture: schema 7, Original, gallery, local variants, selection, framing, sessão e publicação product-only');
+console.log('PASS image variants backup fixture: schema 8, Original, gallery, local variants, selection, framing, sessão e publicação product-only');

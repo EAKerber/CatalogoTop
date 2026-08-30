@@ -88,7 +88,7 @@ function fixtureStateScript() {
     ]
   });
   NS.Core.setState({
-    schemaVersion: NS.Core.SCHEMA_VERSION,
+    schemaVersion: 7,
     products,
     selectedIds,
     catalog: {
@@ -127,7 +127,7 @@ try {
     });
     return { schemaVersion: migrated.schemaVersion, order: migrated.catalog.presentation.order };
   });
-  if (migration.schemaVersion !== 7 || migration.order.join(',') !== 'p2,p1') throw new Error(`migração legada→v7 não preservou ordem: ${JSON.stringify(migration)}`);
+  if (migration.schemaVersion !== 8 || migration.order.join(',') !== 'p2,p1') throw new Error(`migração legada→v8 não preservou ordem: ${JSON.stringify(migration)}`);
 
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#catalogPreview .catalog-card[data-product-id="p1"]');

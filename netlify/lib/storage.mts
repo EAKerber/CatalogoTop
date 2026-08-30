@@ -1,5 +1,6 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { getDeployStore, getStore } from '@netlify/blobs';
+import { validateProductFolders } from './product-folders.mts';
 
 declare const Netlify: {
   context?: { deploy?: { context?: string } };
@@ -22,6 +23,7 @@ export type ProductSnapshot = {
   revision: number;
   updatedAt: string;
   writeId: string;
+  folders?: unknown[];
   products: unknown[];
 };
 
@@ -155,6 +157,12 @@ export function validateProducts(products: unknown) {
     if (product.specs && (!Array.isArray(product.specs) || product.specs.length > 64)) return 'Especificações inválidas.';
   }
   return '';
+}
+
+export function validateProductSnapshot(folders: unknown, products: unknown) {
+  const productError = validateProducts(products);
+  if (productError) return productError;
+  return validateProductFolders(folders, products);
 }
 
 export async function currentSnapshot(): Promise<ProductSnapshot> {

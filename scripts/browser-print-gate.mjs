@@ -62,7 +62,7 @@ function fixtureStateScript() {
     product('b-3', 'Corrediças')
   ];
   Core.setState({
-    schemaVersion: Core.SCHEMA_VERSION,
+    schemaVersion: 7,
     products,
     selectedIds: products.map(item => item.id),
     catalog: {
