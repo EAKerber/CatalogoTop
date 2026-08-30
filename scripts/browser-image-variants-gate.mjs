@@ -80,7 +80,7 @@ const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => Boolean(window.CatalogoTop?.ImageVariants && window.CatalogoTop?.ImageVariantRender && window.CatalogoTop?.PresentationActions && window.CatalogoTop?.Print));
+  await page.waitForFunction(() => Boolean(window.CatalogoTop?.ImageVariants && window.CatalogoTop?.ImageVariantRender && window.CatalogoTop?.ImageVariantControls && window.CatalogoTop?.PresentationActions && window.CatalogoTop?.Print));
   const originals = await page.evaluate(seedState);
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#catalogPreview .catalog-card[data-product-id="p1"] .catalog-card-visuals.single > img');
@@ -90,6 +90,26 @@ try {
     return { source: image?.dataset.imageVariantSource, id: image?.dataset.imageVariantId, productImage: window.CatalogoTop.Core.getState().products[0].image };
   });
   if (visual.source !== 'original' || visual.id !== 'original' || visual.productImage !== originals.originalP1) throw new Error(`Original inicial inválida: ${JSON.stringify(visual)}`);
+
+  // UI real do inspector: navegar e voltar ao Original sem editar product.image.
+  await page.click('#catalogPreview .catalog-card[data-product-id="p1"]');
+  await page.waitForSelector('#contextualInspector [data-image-choice-editor="p1"] [data-image-choice-cycle="1"]');
+  let inspectorChoice = await page.evaluate(() => ({
+    label: document.querySelector('#contextualInspector [data-image-choice-editor="p1"] figcaption strong')?.textContent,
+    source: document.querySelector('#contextualInspector [data-image-choice-editor="p1"] figcaption span')?.textContent,
+    originalDisabled: document.querySelector('#contextualInspector [data-image-choice-original="p1"]')?.disabled
+  }));
+  if (inspectorChoice.label !== 'Original' || inspectorChoice.source !== 'Original' || !inspectorChoice.originalDisabled) throw new Error(`inspector não iniciou no Original: ${JSON.stringify(inspectorChoice)}`);
+  await page.click('#contextualInspector [data-image-choice-editor="p1"] [data-image-choice-cycle="1"]');
+  await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.imageSelections.p1?.id === 'front');
+  inspectorChoice = await page.evaluate(() => ({
+    label: document.querySelector('#contextualInspector [data-image-choice-editor="p1"] figcaption strong')?.textContent,
+    source: document.querySelector('#contextualInspector [data-image-choice-editor="p1"] figcaption span')?.textContent,
+    productImage: window.CatalogoTop.Core.getState().products.find(item => item.id === 'p1')?.image
+  }));
+  if (inspectorChoice.label !== 'Frente' || inspectorChoice.source !== 'Produto' || inspectorChoice.productImage !== originals.originalP1) throw new Error(`navegação do inspector não selecionou gallery sem tocar Original: ${JSON.stringify(inspectorChoice)}`);
+  await page.click('#contextualInspector [data-image-choice-original="p1"]');
+  await page.waitForFunction(() => !Object.prototype.hasOwnProperty.call(window.CatalogoTop.Core.getState().catalog.presentation.imageSelections, 'p1'));
 
   await page.evaluate(() => window.CatalogoTop.PresentationActions.cycleImageSelection('p1', 1));
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.imageSelections.p1?.id === 'front');
@@ -157,6 +177,14 @@ try {
   }));
   if (commercialGrid.gridImages !== 2 || commercialGrid.single) throw new Error(`imageGallery interferiu na grade comercial: ${JSON.stringify(commercialGrid)}`);
 
+  await page.click('#catalogPreview .catalog-card[data-product-id="p3"]');
+  await page.waitForSelector('#contextualInspector .inspector-image-choice.is-unavailable');
+  const gridInspector = await page.evaluate(() => ({
+    text: document.querySelector('#contextualInspector .inspector-image-choice.is-unavailable')?.textContent || '',
+    cycleButtons: document.querySelectorAll('#contextualInspector [data-image-choice-cycle]').length
+  }));
+  if (!gridInspector.text.includes('Variações comerciais') || gridInspector.cycleButtons) throw new Error(`Card comercial recebeu seletor de imagem inadequado: ${JSON.stringify(gridInspector)}`);
+
   await page.evaluate(() => window.CatalogoTop.PresentationActions.setImageSelection('p1', { source: 'product', id: 'front' }));
   const printableHtml = await page.evaluate(() => window.CatalogoTop.Print.buildPrintableHtml(window.CatalogoTop.Core.getState()));
   const printPage = await browser.newPage({ viewport: { width: 794, height: 1123 } });
@@ -170,7 +198,28 @@ try {
   }
   await printPage.close();
 
-  console.log('PASS browser image variants gate: Original, gallery, local variant, Collection, framing e print');
+  // Editor de galeria do produto: carrega, edita e remove em rascunho; estado só muda no submit.
+  await page.click('[data-tab="products"]');
+  await page.click('#productRows [data-edit-product="p1"]');
+  await page.waitForSelector('#productImageGalleryList .product-image-gallery-item:nth-child(2)');
+  let galleryUi = await page.evaluate(() => ({
+    rows: document.querySelectorAll('#productImageGalleryList .product-image-gallery-item').length,
+    stateRows: window.CatalogoTop.Core.getState().products.find(item => item.id === 'p1')?.imageGallery?.length,
+    draftRows: window.CatalogoTop.ProductDetails.read().imageGallery.length
+  }));
+  if (galleryUi.rows !== 2 || galleryUi.stateRows !== 2 || galleryUi.draftRows !== 2) throw new Error(`galeria não carregou no cadastro: ${JSON.stringify(galleryUi)}`);
+  await page.fill('#productImageGalleryList [data-gallery-label="0"]', 'Frente revisada');
+  await page.click('#productImageGalleryList [data-gallery-remove="1"]');
+  galleryUi = await page.evaluate(() => ({
+    rows: document.querySelectorAll('#productImageGalleryList .product-image-gallery-item').length,
+    stateRows: window.CatalogoTop.Core.getState().products.find(item => item.id === 'p1')?.imageGallery?.length,
+    draft: window.CatalogoTop.ProductDetails.read().imageGallery.map(item => ({ id: item.id, label: item.label }))
+  }));
+  if (galleryUi.rows !== 1 || galleryUi.stateRows !== 2 || galleryUi.draft.length !== 1 || galleryUi.draft[0].label !== 'Frente revisada') {
+    throw new Error(`editor da galeria não preservou fronteira rascunho/estado: ${JSON.stringify(galleryUi)}`);
+  }
+
+  console.log('PASS browser image variants gate: Original, inspector, gallery, local variant, Collection, framing, grid comercial e print');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
