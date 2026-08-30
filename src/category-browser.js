@@ -6,6 +6,7 @@
   const FolderTree = NS?.FolderTree;
   const ProductQuery = NS?.ProductQuery;
   const ProductDomain = NS?.ProductDomain;
+  const ProductSnapshot = NS?.ProductSnapshot;
   const Migration = NS?.ProductFolderMigration;
   const App = NS?.App;
   const Render = NS?.Render;
@@ -16,7 +17,7 @@
   const subcategoryInput = document.getElementById('subcategory');
   const codeInput = document.getElementById('code');
   const productIdInput = document.getElementById('productId');
-  if (!Core || !FolderTree || !ProductQuery || !ProductDomain || !Migration || !App || !Render || !form || !panel || !categoryInput || !subcategoryInput || !codeInput || !productIdInput) return;
+  if (!Core || !FolderTree || !ProductQuery || !ProductDomain || !ProductSnapshot || !Migration || !App || !Render || !form || !panel || !categoryInput || !subcategoryInput || !codeInput || !productIdInput) return;
 
   const categoryLabel = categoryInput.closest('label');
   const subcategoryLabel = subcategoryInput.closest('label');
@@ -65,7 +66,7 @@
   const contextEmpty = document.getElementById('cadastroProductsEmpty');
   const scopedCount = document.getElementById('cadastroScopedCount');
 
-  function pathSegments(value) {
+  function pathSegments(value = pathInput.value) {
     const raw = String(value || '').trim();
     if (!raw) return [];
     return raw
@@ -105,10 +106,19 @@
   }
 
   function syncLegacyFields() {
-    const segments = pathSegments(pathInput.value);
+    const segments = pathSegments();
     categoryInput.value = segments[0] || '';
     subcategoryInput.value = segments.slice(1).join(' / ');
     return segments;
+  }
+
+  function assignProduct(draft, product) {
+    const segments = pathSegments();
+    const assigned = ProductSnapshot.assignPathProduct(draft.folders || [], product, segments, {
+      idFactory: () => `folder-${Core.uuid()}`
+    });
+    draft.folders = assigned.folders;
+    return Core.normalizeProduct(assigned.product);
   }
 
   function scopeProducts() {
@@ -263,6 +273,7 @@
   NS.CadastroSurface = Object.freeze({
     render: renderContext,
     selectedFolderId,
+    assignProduct,
     editProduct,
     useAsBase,
     pathSegments
