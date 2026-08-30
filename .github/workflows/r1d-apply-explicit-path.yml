@@ -1,0 +1,48 @@
+name: R1d Apply Explicit Path
+
+on:
+  push:
+    branches:
+      - feat/v2-r1d-cadastro-surface
+    paths:
+      - .r1d-apply-app-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Guard branch and trigger
+        run: |
+          test "$GITHUB_REF_NAME" = "feat/v2-r1d-cadastro-surface"
+          test "$(cat .r1d-apply-app-trigger)" = "explicit-path-v1"
+      - name: Apply exact app integration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/app.js')
+          text = path.read_text()
+          old = """      save(draft => {\n        const assignedProduct = Core.assignProductToLegacyPath\n          ? Core.assignProductToLegacyPath(draft, product)\n          : product;\n"""
+          new = """      save(draft => {\n        const assignedProduct = NS.CadastroSurface?.assignProduct\n          ? NS.CadastroSurface.assignProduct(draft, product)\n          : Core.assignProductToLegacyPath\n            ? Core.assignProductToLegacyPath(draft, product)\n            : product;\n"""
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one app assignment anchor, got {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+          node --check src/app.js
+          node scripts/product-folder-migration-fixture.mjs
+          node scripts/product-snapshot-fixture.mjs
+      - name: Commit functional patch and self-clean
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/r1d-apply-explicit-path.yml .r1d-apply-app-trigger
+          git add src/app.js
+          git diff --cached --check
+          git commit -m "R1d: route Cadastro saves through explicit folder paths"
+          git push origin HEAD:feat/v2-r1d-cadastro-surface
