@@ -1,0 +1,59 @@
+{
+  "kind": "catalogotop.image-variation-benchmark-result",
+  "version": 1,
+  "caseId": "caster-lowres",
+  "status": "negative-control-no-resolution-claim",
+  "sourceEvidence": {
+    "sourceId": "caster",
+    "sourceUrl": "https://product-hub-prd.madeiramadeira.com.br/292834998/images/7b563fa0-5fc2-4c71-82ec-1d09e4b730253298REN36503297REN36503296.jpg?bg-color=FFF&canvas=1%3A1&width=128",
+    "mimeType": "image/jpeg",
+    "byteLength": 2627,
+    "sha256": "d92dadcbb33e9bef01a3197f2ec584db34bf63c72d9a95347bcaa38405aad9ba",
+    "widthPx": 128,
+    "heightPx": 128,
+    "materializationTransport": "github-actions-public-https",
+    "materializationRunId": 33332626528,
+    "artifactId": 9738077704
+  },
+  "target": {
+    "profile": "card-wide",
+    "widthPx": 440,
+    "heightPx": 180,
+    "safeMarginRatio": 0.07
+  },
+  "segmentation": {
+    "method": "connected-light-neutral-border",
+    "threshold": 242,
+    "chromaTolerance": 24,
+    "foregroundPixels": 4536,
+    "foregroundBBox": {
+      "minX": 15,
+      "minY": 20,
+      "maxX": 112,
+      "maxY": 107,
+      "width": 98,
+      "height": 88
+    }
+  },
+  "geometry": {
+    "principalAxisDeg": 68.7105,
+    "originalContainBBoxUtilization": 0.159260,
+    "segmentedPreserveBBoxUtilization": 0.336946,
+    "alignHorizontalBBoxUtilization": 0.350510,
+    "alignHorizontalGainVsOriginal": 2.2009,
+    "alignHorizontalGainVsSegmentedPreserve": 1.0403,
+    "segmentedPreserveScale": 1.7591
+  },
+  "interpretation": {
+    "utility": "larger-placement-presence-without-new-source-detail",
+    "fidelity": "pixel-preserving-baseline-only",
+    "candidateClass": "A",
+    "systemDecision": "no-variant-preferred-for-resolution-goal",
+    "notes": [
+      "The factual object occupies only about 98 x 88 source pixels.",
+      "A preserve recomposition scales those samples by about 1.76x; this can improve placement presence but cannot create factual resolution.",
+      "Orthogonal alignment adds only about 4% utility over preserve and has no basis to be treated as semantic improvement.",
+      "Any future super-resolution or reconstruction must be scored separately from placement fit and must not be credited as factual detail merely because the raster is larger."
+    ]
+  }
+}
