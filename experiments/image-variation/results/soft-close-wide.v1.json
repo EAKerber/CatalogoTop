@@ -1,0 +1,59 @@
+{
+  "kind": "catalogotop.image-variation-benchmark-result",
+  "version": 1,
+  "caseId": "soft-close-wide",
+  "status": "provisional-source-authority-caveat",
+  "sourceEvidence": {
+    "sourceId": "soft-close",
+    "sourceUrl": "https://gmad.fbitsstatic.net/img/p/corredica-telescopica-com-amortecedor-300mm-renna-152536/343303-2.jpg?h=420&v=202604291612&w=420",
+    "mimeType": "image/jpeg",
+    "byteLength": 9781,
+    "sha256": "d0694fc2278ac4c6b88b3f6c1e647c5bcf360f363fe96b80f9e1dff17c9fedec",
+    "widthPx": 420,
+    "heightPx": 420,
+    "materializationTransport": "github-actions-public-https",
+    "materializationRunId": 33332404497,
+    "artifactId": 9738020897,
+    "authorityCaveat": "The current GMAD product page states that product images are merely illustrative; faithful pixel transformation is therefore not sufficient evidence of factual product truth."
+  },
+  "target": {
+    "profile": "card-wide",
+    "widthPx": 440,
+    "heightPx": 180,
+    "safeMarginRatio": 0.07
+  },
+  "segmentation": {
+    "method": "connected-light-neutral-border",
+    "threshold": 242,
+    "chromaTolerance": 24,
+    "foregroundPixels": 17480,
+    "foregroundBBox": {
+      "minX": 12,
+      "minY": 134,
+      "maxX": 405,
+      "maxY": 303,
+      "width": 394,
+      "height": 170
+    }
+  },
+  "geometry": {
+    "principalAxisDeg": 17.8825,
+    "originalContainBBoxUtilization": 0.114885,
+    "segmentedPreserveBBoxUtilization": 0.701236,
+    "alignHorizontalBBoxUtilization": 0.273967,
+    "preserveGainVsOriginal": 6.1038,
+    "alignHorizontalVsSegmentedPreserve": 0.3907,
+    "geometricChoice": "preserve"
+  },
+  "interpretation": {
+    "utility": "strong-canvas-removal-gain-rotation-rejected",
+    "fidelity": "source-authority-insufficient-for-automatic-product-truth",
+    "candidateClass": "B",
+    "notes": [
+      "Removing the neutral source canvas creates a large placement gain while keeping the source orientation.",
+      "Principal-axis horizontal alignment would materially reduce utilization, so the geometric planner correctly prefers preserve.",
+      "This is direct evidence against a blanket rule that elongated hardware should be rotated horizontally.",
+      "Even a visually faithful candidate must remain review-only because the source page itself marks imagery as illustrative."
+    ]
+  }
+}
