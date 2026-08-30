@@ -1,0 +1,435 @@
+{
+  "kind": "catalogotop.image-variation-benchmark",
+  "version": 1,
+  "status": "research-only",
+  "purpose": "R-IMG-1: predeclare expected utility and fidelity constraints before producing variants.",
+  "authorities": {
+    "stableBaseline": "main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9",
+    "researchBranch": "research/semantic-image-variation-v2",
+    "placementIdentity": "Reuse CatalogDocument-derived placementKey semantics; target profiles here are research fixtures, not production schema."
+  },
+  "evaluationPolicy": {
+    "successRequires": [
+      "material utility over Original",
+      "identity fidelity",
+      "declared risk within acceptance ceiling"
+    ],
+    "validSystemOutcome": "no-variant",
+    "comparisonApproaches": [
+      {
+        "id": "original",
+        "class": "baseline"
+      },
+      {
+        "id": "class-a",
+        "class": "A",
+        "description": "pixel-preserving deterministic transforms"
+      },
+      {
+        "id": "class-b",
+        "class": "B",
+        "description": "segmentation/reorientation/recomposition preserving factual product geometry"
+      },
+      {
+        "id": "class-c-grounded",
+        "class": "C",
+        "description": "source-grounded generative edit; comparison-only unless a later decision explicitly raises an acceptance ceiling",
+        "comparisonOnly": true
+      }
+    ],
+    "humanReviewRequiredFor": [
+      "all Class C outputs",
+      "ambiguous piece-count/geometry changes",
+      "sources marked illustrative or family-representative"
+    ]
+  },
+  "targetProfiles": {
+    "card-standard": {
+      "widthPx": 300,
+      "heightPx": 220,
+      "safeMarginRatio": 0.08,
+      "origin": "Existing V1 Variation Bundle fixture geometry; retained only as a repeatable research profile."
+    },
+    "collection-member": {
+      "widthPx": 180,
+      "heightPx": 140,
+      "safeMarginRatio": 0.08,
+      "origin": "Existing V1 Variation Bundle fixture geometry; retained only as a repeatable research profile."
+    },
+    "card-wide": {
+      "widthPx": 440,
+      "heightPx": 180,
+      "safeMarginRatio": 0.07,
+      "origin": "Research stress profile motivated by the observed wide-horizontal slide-card failure mode; not a production layout contract."
+    }
+  },
+  "sources": {
+    "soft-extra": {
+      "label": "Corrediça invisível Soft Extra",
+      "sourceUrl": "https://trentoferramentas.cdn.magazord.com.br/img/2024/11/produto/1035/corredica-14-soft-closing.png?ims=fit-in%2F1210x",
+      "sourcePage": "https://www.trentoferramentas.com.br/corredica-invisivel-soft-closing-hd-35kg",
+      "provenance": "Recovered from prior Top Mobili authoring evidence; original was preserved and review-required.",
+      "sourceCanvas": null,
+      "trustNotes": [
+        "factual-source candidate",
+        "pixel dimensions require fresh materialization/readback"
+      ]
+    },
+    "h45": {
+      "label": "Corrediça telescópica H45",
+      "sourceUrl": "https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg",
+      "sourcePage": "https://www.ipeferragens.com.br/corredica-telescopica-renna-500mm-35kg",
+      "provenance": "Recovered from prior Top Mobili authoring evidence; listing identified as Renna 500 mm / 35 kg.",
+      "sourceCanvas": null,
+      "trustNotes": [
+        "factual-source candidate",
+        "pixel dimensions require fresh materialization/readback"
+      ]
+    },
+    "soft-close": {
+      "label": "Corrediça telescópica Soft Close",
+      "sourceUrl": "https://gmad.fbitsstatic.net/img/p/corredica-telescopica-com-amortecedor-300mm-renna-152536/343303-2.jpg?h=420&v=202604291612&w=420",
+      "sourcePage": "https://www.gmad.com.br/corredica-telescopica-com-amortecedor-300mm-renna-152536/p",
+      "provenance": "Recovered from prior Top Mobili authoring evidence; original was kept in contain framing.",
+      "sourceCanvas": null,
+      "trustNotes": [
+        "factual-source candidate",
+        "served pixel dimensions require fresh readback"
+      ]
+    },
+    "hinge": {
+      "label": "Dobradiça Renna reta, curva e supercurva",
+      "sourceUrl": "https://cdn.awsli.com.br/600x450/2716/2716952/produto/258208402/banhomais-c337v5khji.jpg",
+      "sourcePage": "https://www.ipeferragens.com.br/dobradica-renna-35mm",
+      "provenance": "Recovered from prior Top Mobili authoring evidence; source image visibly represents multiple factual variants.",
+      "sourceCanvas": null,
+      "trustNotes": [
+        "multi-piece/multi-variant composition",
+        "preserve every visible primary product piece"
+      ]
+    },
+    "piston": {
+      "label": "Pistão a gás Renna branco",
+      "sourceUrl": "https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186698/22-5q9ac2njj1-uxd9aksc9v.png",
+      "sourcePage": "https://www.ipeferragens.com.br/pistao-forca-normal-renna-60n-branco",
+      "provenance": "Recovered from prior Top Mobili authoring evidence.",
+      "sourceCanvas": null,
+      "trustNotes": [
+        "source page previously described the photograph as illustrative",
+        "never use Class C to strengthen uncertain product truth"
+      ]
+    },
+    "caster": {
+      "label": "Rodízio Renna 35 mm com trava",
+      "sourceUrl": "https://product-hub-prd.madeiramadeira.com.br/292834998/images/7b563fa0-5fc2-4c71-82ec-1d09e4b730253298REN36503297REN36503296.jpg?bg-color=FFF&canvas=1%3A1&width=128",
+      "sourcePage": "https://www.madeiramadeira.com.br/rodizio-silicone-gel-transparente-35mm-com-freio-renna-292834998.html",
+      "provenance": "Recovered from prior Top Mobili authoring evidence; explicitly recorded as low resolution.",
+      "sourceCanvas": {
+        "widthPx": 128,
+        "heightPx": 128,
+        "evidence": "Prior authoring evidence explicitly recorded 128 x 128 px."
+      },
+      "trustNotes": [
+        "low-resolution stress case",
+        "do not reconstruct product detail merely to hide insufficient source quality"
+      ]
+    },
+    "round-leg": {
+      "label": "Pé redondo cromado Renna 100 mm",
+      "sourceUrl": "https://www.markferragens.com.br/_next/image?q=75&url=https%3A%2F%2Fimg.markferragens.com.br%2Fimagens%2F2623%2F1-pe-redondo-cromado-para-armarios-e-moveis-planejados-o3-x-10-cm.png%3Fw%3D800%26h%3D800%26r%3D10&w=1920",
+      "sourcePage": "https://www.markferragens.com.br/produto/2623-pe-redondo-cromado-para-armarios-e-moveis-planejados-o3-x-10-cm",
+      "provenance": "Recovered from prior Top Mobili authoring evidence; 100 mm item was used as a family representation.",
+      "sourceCanvas": null,
+      "trustNotes": [
+        "family-representative source",
+        "vertical semantic orientation is meaningful",
+        "do not imply other heights are visually identical"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "soft-extra-wide",
+      "sourceId": "soft-extra",
+      "targetProfile": "card-wide",
+      "expectedDecision": "variant-expected",
+      "goal": "Use the wide horizontal holder materially better while keeping the factual slide intact.",
+      "acceptanceRiskCeiling": "B",
+      "orientationStrategy": "choose-best-orthogonal-orientation",
+      "fidelityInvariants": [
+        "same slide/model identity",
+        "preserve rail geometry, proportions, holes, fittings and visible piece count",
+        "no invented or removed hardware"
+      ],
+      "unacceptableChanges": [
+        "redrawn plausible-but-different rail",
+        "changed hole/fitting layout",
+        "piece-count change",
+        "synthetic viewpoint unsupported by source pixels"
+      ],
+      "notes": [
+        "Primary elongated-hardware stress case."
+      ]
+    },
+    {
+      "id": "soft-extra-standard",
+      "sourceId": "soft-extra",
+      "targetProfile": "card-standard",
+      "expectedDecision": "conditional",
+      "goal": "Improve coverage only if the Original wastes meaningful canvas; otherwise keep Original.",
+      "acceptanceRiskCeiling": "B",
+      "orientationStrategy": "choose-best-orthogonal-orientation",
+      "fidelityInvariants": [
+        "same slide/model identity",
+        "preserve rail geometry, proportions, holes, fittings and visible piece count",
+        "no invented or removed hardware"
+      ],
+      "unacceptableChanges": [
+        "redrawn plausible-but-different rail",
+        "changed hole/fitting layout",
+        "piece-count change",
+        "synthetic viewpoint unsupported by source pixels"
+      ],
+      "notes": []
+    },
+    {
+      "id": "h45-wide",
+      "sourceId": "h45",
+      "targetProfile": "card-wide",
+      "expectedDecision": "variant-expected",
+      "goal": "Recompose the factual long rail for a wide card with higher useful coverage.",
+      "acceptanceRiskCeiling": "B",
+      "orientationStrategy": "choose-best-orthogonal-orientation",
+      "fidelityInvariants": [
+        "same slide/model identity",
+        "preserve rail geometry, proportions, holes, fittings and visible piece count",
+        "no invented or removed hardware"
+      ],
+      "unacceptableChanges": [
+        "redrawn plausible-but-different rail",
+        "changed hole/fitting layout",
+        "piece-count change",
+        "synthetic viewpoint unsupported by source pixels"
+      ],
+      "notes": []
+    },
+    {
+      "id": "h45-standard",
+      "sourceId": "h45",
+      "targetProfile": "card-standard",
+      "expectedDecision": "conditional",
+      "goal": "Prefer the smallest factual transformation that creates a visible placement benefit.",
+      "acceptanceRiskCeiling": "B",
+      "orientationStrategy": "choose-best-orthogonal-orientation",
+      "fidelityInvariants": [
+        "same slide/model identity",
+        "preserve rail geometry, proportions, holes, fittings and visible piece count",
+        "no invented or removed hardware"
+      ],
+      "unacceptableChanges": [
+        "redrawn plausible-but-different rail",
+        "changed hole/fitting layout",
+        "piece-count change",
+        "synthetic viewpoint unsupported by source pixels"
+      ],
+      "notes": []
+    },
+    {
+      "id": "soft-close-wide",
+      "sourceId": "soft-close",
+      "targetProfile": "card-wide",
+      "expectedDecision": "variant-expected",
+      "goal": "Increase effective rail scale/coverage in a wide holder without synthesizing product detail.",
+      "acceptanceRiskCeiling": "B",
+      "orientationStrategy": "choose-best-orthogonal-orientation",
+      "fidelityInvariants": [
+        "same slide/model identity",
+        "preserve rail geometry, proportions, holes, fittings and visible piece count",
+        "no invented or removed hardware"
+      ],
+      "unacceptableChanges": [
+        "redrawn plausible-but-different rail",
+        "changed hole/fitting layout",
+        "piece-count change",
+        "synthetic viewpoint unsupported by source pixels"
+      ],
+      "notes": []
+    },
+    {
+      "id": "soft-close-collection",
+      "sourceId": "soft-close",
+      "targetProfile": "collection-member",
+      "expectedDecision": "conditional",
+      "goal": "Determine whether any recomposition beats a simple contain/framing baseline at small size.",
+      "acceptanceRiskCeiling": "B",
+      "orientationStrategy": "choose-best-orthogonal-orientation",
+      "fidelityInvariants": [
+        "same slide/model identity",
+        "preserve rail geometry, proportions, holes, fittings and visible piece count",
+        "no invented or removed hardware"
+      ],
+      "unacceptableChanges": [
+        "redrawn plausible-but-different rail",
+        "changed hole/fitting layout",
+        "piece-count change",
+        "synthetic viewpoint unsupported by source pixels"
+      ],
+      "notes": []
+    },
+    {
+      "id": "hinge-standard",
+      "sourceId": "hinge",
+      "targetProfile": "card-standard",
+      "expectedDecision": "conditional",
+      "goal": "Reduce wasted source canvas while preserving the factual multi-piece group.",
+      "acceptanceRiskCeiling": "B",
+      "orientationStrategy": "preserve-group-semantics",
+      "fidelityInvariants": [
+        "preserve all visible primary hinge pieces/variants",
+        "preserve characteristic cup/arm geometry",
+        "keep pieces visually distinguishable"
+      ],
+      "unacceptableChanges": [
+        "dropping one visible variant",
+        "merging pieces",
+        "inventing a cleaner replacement hinge",
+        "changing cup/arm geometry"
+      ],
+      "notes": []
+    },
+    {
+      "id": "hinge-wide-no-force",
+      "sourceId": "hinge",
+      "targetProfile": "card-wide",
+      "expectedDecision": "no-variant-preferred",
+      "goal": "Prove that a wider target does not justify arbitrary rearrangement when the source group is already semantically meaningful.",
+      "acceptanceRiskCeiling": "A",
+      "orientationStrategy": "preserve",
+      "fidelityInvariants": [
+        "preserve the full factual group and relative presentation",
+        "preserve visible piece count"
+      ],
+      "unacceptableChanges": [
+        "forced horizontal remosaic of individual pieces",
+        "invented spacing that implies a different set",
+        "piece removal"
+      ],
+      "notes": []
+    },
+    {
+      "id": "piston-wide",
+      "sourceId": "piston",
+      "targetProfile": "card-wide",
+      "expectedDecision": "conditional",
+      "goal": "Test whether factual whole-object reorientation/recomposition can improve a wide holder despite weaker source authority.",
+      "acceptanceRiskCeiling": "B",
+      "orientationStrategy": "choose-best-orthogonal-orientation",
+      "fidelityInvariants": [
+        "preserve piston body/rod geometry and visible fittings",
+        "do not strengthen uncertain details beyond the illustrative source"
+      ],
+      "unacceptableChanges": [
+        "reconstructed high-detail piston presented as factual",
+        "changed fittings",
+        "invented labels or attachment geometry"
+      ],
+      "notes": [
+        "Human review mandatory because the historical source was marked illustrative."
+      ]
+    },
+    {
+      "id": "piston-standard-no-rebuild",
+      "sourceId": "piston",
+      "targetProfile": "card-standard",
+      "expectedDecision": "no-variant-preferred",
+      "goal": "Prefer Original/framing when improvement would mainly require reconstructing uncertain detail.",
+      "acceptanceRiskCeiling": "A",
+      "orientationStrategy": "preserve",
+      "fidelityInvariants": [
+        "same visible factual pixels/geometry",
+        "no invented detail"
+      ],
+      "unacceptableChanges": [
+        "generative sharpening that fabricates edges/text/fittings",
+        "viewpoint change"
+      ],
+      "notes": []
+    },
+    {
+      "id": "caster-lowres",
+      "sourceId": "caster",
+      "targetProfile": "card-standard",
+      "expectedDecision": "no-variant-preferred",
+      "goal": "Exercise the system's ability to say no when source resolution is too weak for trustworthy reconstruction.",
+      "acceptanceRiskCeiling": "A",
+      "orientationStrategy": "preserve",
+      "fidelityInvariants": [
+        "same wheel, fork and brake geometry",
+        "no invented tread/fork/brake detail"
+      ],
+      "unacceptableChanges": [
+        "generative reconstruction of missing detail",
+        "invented brake parts",
+        "false texture/branding"
+      ],
+      "notes": [
+        "Deterministic padding/reframe may be tested, but it must not be scored as a quality improvement merely because output pixels are larger."
+      ]
+    },
+    {
+      "id": "caster-collection",
+      "sourceId": "caster",
+      "targetProfile": "collection-member",
+      "expectedDecision": "conditional",
+      "goal": "Check whether the small target can use the low-resolution Original acceptably without reconstruction.",
+      "acceptanceRiskCeiling": "A",
+      "orientationStrategy": "preserve",
+      "fidelityInvariants": [
+        "same visible wheel/fork/brake geometry"
+      ],
+      "unacceptableChanges": [
+        "invented detail",
+        "piece changes"
+      ],
+      "notes": []
+    },
+    {
+      "id": "round-leg-standard",
+      "sourceId": "round-leg",
+      "targetProfile": "card-standard",
+      "expectedDecision": "no-variant-preferred",
+      "goal": "Preserve the natural vertical product orientation; framing/padding should beat arbitrary rotation.",
+      "acceptanceRiskCeiling": "A",
+      "orientationStrategy": "preserve",
+      "fidelityInvariants": [
+        "preserve cylindrical proportions and foot/base geometry",
+        "preserve vertical semantic orientation"
+      ],
+      "unacceptableChanges": [
+        "90-degree rotation solely to fill width",
+        "changing proportions",
+        "implying a different height variant"
+      ],
+      "notes": []
+    },
+    {
+      "id": "round-leg-wide",
+      "sourceId": "round-leg",
+      "targetProfile": "card-wide",
+      "expectedDecision": "no-variant-preferred",
+      "goal": "Stress-test the rule that target aspect alone must not force semantically wrong orientation.",
+      "acceptanceRiskCeiling": "A",
+      "orientationStrategy": "preserve",
+      "fidelityInvariants": [
+        "preserve vertical semantic orientation",
+        "preserve family-representative caveat"
+      ],
+      "unacceptableChanges": [
+        "horizontal rotation to maximize coverage",
+        "synthetic scene/application",
+        "geometry reconstruction"
+      ],
+      "notes": []
+    }
+  ]
+}
