@@ -4,7 +4,7 @@ import vm from 'node:vm';
 
 function loadModules() {
   const context = vm.createContext({ window: {}, console, TextEncoder });
-  for (const file of ['folder-tree.js', 'product-folder-migration.js', 'product-snapshot.js']) {
+  for (const file of ['folder-tree.js', 'product-folder-migration.js', 'product-domain.js', 'product-snapshot.js']) {
     vm.runInContext(fs.readFileSync(new URL(`../src/${file}`, import.meta.url), 'utf8'), context, { filename: `src/${file}` });
   }
   return context.window.CatalogoTop;
@@ -53,6 +53,15 @@ assert.throws(() => ProductSnapshot.read({
   products: [{ id: 'p', folderId: 'missing' }]
 }), error => error?.code === 'product_folder_invalid');
 
+assert.throws(() => ProductSnapshot.read({
+  schemaVersion: 2,
+  folders: [{ id: 'a', parentId: null, name: 'Ferragens' }],
+  products: [
+    { id: 'p1', code: 'ABC', description: 'Um', folderId: 'a' },
+    { id: 'p2', code: ' abc ', description: 'Dois', folderId: 'a' }
+  ]
+}), error => error?.code === 'product_code_duplicate', 'snapshot v2 deve bloquear códigos equivalentes');
+
 assert.throws(() => ProductSnapshot.read({ schemaVersion: 3, products: [] }), error => error?.code === 'product_snapshot_version');
 
 let sequence = 0;
@@ -85,4 +94,4 @@ assert.equal(write.products[0].folderId, 'folder-new-1');
 
 assert.throws(() => ProductSnapshot.assignLegacyProduct([], { category: 'Ferragens' }), error => error?.code === 'folder_id_factory_required');
 
-console.log('PASS product snapshot fixture: v1 migration, v2 folder authority, legacy adapter and fail-closed references');
+console.log('PASS product snapshot fixture: v1 migration, v2 folder/code authority, legacy adapter and fail-closed references');
