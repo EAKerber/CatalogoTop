@@ -114,6 +114,7 @@ try {
     name: 'result.zip', mimeType: 'application/zip', buffer: Buffer.from(generated.bytes)
   });
   await page.waitForFunction(() => Boolean(window.__variationImported));
+  await page.waitForFunction(() => !document.getElementById('importImageVariationResult')?.disabled);
 
   let state = await page.evaluate(() => {
     const NS = window.CatalogoTop;
@@ -143,6 +144,7 @@ try {
     name: 'result-again.zip', mimeType: 'application/zip', buffer: Buffer.from(generated.bytes)
   });
   await page.waitForFunction(previous => window.__variationUploads === previous && document.getElementById('variationResultStatus')?.textContent.includes('Nenhuma variante nova'), uploadsBeforeDuplicate);
+  await page.waitForFunction(() => !document.getElementById('importImageVariationResult')?.disabled);
   state = await page.evaluate(() => ({
     uploads: window.__variationUploads,
     variants: window.CatalogoTop.Core.getState().catalog.presentation.imageVariants?.['result-p1']?.length || 0,
@@ -185,6 +187,7 @@ try {
     name: 'stale.zip', mimeType: 'application/zip', buffer: Buffer.from(staleBytes)
   });
   await page.waitForFunction(() => document.getElementById('variationResultStatus')?.dataset.state === 'error');
+  await page.waitForFunction(() => !document.getElementById('importImageVariationResult')?.disabled);
   const stale = await page.evaluate(() => ({
     uploads: window.__variationUploads,
     state: JSON.stringify(window.CatalogoTop.Core.getState()),
