@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - research/source-readback-h45
+  pull_request:
+    branches:
+      - research/semantic-image-variation-v2
+    paths:
+      - '.github/workflows/research-h45-source-readback.yml'
 
 permissions:
   contents: read
