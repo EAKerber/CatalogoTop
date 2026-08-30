@@ -86,6 +86,18 @@
     }
   }
 
+  function assertUniqueImportCodes(products) {
+    if (!NS.ProductDomain?.duplicateCodes) return;
+    const conflict = NS.ProductDomain.duplicateCodes(products)[0];
+    if (!conflict) return;
+    const error = new Error(`Código duplicado na importação: ${conflict.productCode}.`);
+    error.code = 'product_code_duplicate';
+    error.productCode = conflict.productCode;
+    error.firstIndex = conflict.firstIndex;
+    error.index = conflict.index;
+    throw error;
+  }
+
   function sheetRowsFromMatrix(matrix) {
     if (!Array.isArray(matrix) || matrix.length < 1) return { products: [], report: { headers: [], mapped: [], extras: [], invalid: [], totalRows: 0 } };
     const rawHeaders = matrix[0].map(value => String(value || '').trim());
@@ -143,6 +155,7 @@
       products.push(normalized);
     });
 
+    assertUniqueImportCodes(products);
     return {
       products,
       report: {
