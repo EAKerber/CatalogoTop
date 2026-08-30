@@ -137,6 +137,19 @@ try {
   if (state.uploads !== 1 || state.publishes !== 0 || state.imports.imported !== 1) throw new Error(`upload/publicação incorretos: ${JSON.stringify(state)}`);
   if (state.statusState !== 'success' || !state.status.includes('1 variante importada')) throw new Error(`status de importação inesperado: ${JSON.stringify(state)}`);
 
+  // Reimport idêntico, no mesmo contexto editorial do request, deve parar antes de prepare/upload.
+  const uploadsBeforeDuplicate = state.uploads;
+  await page.setInputFiles('#importImageVariationResult', {
+    name: 'result-again.zip', mimeType: 'application/zip', buffer: Buffer.from(generated.bytes)
+  });
+  await page.waitForFunction(previous => window.__variationUploads === previous && document.getElementById('variationResultStatus')?.textContent.includes('Nenhuma variante nova'), uploadsBeforeDuplicate);
+  state = await page.evaluate(() => ({
+    uploads: window.__variationUploads,
+    variants: window.CatalogoTop.Core.getState().catalog.presentation.imageVariants?.['result-p1']?.length || 0,
+    status: document.getElementById('variationResultStatus')?.textContent || ''
+  }));
+  if (state.uploads !== uploadsBeforeDuplicate || state.variants !== 1 || !state.status.includes('1 duplicada')) throw new Error(`reimport duplicado não foi interrompido cedo: ${JSON.stringify(state)}`);
+
   // A derivada importada fica disponível ao mesmo ciclo editorial, sem auto-seleção.
   await page.click('#catalogPreview .catalog-card[data-product-id="result-p1"]');
   await page.waitForSelector('#contextualInspector [data-image-choice-editor="result-p1"] [data-image-choice-cycle="1"]');
@@ -155,20 +168,7 @@ try {
   });
   if (selected.source !== 'catalog' || selected.src !== `/api/assets/sha256/${'8'.repeat(64)}` || !selected.printHasImported || selected.original !== original) throw new Error(`derivada importada não ciclou com paridade print: ${JSON.stringify(selected)}`);
 
-  // Reimport idêntico deve parar antes de prepare/upload.
-  const uploadsBeforeDuplicate = state.uploads;
-  await page.setInputFiles('#importImageVariationResult', {
-    name: 'result-again.zip', mimeType: 'application/zip', buffer: Buffer.from(generated.bytes)
-  });
-  await page.waitForFunction(previous => window.__variationUploads === previous && document.getElementById('variationResultStatus')?.textContent.includes('Nenhuma variante nova'), uploadsBeforeDuplicate);
-  state = await page.evaluate(() => ({
-    uploads: window.__variationUploads,
-    variants: window.CatalogoTop.Core.getState().catalog.presentation.imageVariants?.['result-p1']?.length || 0,
-    status: document.getElementById('variationResultStatus')?.textContent || ''
-  }));
-  if (state.uploads !== uploadsBeforeDuplicate || state.variants !== 1 || !state.status.includes('1 duplicada')) throw new Error(`reimport duplicado não foi interrompido cedo: ${JSON.stringify(state)}`);
-
-  // Um requestId obsoleto deve falhar antes de upload e sem mutação.
+  // Um requestId obsoleto deve falhar antes de upload e sem mutação, mesmo após mudança editorial local.
   const staleBytes = await page.evaluate(async bytes => {
     const NS = window.CatalogoTop;
     const opened = await NS.ZipReader.open(new Uint8Array(bytes));
