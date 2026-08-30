@@ -1,6 +1,8 @@
 .product-category-field { display: grid; gap: 6px; }
 .product-category-field small { color: var(--muted); font-weight: 500; line-height: 1.35; }
 
+[data-r1d-legacy-product-list-compat][hidden] { display: none !important; }
+
 .category-combobox { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 36px; }
 .category-combobox > #category { grid-column: 1 / -1; padding-right: 42px; }
 .category-picker-toggle { position: absolute; right: 1px; top: 1px; width: 36px; height: calc(100% - 2px); border: 0; border-left: 1px solid var(--line); border-radius: 0 8px 8px 0; background: #fff; color: var(--muted); font-size: 16px; }
