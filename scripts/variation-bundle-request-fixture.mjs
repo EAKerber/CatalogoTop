@@ -136,7 +136,7 @@ if (first.requestId !== second.requestId) fail('requestId deve ser determinísti
 if (!/^[a-f0-9]{64}$/.test(first.requestId)) fail(`requestId inválido: ${first.requestId}`);
 if (first.manifest.kind !== 'catalogotop.image-variation-request' || first.manifest.version !== 1) fail('manifest kind/version inválidos');
 if (first.manifest.jobs.length !== 2) fail(`esperava 2 jobs acionáveis: ${JSON.stringify(first.manifest.jobs)}`);
-if (first.manifest.issues.map(item => item.reason).join(',') !== 'missing-source,commercial-image-grid') fail(`issues inesperadas: ${JSON.stringify(first.manifest.issues)}`);
+if (first.manifest.issues.map(item => item.reason).join(',') !== 'commercial-image-grid,missing-source') fail(`issues inesperadas: ${JSON.stringify(first.manifest.issues)}`);
 if (first.manifest.jobs[0].placementKey !== 'card:p1' || first.manifest.jobs[1].placementKey !== 'collection:c1:member:p2') fail('jobs devem ficar ordenados por placementKey');
 if (first.manifest.jobs[0].target.imageFrame.zoom !== 1.4 || first.manifest.jobs[0].source.originalRef !== sharedSource) fail('job não preservou framing/source canônico');
 if (!first.manifest.jobs.every(job => /^job-[a-f0-9]{20}$/.test(job.jobId) && /^[a-f0-9]{64}$/.test(job.usageSignature))) fail('jobId/usageSignature inválidos');
