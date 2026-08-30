@@ -282,6 +282,7 @@
   return String.raw`#!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import hashlib
 import ipaddress
 import json
@@ -296,6 +297,8 @@ REQUEST_KIND = "catalogotop.image-variation-request"
 REQUEST_VERSION = 2
 INDEX_KIND = "catalogotop.materialized-sources"
 INDEX_VERSION = 1
+PLAN_KIND = "catalogotop.source-materialization-plan"
+PLAN_VERSION = 1
 MAX_SOURCE_BYTES = 25 * 1024 * 1024
 MAX_TOTAL_BYTES = 200 * 1024 * 1024
 MAX_REDIRECTS = 5
@@ -312,7 +315,7 @@ def fail(message: str) -> None:
     raise RuntimeError(message)
 
 
-def validate_public_url(value: str) -> str:
+def validate_locator(value: str) -> str:
     try:
         parsed = urlparse(value)
         port = parsed.port
@@ -327,7 +330,20 @@ def validate_public_url(value: str) -> str:
     host = parsed.hostname.rstrip(".").lower()
     if host == "localhost" or host.endswith(".local"):
         fail("local-hostname-not-allowed")
-    resolved_port = port or (443 if parsed.scheme == "https" else 80)
+    try:
+        literal_ip = ipaddress.ip_address(host.split("%", 1)[0])
+    except ValueError:
+        literal_ip = None
+    if literal_ip is not None and not literal_ip.is_global:
+        fail(f"non-public-address-blocked:{literal_ip}")
+    return value
+
+
+def validate_public_url(value: str) -> str:
+    validate_locator(value)
+    parsed = urlparse(value)
+    host = parsed.hostname.rstrip(".").lower()
+    resolved_port = parsed.port or (443 if parsed.scheme == "https" else 80)
     try:
         addresses = {
             info[4][0].split("%", 1)[0]
@@ -355,7 +371,7 @@ def fetch_source(url: str) -> tuple[bytes, str, str]:
         request = Request(
             current,
             headers={
-                "User-Agent": "CatalogoTop-Source-Materializer/1.0",
+                "User-Agent": "CatalogoTop-Source-Materializer/1.1",
                 "Accept": "image/png,image/jpeg,image/webp,image/gif,image/avif,image/svg+xml;q=0.9,*/*;q=0.1",
             },
         )
@@ -399,7 +415,7 @@ def fetch_source(url: str) -> tuple[bytes, str, str]:
     fail("redirect-limit-exceeded")
 
 
-def sniff_image(data: bytes, declared: str) -> tuple[str, str]:
+def sniff_image(data: bytes, declared: str = "") -> tuple[str, str]:
     if data.startswith(b"\x89PNG\r\n\x1a\n"):
         return "image/png", "png"
     if data.startswith(b"\xff\xd8\xff"):
@@ -411,8 +427,10 @@ def sniff_image(data: bytes, declared: str) -> tuple[str, str]:
     if len(data) >= 12 and data[4:8] == b"ftyp" and data[8:12] in {b"avif", b"avis"}:
         return "image/avif", "avif"
     head = data[:4096].lstrip(b"\xef\xbb\xbf \t\r\n")
-    if declared == "image/svg+xml" and b"<svg" in head.lower():
-        return "image/svg+xml", "svg"
+    lower = head.lower()
+    if declared == "image/svg+xml" or lower.startswith(b"<svg") or (lower.startswith(b"<?xml") and b"<svg" in lower):
+        if b"<svg" in lower:
+            return "image/svg+xml", "svg"
     fail(f"unsupported-or-unrecognized-image:{declared or 'unknown'}")
 
 
@@ -442,6 +460,7 @@ def remote_sources(manifest: dict) -> list[dict]:
         if not isinstance(source, dict) or source.get("mode") != "remote-url":
             continue
         url = str(source.get("url") or "").strip()
+        validate_locator(url)
         fingerprint = str(source.get("fingerprint") or "").strip().lower()
         expected = source_fingerprint(url)
         if fingerprint != expected:
@@ -458,46 +477,62 @@ def remote_sources(manifest: dict) -> list[dict]:
     return [by_fingerprint[key] for key in sorted(by_fingerprint)]
 
 
-def main() -> int:
-    root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").expanduser().resolve()
-    manifest = load_manifest(root)
-    output_dir = root / "sources" / "materialized"
+def incoming_relative(source: dict) -> Path:
+    return Path("sources") / "incoming" / f"{source['fingerprint']}.bin"
+
+
+def write_plan(root: Path, manifest: dict, sources: list[dict]) -> Path:
     context_dir = root / "context"
-    output_dir.mkdir(parents=True, exist_ok=True)
+    incoming_dir = root / "sources" / "incoming"
     context_dir.mkdir(parents=True, exist_ok=True)
-
-    materialized = []
-    failures = []
-    total_bytes = 0
-    for source in remote_sources(manifest):
-        try:
-            data, final_url, declared = fetch_source(source["url"])
-            mime_type, extension = sniff_image(data, declared)
-            total_bytes += len(data)
-            if total_bytes > MAX_TOTAL_BYTES:
-                fail(f"total-size-limit:{total_bytes}")
-            digest = hashlib.sha256(data).hexdigest()
-            relative_path = Path("sources") / "materialized" / f"{source['fingerprint']}.{extension}"
-            destination = root / relative_path
-            destination.write_bytes(data)
-            materialized.append({
+    incoming_dir.mkdir(parents=True, exist_ok=True)
+    plan = {
+        "kind": PLAN_KIND,
+        "version": PLAN_VERSION,
+        "requestId": manifest["requestId"],
+        "manifestAuthority": "manifest.json",
+        "downloads": [
+            {
                 "fingerprint": source["fingerprint"],
                 "url": source["url"],
-                "finalUrl": final_url,
-                "path": relative_path.as_posix(),
-                "mimeType": mime_type,
-                "sha256": digest,
-                "byteLength": len(data),
+                "downloadPath": incoming_relative(source).as_posix(),
                 "jobIds": sorted(source["jobIds"]),
-            })
-        except Exception as exc:
-            failures.append({
-                "fingerprint": source["fingerprint"],
-                "url": source["url"],
-                "jobIds": sorted(source["jobIds"]),
-                "error": str(exc),
-            })
+            }
+            for source in sources
+        ],
+    }
+    path = context_dir / "materialization-plan.json"
+    path.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
 
+
+def materialize_bytes(root: Path, source: dict, data: bytes, final_url: str, declared: str, transport: str) -> dict:
+    if not data:
+        fail("source-empty")
+    if len(data) > MAX_SOURCE_BYTES:
+        fail(f"source-size-limit:{len(data)}")
+    mime_type, extension = sniff_image(data, declared)
+    digest = hashlib.sha256(data).hexdigest()
+    relative_path = Path("sources") / "materialized" / f"{source['fingerprint']}.{extension}"
+    destination = root / relative_path
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(data)
+    return {
+        "fingerprint": source["fingerprint"],
+        "url": source["url"],
+        "finalUrl": final_url,
+        "path": relative_path.as_posix(),
+        "mimeType": mime_type,
+        "sha256": digest,
+        "byteLength": len(data),
+        "transport": transport,
+        "jobIds": sorted(source["jobIds"]),
+    }
+
+
+def write_index(root: Path, manifest: dict, materialized: list[dict], failures: list[dict]) -> Path:
+    context_dir = root / "context"
+    context_dir.mkdir(parents=True, exist_ok=True)
     index = {
         "kind": INDEX_KIND,
         "version": INDEX_VERSION,
@@ -506,11 +541,90 @@ def main() -> int:
         "sources": materialized,
         "failures": failures,
     }
-    index_path = context_dir / "materialized-sources.json"
-    index_path.write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"Materialized {len(materialized)} remote source(s); failures={len(failures)}")
+    path = context_dir / "materialized-sources.json"
+    path.write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
+def failure_record(source: dict, exc: Exception) -> dict:
+    return {
+        "fingerprint": source["fingerprint"],
+        "url": source["url"],
+        "jobIds": sorted(source["jobIds"]),
+        "error": str(exc),
+    }
+
+
+def materialize_direct(root: Path, manifest: dict, sources: list[dict]) -> int:
+    materialized = []
+    failures = []
+    total_bytes = 0
+    for source in sources:
+        try:
+            data, final_url, declared = fetch_source(source["url"])
+            total_bytes += len(data)
+            if total_bytes > MAX_TOTAL_BYTES:
+                fail(f"total-size-limit:{total_bytes}")
+            materialized.append(materialize_bytes(root, source, data, final_url, declared, "python-http"))
+        except Exception as exc:
+            failures.append(failure_record(source, exc))
+    index_path = write_index(root, manifest, materialized, failures)
+    print(f"Materialized {len(materialized)} remote source(s) with Python HTTP; failures={len(failures)}")
+    print(f"Index: {index_path}")
+    if failures:
+        print("Direct fetch was incomplete. If the host platform can download URL bytes to files, follow context/materialization-plan.json and then run --mode ingest.", file=sys.stderr)
+    return 2 if failures else 0
+
+
+def ingest_downloads(root: Path, manifest: dict, sources: list[dict]) -> int:
+    materialized = []
+    failures = []
+    total_bytes = 0
+    for source in sources:
+        incoming = root / incoming_relative(source)
+        try:
+            if not incoming.is_file():
+                fail(f"incoming-file-missing:{incoming_relative(source).as_posix()}")
+            size = incoming.stat().st_size
+            if size <= 0:
+                fail("source-empty")
+            if size > MAX_SOURCE_BYTES:
+                fail(f"source-size-limit:{size}")
+            total_bytes += size
+            if total_bytes > MAX_TOTAL_BYTES:
+                fail(f"total-size-limit:{total_bytes}")
+            data = incoming.read_bytes()
+            materialized.append(materialize_bytes(root, source, data, source["url"], "", "platform-download"))
+            incoming.unlink(missing_ok=True)
+        except Exception as exc:
+            failures.append(failure_record(source, exc))
+    index_path = write_index(root, manifest, materialized, failures)
+    print(f"Ingested {len(materialized)} platform-downloaded source(s); failures={len(failures)}")
     print(f"Index: {index_path}")
     return 2 if failures else 0
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Materialize remote-url sources from a CatalogoTop Image Variation Request.")
+    parser.add_argument("root", nargs="?", default=".", help="Extracted request-bundle directory (default: current directory).")
+    parser.add_argument("--mode", choices=("fetch", "plan", "ingest"), default="fetch", help="fetch=Python HTTP, plan=no network, ingest=validate files downloaded by the host platform.")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    root = Path(args.root).expanduser().resolve()
+    manifest = load_manifest(root)
+    sources = remote_sources(manifest)
+    plan_path = write_plan(root, manifest, sources)
+    print(f"Plan: {plan_path}")
+    if args.mode == "plan":
+        for source in sources:
+            print(f"{source['url']} -> {incoming_relative(source).as_posix()}")
+        return 0
+    if args.mode == "ingest":
+        return ingest_downloads(root, manifest, sources)
+    return materialize_direct(root, manifest, sources)
 
 
 if __name__ == "__main__":
@@ -529,8 +643,10 @@ if __name__ == "__main__":
       'Use manifest.json as the authoritative contract.',
       'For source.mode=embedded, source.path points to the canonical original included in this ZIP.',
       'For source.mode=remote-url, source.url is the canonical external locator because browser CORS prevented embedding.',
-      'If any job uses source.mode=remote-url, first materialize its bytes locally with: python3 tools/materialize-sources.py .',
-      'The helper writes sources/materialized/... plus context/materialized-sources.json; this index is evidence only and never replaces manifest.json or changes requestId.',
+      'If any job uses source.mode=remote-url, preferred path: python3 tools/materialize-sources.py . --mode fetch',
+      'If Python/local code has no outbound network, use: python3 tools/materialize-sources.py . --mode plan; then use the host/platform download tool to save every URL to its downloadPath from context/materialization-plan.json; finally run: python3 tools/materialize-sources.py . --mode ingest',
+      'A platform downloader must save the response bytes to the declared local path. A browser screenshot, rendered preview or visual lookup is not equivalent.',
+      'The helper writes sources/materialized/... plus context/materialized-sources.json; the plan/index are evidence only and never replace manifest.json or change requestId.',
       'A browser/web preview is not a source asset. Use the embedded or materialized local file as the pixel source; never recreate the product from a visual approximation.',
       'Prefer file-native deterministic image tooling for faithful transforms it can perform. Use generative editing only when the editor can ingest the actual source pixels.',
       'If the environment cannot materialize bytes or cannot apply a required edit to local pixels, report that job as capability-blocked rather than approximating it.',

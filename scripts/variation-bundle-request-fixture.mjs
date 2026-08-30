@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { webcrypto } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -99,7 +99,7 @@ vm.runInNewContext(await readFile('src/variation-bundle.js', 'utf8'), context, {
 const { VariationBundle } = NS;
 const fail = message => { throw new Error(message); };
 const helperSource = VariationBundle.sourceMaterializerScript();
-if (!helperSource.includes('catalogotop.materialized-sources') || !helperSource.includes('non-public-address-blocked') || !helperSource.includes('source-fingerprint-mismatch')) fail('helper de materialização não preserva índice/guards esperados');
+if (!helperSource.includes('catalogotop.materialized-sources') || !helperSource.includes('catalogotop.source-materialization-plan') || !helperSource.includes('non-public-address-blocked') || !helperSource.includes('source-fingerprint-mismatch') || !helperSource.includes('--mode')) fail('helper de materialização não preserva índice/plano/guards esperados');
 const helperTemp = await mkdtemp(join(tmpdir(), 'catalogotop-materializer-'));
 try {
   const helperPath = join(helperTemp, 'materialize-sources.py');
@@ -108,6 +108,21 @@ try {
   if (probe.status === 0) {
     const compiled = spawnSync('python3', ['-m', 'py_compile', helperPath], { encoding: 'utf8' });
     if (compiled.status !== 0) fail(`helper Python inválido: ${compiled.stderr || compiled.stdout}`);
+    const testUrl = 'https://cdn.example.com/catalog/product.png';
+    const fingerprintBytes = await webcrypto.subtle.digest('SHA-256', new TextEncoder().encode(`remote-url:${testUrl}`));
+    const fingerprint = Array.from(new Uint8Array(fingerprintBytes), byte => byte.toString(16).padStart(2, '0')).join('');
+    await writeFile(join(helperTemp, 'manifest.json'), `${JSON.stringify({ kind: 'catalogotop.image-variation-request', version: 2, requestId: 'a'.repeat(64), jobs: [{ jobId: 'job-materializer-test', source: { mode: 'remote-url', url: testUrl, fingerprint } }] }, null, 2)}\n`, 'utf8');
+    const planned = spawnSync('python3', [helperPath, helperTemp, '--mode', 'plan'], { encoding: 'utf8' });
+    if (planned.status !== 0) fail(`helper --mode plan falhou sem precisar de rede: ${planned.stderr || planned.stdout}`);
+    const plan = JSON.parse(await readFile(join(helperTemp, 'context', 'materialization-plan.json'), 'utf8'));
+    const expectedIncoming = `sources/incoming/${fingerprint}.bin`;
+    if (plan.kind !== 'catalogotop.source-materialization-plan' || plan.downloads?.[0]?.url !== testUrl || plan.downloads?.[0]?.downloadPath !== expectedIncoming) fail(`plano de materialização inválido: ${JSON.stringify(plan)}`);
+    await mkdir(join(helperTemp, 'sources', 'incoming'), { recursive: true });
+    await writeFile(join(helperTemp, expectedIncoming), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlKZcQAAAAASUVORK5CYII=', 'base64'));
+    const ingested = spawnSync('python3', [helperPath, helperTemp, '--mode', 'ingest'], { encoding: 'utf8' });
+    if (ingested.status !== 0) fail(`helper --mode ingest falhou com pixels locais válidos: ${ingested.stderr || ingested.stdout}`);
+    const index = JSON.parse(await readFile(join(helperTemp, 'context', 'materialized-sources.json'), 'utf8'));
+    if (index.kind !== 'catalogotop.materialized-sources' || index.failures?.length || index.sources?.[0]?.transport !== 'platform-download' || !index.sources?.[0]?.path?.endsWith('.png')) fail(`índice materializado inválido: ${JSON.stringify(index)}`);
   }
 } finally {
   await rm(helperTemp, { recursive: true, force: true });
