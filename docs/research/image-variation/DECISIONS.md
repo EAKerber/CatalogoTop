@@ -48,6 +48,14 @@ Evidence: `hinge-standard` contains three dominant hinge components plus the sou
 
 Consequence: the current preferred candidate is `trim-preserve-annotations`. Removing source annotations requires evidence that their meaning is safely represented elsewhere; small geometric gains are not sufficient justification.
 
+### D6 — BBox utilization must not stand alone as the placement-utility metric
+
+A candidate can occupy a similar bounding box while placing substantially more factual product pixels in the target.
+
+Evidence: `piston-wide` at exploratory threshold 246 gives 33.2% bbox utilization when preserving orientation and 33.0% when aligned horizontal, but estimated factual foreground occupancy rises from ~5.0% to ~15.3% (about 3.09×).
+
+Consequence: evaluate bbox utilization together with factual foreground occupancy/effective scale. Neither metric alone is sufficient.
+
 ## Provisional
 
 ### P1 — Connected-light-neutral border segmentation is a useful narrow baseline
@@ -59,7 +67,10 @@ Known failures/risks:
 - light factual pixels connected to source edges;
 - composite sources;
 - sparse edge artifacts;
-- images where background is not neutral/light.
+- images where background is not neutral/light;
+- threshold sensitivity on white-on-white products.
+
+`piston-wide` is direct evidence: threshold 242 splits the white product into two dominant regions; threshold 246 reconnects it. This is evidence of fragility, not permission to pick a per-case magic threshold.
 
 ### P2 — Whole-group reorientation can be a valid Class B operation
 
@@ -74,6 +85,12 @@ This remains conditional on semantic orientation and human fidelity review.
 `round-leg-wide` shows why this cannot become a standalone rule: multiple large components may instead represent different visual roles such as product and application imagery.
 
 Consequence: component topology/scale can inform subject-role inference, but must be combined with source role, product metadata or review before destructive selection/recomposition.
+
+### P4 — Source warnings may migrate representation, but may not disappear
+
+The piston source visibly embeds `Imagem meramente ilustrativa`. A future derivative may eventually omit such pixels only if equivalent source-authority evidence remains explicit in the research/product-review path.
+
+This is not yet a decision about how warnings should appear in production catalog layouts.
 
 ## Rejected
 
@@ -97,12 +114,16 @@ Rejected by the source-authority distinction exposed by illustrative imagery.
 
 Rejected by `hinge-standard`: annotation text is not hinge geometry, but it carries the explicit commercial-variant mapping present in the source.
 
+### R6 — “Tune the segmentation threshold until the candidate looks right”
+
+Rejected by `piston-wide`. Threshold sensitivity is a robustness warning, not a fidelity argument.
+
 ## Open questions
 
 1. What is the minimum evidence needed to identify/select a factual subject in composite sources?
 2. Can source role be inferred robustly enough for automation, or should it often be explicit/user-approved?
-3. Which foreground-occupancy/effective-scale metrics add information beyond bbox utilization without becoming another magic score?
-4. What human-review checklist is sufficient for slide geometry, piece count, holes/fittings and segmentation damage?
-5. Which signals are sufficient to distinguish a homogeneous multi-piece product group from heterogeneous roles such as product + application imagery?
-6. When may source annotations be removed because equivalent semantics are already present in catalog data/layout?
+3. Which foreground-occupancy/effective-scale formulation remains useful across sparse, dense and multi-piece products without becoming another magic score?
+4. Which signals are sufficient to distinguish a homogeneous multi-piece product group from heterogeneous roles such as product + application imagery?
+5. When may source annotations be removed because equivalent semantics are already present in catalog data/layout?
+6. What isolation method is robust enough for white-on-white factual product imagery without silently deleting light geometry?
 7. Does a grounded Class C edit add enough utility over the best A/B candidate to justify its additional fidelity risk?
