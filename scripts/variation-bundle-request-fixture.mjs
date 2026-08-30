@@ -1,5 +1,8 @@
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { webcrypto } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import vm from 'node:vm';
 
 const context = {
@@ -95,6 +98,20 @@ vm.runInNewContext(await readFile('src/variation-bundle.js', 'utf8'), context, {
 
 const { VariationBundle } = NS;
 const fail = message => { throw new Error(message); };
+const helperSource = VariationBundle.sourceMaterializerScript();
+if (!helperSource.includes('catalogotop.materialized-sources') || !helperSource.includes('non-public-address-blocked') || !helperSource.includes('source-fingerprint-mismatch')) fail('helper de materialização não preserva índice/guards esperados');
+const helperTemp = await mkdtemp(join(tmpdir(), 'catalogotop-materializer-'));
+try {
+  const helperPath = join(helperTemp, 'materialize-sources.py');
+  await writeFile(helperPath, helperSource, 'utf8');
+  const probe = spawnSync('python3', ['--version'], { encoding: 'utf8' });
+  if (probe.status === 0) {
+    const compiled = spawnSync('python3', ['-m', 'py_compile', helperPath], { encoding: 'utf8' });
+    if (compiled.status !== 0) fail(`helper Python inválido: ${compiled.stderr || compiled.stdout}`);
+  }
+} finally {
+  await rm(helperTemp, { recursive: true, force: true });
+}
 const placements = VariationBundle.placementsForDocument(documentModel);
 if (placements.map(item => item.placementKey).join(',') !== 'card:p1,collection:c1:member:p2,collection:c1:member:p3,card:p4') {
   fail(`placement keys inesperadas: ${placements.map(item => item.placementKey).join(',')}`);
@@ -147,6 +164,7 @@ if (fetchCount !== 2) fail(`cada build deve deduplicar a mesma sourceRef; fetche
 const sourceEntries = first.archive.entries.filter(item => item.path.startsWith('sources/'));
 if (sourceEntries.length !== 1) fail(`asset compartilhado deveria aparecer uma vez no ZIP: ${JSON.stringify(sourceEntries)}`);
 if (!first.archive.entries.some(item => item.path === 'manifest.json') || !first.archive.entries.some(item => item.path === 'context/layout.json')) fail('ZIP precisa conter manifest e layout context');
+if (!first.archive.entries.some(item => item.path === 'tools/materialize-sources.py')) fail('ZIP precisa carregar paved path de materialização para consumidores externos');
 if (new DataView(first.archive.bytes.buffer, first.archive.bytes.byteOffset, first.archive.bytes.byteLength).getUint32(0, true) !== 0x04034b50) fail('request bundle não é ZIP válido');
 
 const timestampChanged = await VariationBundle.buildRequest({
