@@ -1,6 +1,7 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { getDeployStore, getStore } from '@netlify/blobs';
 import { validateProductFolders } from './product-folders.mts';
+import { validateUniqueProductCodes } from './product-codes.mts';
 
 declare const Netlify: {
   context?: { deploy?: { context?: string } };
@@ -142,22 +143,16 @@ function validImageGallery(value: unknown) {
   });
 }
 
-export function productCodeKey(value: unknown) {
-  return String(value ?? '').trim().toLowerCase();
-}
-
 export function validateProducts(products: unknown) {
   if (!Array.isArray(products)) return 'products deve ser um array.';
   if (products.length > 5000) return 'Limite de 5000 produtos excedido.';
-  const productCodes = new Set<string>();
+  const codeError = validateUniqueProductCodes(products);
+  if (codeError) return codeError;
   for (const item of products) {
     if (!item || typeof item !== 'object') return 'Produto inválido.';
     const product = item as Record<string, unknown>;
     if (typeof product.id !== 'string' || product.id.length > 180) return 'Produto sem id válido.';
     if (typeof product.code !== 'string' || !product.code.trim() || product.code.length > 180) return 'Produto sem código válido.';
-    const codeKey = productCodeKey(product.code);
-    if (productCodes.has(codeKey)) return `Código de produto duplicado: ${product.code.trim()}.`;
-    productCodes.add(codeKey);
     if (typeof product.description !== 'string' || !product.description.trim() || product.description.length > 1200) return 'Produto sem descrição válida.';
     if (!validImageGallery(product.imageGallery)) return 'Galeria de imagens inválida.';
     if (product.variants && (!Array.isArray(product.variants) || product.variants.length > 24)) return 'Variações inválidas.';
