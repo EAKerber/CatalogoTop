@@ -30,6 +30,10 @@ jobs:
           test "$actual" = "$expected"
       - name: Apply deterministic patch
         run: python scripts/_apply-v2-r1b-integration.py
+      - name: List legacy schema assertions
+        shell: bash
+        run: |
+          grep -RniE "SCHEMA_VERSION[^0-9]*7|schemaVersion[^0-9]*7|schema esperado 7|schema 7" scripts || true
       - name: Validate integration
         run: npm test
       - name: Commit functional tree and remove staging files
@@ -39,6 +43,6 @@ jobs:
           git config user.name "CatalogoTop Ops"
           git config user.email "actions@users.noreply.github.com"
           git rm -f scripts/_apply-v2-r1b-integration.py .github/workflows/apply-v2-r1b-integration.yml
-          git add src/core.js src/app.js index.html package.json scripts/storage-contract-fixture.mjs
+          git add src/core.js src/app.js index.html package.json scripts/validate.mjs scripts/storage-contract-fixture.mjs scripts/quantity-pricing-fixture.mjs scripts/image-variants-backup-fixture.mjs
           git commit -m "V2-R1b — integrate ProductSnapshot v2 runtime"
           git push origin HEAD:feat/v2-r1b-product-snapshot
