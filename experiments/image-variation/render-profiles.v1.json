@@ -1,0 +1,81 @@
+{
+  "kind": "catalogotop.image-render-profiles",
+  "version": 1,
+  "status": "research-only",
+  "purpose": "Separate logical placement geometry from the raster dimensions used to render and review an image-variation candidate.",
+  "principles": [
+    "placement dimensions describe composition intent, not desired source or output factual resolution",
+    "master dimensions are an integer multiple of placement dimensions so relative geometry remains identical",
+    "a larger master raster may improve transform quality and downstream flexibility but does not create factual source detail",
+    "placement previews used for evaluation are derived from the master rather than independently re-planned",
+    "source authority, semantic orientation and fidelity remain independent gates"
+  ],
+  "profiles": {
+    "card-wide": {
+      "placement": {
+        "widthPx": 440,
+        "heightPx": 180,
+        "safeMarginRatio": 0.07,
+        "origin": "experiments/image-variation/benchmark.v1.json"
+      },
+      "master": {
+        "id": "card-wide-4x",
+        "scaleFactor": 4,
+        "widthPx": 1760,
+        "heightPx": 720
+      }
+    },
+    "card-standard": {
+      "placement": {
+        "widthPx": 300,
+        "heightPx": 220,
+        "safeMarginRatio": 0.08,
+        "origin": "experiments/image-variation/benchmark.v1.json"
+      },
+      "master": {
+        "id": "card-standard-4x",
+        "scaleFactor": 4,
+        "widthPx": 1200,
+        "heightPx": 880
+      }
+    },
+    "collection-member": {
+      "placement": {
+        "widthPx": 180,
+        "heightPx": 140,
+        "safeMarginRatio": 0.08,
+        "origin": "experiments/image-variation/benchmark.v1.json"
+      },
+      "master": {
+        "id": "collection-member-4x",
+        "scaleFactor": 4,
+        "widthPx": 720,
+        "heightPx": 560
+      }
+    }
+  },
+  "reviewScales": [
+    {
+      "id": "master",
+      "purpose": "Inspect transform quality, edge behavior, halos and whether the asset remains useful outside one exact placement raster."
+    },
+    {
+      "id": "placement",
+      "purpose": "Judge visible catalog utility at the actual logical holder size."
+    },
+    {
+      "id": "detail-zoom",
+      "purpose": "Inspect characteristic holes, fittings, terminals and segmentation boundaries without treating interpolation as new factual detail."
+    }
+  ],
+  "initialCases": [
+    "h45-wide",
+    "soft-extra-wide"
+  ],
+  "nonGoals": [
+    "declaring a production asset-resolution contract",
+    "claiming 4x masters have four times the factual source resolution",
+    "upscaling low-resolution sources as a substitute for better factual evidence",
+    "changing composition semantics between master and placement"
+  ]
+}
