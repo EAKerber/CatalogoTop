@@ -3,7 +3,7 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const STORAGE_KEY = 'catalogotop:state:v1';
-  const SCHEMA_VERSION = 7;
+  const SCHEMA_VERSION = 8;
 
   const APP_CONFIG = Object.freeze({
     brandName: 'Top Mobili',
@@ -123,6 +123,10 @@
     return `p-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 
+  function folderUuid() {
+    return `folder-${uuid()}`;
+  }
+
   function preservedBlocks(value) {
     const blocks = Array.isArray(value?.blocks) ? value.blocks : [];
     return blocks.map(block => ({
@@ -164,6 +168,7 @@
   function createInitialState() {
     return {
       schemaVersion: SCHEMA_VERSION,
+      folders: [],
       products: [],
       selectedIds: [],
       catalog: {
@@ -288,6 +293,7 @@
     const category = String(product.category || '').trim() || 'Sem categoria';
     return {
       id: product.id || uuid(),
+      folderId: String(product.folderId || '').trim(),
       code: String(product.code || '').trim(),
       description: String(product.description || '').trim(),
       category,
@@ -305,10 +311,22 @@
     };
   }
 
+  function normalizeOrganization(raw, productInputs) {
+    const ProductSnapshot = NS.ProductSnapshot;
+    if (!ProductSnapshot) return { folders: [], products: productInputs };
+    const explicitV2 = Number(raw?.schemaVersion) >= SCHEMA_VERSION || Object.prototype.hasOwnProperty.call(raw || {}, 'folders');
+    const result = explicitV2
+      ? ProductSnapshot.read({ schemaVersion: 2, folders: raw?.folders || [], products: productInputs })
+      : ProductSnapshot.read({ schemaVersion: 1, products: productInputs });
+    return result.snapshot;
+  }
+
   function migrate(raw) {
     if (!raw || typeof raw !== 'object') return createInitialState();
     const base = createInitialState();
-    const products = Array.isArray(raw.products) ? raw.products.map(normalizeProduct).filter(p => p.code && p.description) : [];
+    const productInputs = Array.isArray(raw.products) ? raw.products.map(normalizeProduct).filter(p => p.code && p.description) : [];
+    const organization = normalizeOrganization(raw, productInputs);
+    const products = organization.products.map(normalizeProduct).filter(p => p.code && p.description);
     const selectedIds = uniqueIds(Array.isArray(raw.selectedIds) ? raw.selectedIds : Array.isArray(raw.selected) ? raw.selected : []);
     const rawPresentation = raw.catalog?.presentation && typeof raw.catalog.presentation === 'object' ? raw.catalog.presentation : {};
     const presentation = normalizePresentation({
@@ -318,6 +336,7 @@
     const dateOverride = NS.CatalogDate?.normalizeOverride?.(raw.catalog?.dateOverride) || '';
     return {
       schemaVersion: SCHEMA_VERSION,
+      folders: organization.folders || [],
       products,
       selectedIds,
       catalog: {
@@ -363,6 +382,7 @@
     try {
       const sessionOnly = {
         schemaVersion: state.schemaVersion,
+        folders: [],
         products: [],
         selectedIds: state.selectedIds,
         catalog: state.catalog
@@ -391,6 +411,13 @@
     });
   }
 
+  function assignProductToLegacyPath(draft, product) {
+    if (!NS.ProductSnapshot) return normalizeProduct(product);
+    const assigned = NS.ProductSnapshot.assignLegacyProduct(draft.folders || [], normalizeProduct(product), { idFactory: folderUuid });
+    draft.folders = assigned.folders;
+    return normalizeProduct(assigned.product);
+  }
+
   function mergeProducts(incoming, mode = 'merge') {
     const source = Array.isArray(incoming) ? incoming : [];
     const explicitQuantityByCode = new Set(source
@@ -403,8 +430,9 @@
       .filter(Boolean));
     const normalized = source.map(normalizeProduct).filter(p => p.code && p.description);
     return mutate(draft => {
+      const prepared = normalized.map(product => assignProductToLegacyPath(draft, product));
       if (mode === 'replace') {
-        draft.products = normalized;
+        draft.products = prepared;
         draft.selectedIds = [];
         draft.catalog.presentation.order = [];
         draft.catalog.presentation.itemStyles = {};
@@ -414,7 +442,7 @@
         return;
       }
       const byCode = new Map(draft.products.map((p, index) => [p.code.trim().toLowerCase(), index]));
-      normalized.forEach(product => {
+      prepared.forEach(product => {
         const key = product.code.toLowerCase();
         const existingIndex = byCode.get(key);
         if (existingIndex === undefined) {
@@ -448,6 +476,7 @@
     mutate,
     resetCatalog,
     mergeProducts,
+    assignProductToLegacyPath,
     normalizeProduct,
     normalizeQuantityPrice,
     normalizeVariants,
