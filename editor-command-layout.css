@@ -4,6 +4,10 @@
 .group-action-glyph,
 .group-action-badge { display: none; }
 
+/* `hidden` é autoridade de visibilidade do histórico fora da aba Catálogo.
+ * A regra explícita evita que o display:flex estrutural vença o presentation hint do browser. */
+.editor-history-controls[hidden] { display: none !important; }
+
 @media (min-width: 1180px) {
   /* Collection: título/subtítulo em uma linha; tema/colunas/apresentação em outra. */
   #catalog .contextual-inspector .inspector-fields[data-inspector-collection] {

@@ -3,7 +3,7 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const REQUEST_KIND = 'catalogotop.image-variation-request';
-  const REQUEST_VERSION = 1;
+  const REQUEST_VERSION = 2;
   const SOURCE_TIMEOUT_MS = 10000;
   const ALLOWED_TRANSFORMS = Object.freeze([
     'upscale',
@@ -184,6 +184,21 @@
     return match ? match[1].toLowerCase() : 'bin';
   }
 
+  function isRemoteHttpSource(value) {
+    return /^https?:\/\/[^\s]+$/i.test(String(value || '').trim());
+  }
+
+  async function remoteSourceDescriptor(sourceRef) {
+    const ref = String(sourceRef || '').trim();
+    if (!isRemoteHttpSource(ref)) throw new Error('variation_remote_source_invalid');
+    return {
+      mode: 'remote-url',
+      sourceRef: ref,
+      url: ref,
+      fingerprint: await sha256(`remote-url:${ref}`)
+    };
+  }
+
   async function fetchSourceAsset(sourceRef, fetchFn = fetch) {
     const ref = String(sourceRef || '').trim();
     if (!ref) throw new Error('variation_source_missing');
@@ -206,10 +221,12 @@
       const hash = await sha256(bytes);
       const extension = mimeExtension(blob.type, ref);
       return {
+        mode: 'embedded',
         sourceRef: ref,
         mimeType: blob.type || 'application/octet-stream',
         bytes,
         sha256: hash,
+        fingerprint: hash,
         path: `sources/sha256-${hash}.${extension}`
       };
     } finally {
@@ -263,9 +280,11 @@
 
   function requestReadme() {
     return [
-      'CatalogoTop — Image Variation Request v1',
+      'CatalogoTop — Image Variation Request v2',
       '',
-      'Use manifest.json as the authoritative contract. source.path points to the canonical original image included in this ZIP.',
+      'Use manifest.json as the authoritative contract.',
+      'For source.mode=embedded, source.path points to the canonical original included in this ZIP.',
+      'For source.mode=remote-url, source.url is the canonical external locator because browser CORS prevented embedding; retrieve it subject to your own network/security policy.',
       'Generate only faithful derivatives that preserve the product identity and geometry.',
       `Allowed transformations: ${ALLOWED_TRANSFORMS.join(', ')}.`,
       `Forbidden transformations: ${FORBIDDEN_TRANSFORMS.join(', ')}.`,
@@ -305,18 +324,22 @@
       if (!sourceCache.has(sourceRef)) {
         sourceCache.set(sourceRef, fetchSourceAsset(sourceRef, fetchFn).catch(error => ({ error })));
       }
-      const source = await sourceCache.get(sourceRef);
+      let source = await sourceCache.get(sourceRef);
       if (source?.error) {
-        issues.push({
-          placementKey: placement.placementKey,
-          productId: placement.productId,
-          code: String(product?.code || ''),
-          reason: 'source-unavailable',
-          detail: String(source.error?.message || source.error)
-        });
-        continue;
+        if (isRemoteHttpSource(sourceRef)) {
+          source = await remoteSourceDescriptor(sourceRef);
+        } else {
+          issues.push({
+            placementKey: placement.placementKey,
+            productId: placement.productId,
+            code: String(product?.code || ''),
+            reason: 'source-unavailable',
+            detail: String(source.error?.message || source.error)
+          });
+          continue;
+        }
       }
-      if (!archiveAssets.has(source.path)) archiveAssets.set(source.path, source.bytes);
+      if (source.mode === 'embedded' && !archiveAssets.has(source.path)) archiveAssets.set(source.path, source.bytes);
 
       const usage = {
         type: placement.type,
@@ -337,7 +360,7 @@
         placementKey: placement.placementKey,
         usage,
         target,
-        sourceSha256: source.sha256
+        sourceFingerprint: source.fingerprint
       };
       const usageSignature = await sha256(signaturePayload);
       jobs.push({
@@ -355,12 +378,21 @@
         usage,
         target,
         currentSelection: currentSelectionFor(product, presentation),
-        source: {
-          path: source.path,
-          mimeType: source.mimeType,
-          sha256: source.sha256,
-          originalRef: source.sourceRef
-        }
+        source: source.mode === 'remote-url'
+          ? {
+              mode: 'remote-url',
+              url: source.url,
+              fingerprint: source.fingerprint,
+              originalRef: source.sourceRef
+            }
+          : {
+              mode: 'embedded',
+              path: source.path,
+              mimeType: source.mimeType,
+              sha256: source.sha256,
+              fingerprint: source.fingerprint,
+              originalRef: source.sourceRef
+            }
       });
     }
 
@@ -396,6 +428,7 @@
       },
       policy: {
         sourceAuthority: 'product.image',
+        externalUrlFallback: true,
         resultScope: 'catalog-local',
         identityAndGeometryMustBePreserved: true,
         allowedTransforms: Array.from(ALLOWED_TRANSFORMS),
@@ -436,6 +469,8 @@
     placementsForDocument,
     measureRenderedPlacements,
     mimeExtension,
+    isRemoteHttpSource,
+    remoteSourceDescriptor,
     fetchSourceAsset,
     layoutContext,
     buildRequest

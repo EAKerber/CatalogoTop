@@ -134,11 +134,11 @@ const first = await VariationBundle.buildRequest(state, options);
 const second = await VariationBundle.buildRequest(state, { ...options, fetchFn });
 if (first.requestId !== second.requestId) fail('requestId deve ser determinístico para o mesmo catálogo/contexto');
 if (!/^[a-f0-9]{64}$/.test(first.requestId)) fail(`requestId inválido: ${first.requestId}`);
-if (first.manifest.kind !== 'catalogotop.image-variation-request' || first.manifest.version !== 1) fail('manifest kind/version inválidos');
+if (first.manifest.kind !== 'catalogotop.image-variation-request' || first.manifest.version !== 2) fail('manifest kind/version inválidos');
 if (first.manifest.jobs.length !== 2) fail(`esperava 2 jobs acionáveis: ${JSON.stringify(first.manifest.jobs)}`);
 if (first.manifest.issues.map(item => item.reason).join(',') !== 'commercial-image-grid,missing-source') fail(`issues inesperadas: ${JSON.stringify(first.manifest.issues)}`);
 if (first.manifest.jobs[0].placementKey !== 'card:p1' || first.manifest.jobs[1].placementKey !== 'collection:c1:member:p2') fail('jobs devem ficar ordenados por placementKey');
-if (first.manifest.jobs[0].target.imageFrame.zoom !== 1.4 || first.manifest.jobs[0].source.originalRef !== sharedSource) fail('job não preservou framing/source canônico');
+if (first.manifest.jobs[0].target.imageFrame.zoom !== 1.4 || first.manifest.jobs[0].source.originalRef !== sharedSource || first.manifest.jobs[0].source.mode !== 'embedded' || first.manifest.jobs[0].source.fingerprint !== first.manifest.jobs[0].source.sha256) fail('job não preservou framing/source canônico embutido');
 if (!first.manifest.jobs.every(job => /^job-[a-f0-9]{20}$/.test(job.jobId) && /^[a-f0-9]{64}$/.test(job.usageSignature))) fail('jobId/usageSignature inválidos');
 if (first.manifest.policy.resultScope !== 'catalog-local' || !first.manifest.policy.identityAndGeometryMustBePreserved) fail('policy não mantém resultado local/fidelidade');
 if (JSON.stringify(first.manifest).includes('R$ 99,90')) fail('manifest de imagem não deve transportar fatos comerciais desnecessários');
@@ -163,4 +163,45 @@ const changed = await VariationBundle.buildRequest(state, {
 });
 if (changed.requestId === first.requestId) fail('mudança no target precisa invalidar requestId/usageSignature');
 
-console.log('PASS variation bundle request fixture: placements, signatures, timestamp informativo, policy, issues, dedupe e ZIP');
+
+const remoteProduct = product('remote', 'https://cdn.example.com/catalog/product.webp');
+const remoteDocument = {
+  schemaVersion: 4,
+  template: { id: 'technical' },
+  selectedCount: 1,
+  pageCount: 1,
+  orderedIds: ['remote'],
+  pages: [{
+    index: 0,
+    category: 'Ferragens',
+    items: [{ type: 'card', product: remoteProduct, productId: 'remote', row: 1, start: 1, span: 3, contentPreset: 'visual', emphasis: 'normal', width: 'simple' }]
+  }]
+};
+const remoteState = {
+  ...state,
+  products: [remoteProduct],
+  selectedIds: ['remote'],
+  catalog: { ...state.catalog, presentation: { imageFrames: {}, imageSelections: {}, imageVariants: {} } }
+};
+const failingFetch = async () => { throw new TypeError('Failed to fetch'); };
+const remoteRequest = await VariationBundle.buildRequest(remoteState, {
+  documentModel: remoteDocument,
+  measurements: { 'card:remote': { widthPx: 200, heightPx: 150, widthMm: 52.5, heightMm: 39.4, aspectRatio: 1.3333 } },
+  fetchFn: failingFetch,
+  generatedAt: '2026-08-29T12:00:00.000Z'
+});
+if (remoteRequest.manifest.jobs.length !== 1 || remoteRequest.manifest.issues.length !== 0) fail(`URL externa bloqueada por CORS deve continuar elegível: ${JSON.stringify(remoteRequest.manifest)}`);
+const remoteSource = remoteRequest.manifest.jobs[0].source;
+if (remoteSource.mode !== 'remote-url' || remoteSource.url !== remoteProduct.image || remoteSource.originalRef !== remoteProduct.image || !/^[a-f0-9]{64}$/.test(remoteSource.fingerprint) || remoteSource.path || remoteSource.sha256) fail(`source remote-url inválida: ${JSON.stringify(remoteSource)}`);
+if (remoteRequest.archive.entries.some(item => item.path.startsWith('sources/'))) fail('fallback remote-url não pode fingir bytes de imagem no ZIP');
+if (!remoteRequest.manifest.policy.externalUrlFallback) fail('policy precisa declarar fallback de URL externa');
+
+const managedFailure = await VariationBundle.buildRequest({ ...state, products: [p1], selectedIds: ['p1'] }, {
+  documentModel: { ...remoteDocument, orderedIds: ['p1'], pages: [{ ...remoteDocument.pages[0], items: [{ type: 'card', product: p1, productId: 'p1', row: 1, start: 1, span: 3, contentPreset: 'visual', emphasis: 'normal', width: 'simple' }] }] },
+  measurements: { 'card:p1': measurements['card:p1'] },
+  fetchFn: failingFetch,
+  generatedAt: '2026-08-29T12:00:00.000Z'
+});
+if (managedFailure.manifest.jobs.length !== 0 || managedFailure.manifest.issues[0]?.reason !== 'source-unavailable') fail('asset gerenciado indisponível deve continuar fail-closed; não pode virar URL externa');
+
+console.log('PASS variation bundle request fixture: placements, signatures, source embedded/remote-url, timestamp, policy, issues, dedupe e ZIP');
