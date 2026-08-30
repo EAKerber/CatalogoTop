@@ -21,7 +21,8 @@ Completed result records:
 Supporting research artifacts:
 
 - `experiments/image-variation/source-readback.v1.json` — exact readback evidence for all seven source families;
-- `docs/research/image-variation/DECISIONS.md` — only evidence-backed/provisional/rejected research decisions;
+- `experiments/image-variation/reviews/elongated-wide-review.v1.json` — first explicit human-review outcomes;
+- `docs/research/image-variation/DECISIONS.md` — evidence-backed/provisional/rejected research decisions;
 - `docs/research/image-variation/FIDELITY-REVIEW.md` — compact human fidelity gate for benchmark candidates.
 
 ## Exact source readback
@@ -74,6 +75,36 @@ The dominant gain is source-canvas removal; rotation adds little.
 - preserve gain vs Original: **6.10×**
 
 The planner correctly prefers preserve. The current product page also marks imagery as illustrative, so pixel fidelity is not automatically product-truth fidelity.
+
+## First explicit fidelity-review outcomes
+
+The first review pass uses `docs/research/image-variation/FIDELITY-REVIEW.md` and is recorded in `experiments/image-variation/reviews/elongated-wide-review.v1.json`.
+
+### H45-wide — PASS FOR BENCHMARK COMPARISON
+
+- source authority: stronger product match;
+- two primary slide pieces remain present;
+- characteristic rail geometry, holes and fittings remain visually coherent with the exact source;
+- no observed piece duplication/removal or synthetic product detail;
+- deterministic nearest-neighbor edge roughness remains a presentation-quality limitation rather than an observed identity reconstruction.
+
+This is the first explicit R-IMG-1 benchmark-comparison pass. It is **not** production approval.
+
+### Soft Extra-wide — REVIEW-REQUIRED
+
+- source pixels and visible two-rail/fitting structure are preserved well enough for continued comparison;
+- placement benefit is measurable;
+- current authority is family-level rather than a strong exact commercial-variant linkage.
+
+Blocking question: whether family-level authority is sufficient for the intended catalog placement.
+
+### Soft Close-wide — REVIEW-REQUIRED
+
+- visible source geometry remains coherent under preserve-orientation recomposition;
+- placement presence improves materially;
+- the current product page explicitly describes imagery as illustrative.
+
+Blocking question: source-pixel fidelity cannot by itself establish product-truth fidelity.
 
 ## Negative controls
 
@@ -201,9 +232,9 @@ fidelity / authority review
 
 ## Next step
 
-1. Apply `FIDELITY-REVIEW.md` to H45, Soft Extra and Soft Close and record explicit benchmark-review outcomes.
-2. Prototype a more robust white-on-white isolation comparison for piston without adopting a per-case threshold rule; edge-aware or externally supplied subject evidence are valid research directions.
-3. Investigate minimal evidence distinguishing homogeneous product groups from heterogeneous roles such as product + application imagery, without freezing production field names.
-4. After the review pass and isolation comparison, run one tightly scoped source-grounded Class C comparison against the strongest A/B case. The purpose is to measure marginal utility versus added fidelity risk, not to create a production generator.
+1. Prototype and compare a more robust white-on-white isolation strategy for `piston-wide` without adopting a per-case threshold rule. Edge-aware/background-model or externally supplied subject evidence are valid research directions; silent reconstruction is not.
+2. Determine the minimum evidence needed to distinguish family-level authority from exact-variant authority and homogeneous product groups from heterogeneous visual roles, without freezing production field names.
+3. Re-evaluate whether a Class C comparison is still informative after the deterministic results. If yes, run **one** tightly scoped source-grounded comparison on H45, the strongest A/B case, and score only marginal utility versus added fidelity risk.
+4. If Class C cannot materially beat the reviewed H45 A/B candidate without reconstructing uncertain hardware detail, record `Class C not justified` as a valid research result rather than expanding the generator surface.
 
 Do not freeze a production `generationIntent` or result schema yet.
