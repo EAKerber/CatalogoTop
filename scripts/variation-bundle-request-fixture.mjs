@@ -149,6 +149,13 @@ if (sourceEntries.length !== 1) fail(`asset compartilhado deveria aparecer uma v
 if (!first.archive.entries.some(item => item.path === 'manifest.json') || !first.archive.entries.some(item => item.path === 'context/layout.json')) fail('ZIP precisa conter manifest e layout context');
 if (new DataView(first.archive.bytes.buffer, first.archive.bytes.byteOffset, first.archive.bytes.byteLength).getUint32(0, true) !== 0x04034b50) fail('request bundle não é ZIP válido');
 
+const timestampChanged = await VariationBundle.buildRequest({
+  ...state,
+  catalog: { ...state.catalog, createdAt: '2026-08-30T12:34:56.000Z' }
+}, { ...options, fetchFn });
+if (timestampChanged.requestId !== first.requestId) fail('timestamp informativo do catálogo não pode invalidar requestId');
+if (timestampChanged.manifest.catalog.createdAt === first.manifest.catalog.createdAt) fail('manifest deve continuar refletindo createdAt como contexto informativo');
+
 const changed = await VariationBundle.buildRequest(state, {
   ...options,
   fetchFn,
@@ -156,4 +163,4 @@ const changed = await VariationBundle.buildRequest(state, {
 });
 if (changed.requestId === first.requestId) fail('mudança no target precisa invalidar requestId/usageSignature');
 
-console.log('PASS variation bundle request fixture: placements, signatures, policy, issues, dedupe e ZIP');
+console.log('PASS variation bundle request fixture: placements, signatures, timestamp informativo, policy, issues, dedupe e ZIP');
