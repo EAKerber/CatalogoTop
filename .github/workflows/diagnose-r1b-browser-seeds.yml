@@ -6,6 +6,7 @@ on:
       - feat/v2-r1b-product-snapshot
     paths:
       - .github/workflows/diagnose-r1b-browser-seeds.yml
+      - scripts/.r1b-merge-guard-trigger
 
 permissions:
   contents: write
@@ -231,7 +232,7 @@ assert.deepEqual(Array.from(FolderTree.pathOf(deepState.folders, deepState.produ
           set -euo pipefail
           git config user.name "CatalogoTop Ops"
           git config user.email "actions@users.noreply.github.com"
-          git rm -f .github/workflows/diagnose-r1b-browser-seeds.yml .github/workflows/apply-r1b-merge-guard.yml
+          git rm -f .github/workflows/diagnose-r1b-browser-seeds.yml .github/workflows/apply-r1b-merge-guard.yml scripts/.r1b-merge-guard-trigger
           git add src/core.js scripts/core-folder-state-fixture.mjs
           git commit -m "fix: preserve deep folders across legacy product merge"
           git push origin HEAD:feat/v2-r1b-product-snapshot
