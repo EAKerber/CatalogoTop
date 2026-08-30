@@ -90,9 +90,19 @@ if (!session || session.products?.length !== 0) fail('sessão local não deve du
 if (session.catalog?.presentation?.imageVariants?.p1?.[0]?.image !== local) fail('sessão local perdeu variante externa do catálogo');
 if (session.catalog?.presentation?.imageSelections?.p1?.id !== 'external-job-a') fail('sessão local perdeu seleção da variante');
 
-const app = await readFile('src/app.js', 'utf8');
-if (!app.includes("download('catalogotop-backup.json', JSON.stringify(state(), null, 2), 'application/json')")) fail('export de backup deve continuar serializando o estado completo');
-if (!app.includes('Core.setState(parsed)')) fail('import de backup deve continuar passando pelo migrador/normalizador Core');
-if (!app.includes('ProductStore?.publishProducts(parsed.products)')) fail('publicação opcional após backup deve continuar limitada a produtos');
+const [app, productStore] = await Promise.all([
+  readFile('src/app.js', 'utf8'),
+  readFile('src/product-store.js', 'utf8')
+]);
+const backupHandlerStart = app.indexOf("$('#btnExportBackup').addEventListener('click'");
+const backupImportStart = app.indexOf("$('#backupFile').addEventListener('change'");
+const backupImportEnd = app.indexOf("window.addEventListener('catalogotop:products-updated'", backupImportStart);
+const backupHandler = backupHandlerStart >= 0 && backupImportStart > backupHandlerStart ? app.slice(backupHandlerStart, backupImportStart) : '';
+const backupImportHandler = backupImportStart >= 0 && backupImportEnd > backupImportStart ? app.slice(backupImportStart, backupImportEnd) : '';
+if (!backupHandler.includes('JSON.stringify(state(), null, 2)') || !backupHandler.includes("'application/json'")) fail('export de backup deve continuar serializando o estado completo');
+if (!backupImportHandler.includes('Core.setState(parsed)')) fail('import de backup deve continuar passando pelo migrador/normalizador Core');
+if (!backupImportHandler.includes('await publishProducts()')) fail('publicação opcional após backup deve continuar explícita');
+if (!app.includes('return ProductStore.publishCurrent()')) fail('app deve publicar a base atual somente pela fronteira ProductStore');
+if (!productStore.includes('publishCurrent: () => publishProducts(Core.getState().products)')) fail('ProductStore.publishCurrent deve continuar limitado a Core.products, nunca ao catálogo editorial');
 
-console.log('PASS image variants backup fixture: schema 7, Original, gallery, local variants, selection, framing e sessão');
+console.log('PASS image variants backup fixture: schema 7, Original, gallery, local variants, selection, framing, sessão e publicação product-only');
