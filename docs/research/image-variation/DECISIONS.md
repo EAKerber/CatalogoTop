@@ -40,6 +40,14 @@ Evidence: the current Soft Close product page marks imagery as illustrative.
 
 Consequence: source authority/role must be represented in evaluation before an output can be promoted from “faithful to source pixels” to “faithful product representation”.
 
+### D5 — Preserve semantic annotations by default when removing them buys little utility
+
+A source annotation can carry product/variant meaning even when it is not part of the photographed product geometry.
+
+Evidence: `hinge-standard` contains three dominant hinge components plus the source labels `RETA`, `CURVA` and `SUPER CURVA`. Trimming external neutral canvas raises bbox utilization from 36.5% to 60.0% while retaining the labels. Removing the labels raises it only to 62.3%.
+
+Consequence: the current preferred candidate is `trim-preserve-annotations`. Removing source annotations requires evidence that their meaning is safely represented elsewhere; small geometric gains are not sufficient justification.
+
 ## Provisional
 
 ### P1 — Connected-light-neutral border segmentation is a useful narrow baseline
@@ -59,6 +67,14 @@ H45 shows strong benefit from rotating the factual group as a whole; Soft Extra 
 
 This remains conditional on semantic orientation and human fidelity review.
 
+### P3 — Connected components are structural evidence, not semantic authority
+
+`hinge-standard` exposes three similarly dominant product-sized components and smaller annotation components. This is useful evidence for candidate subject/group decomposition.
+
+`round-leg-wide` shows why this cannot become a standalone rule: multiple large components may instead represent different visual roles such as product and application imagery.
+
+Consequence: component topology/scale can inform subject-role inference, but must be combined with source role, product metadata or review before destructive selection/recomposition.
+
 ## Rejected
 
 ### R1 — “Elongated product => rotate horizontally”
@@ -77,11 +93,16 @@ Rejected by the round-leg composite source.
 
 Rejected by the source-authority distinction exposed by illustrative imagery.
 
+### R5 — “Non-product pixels are automatically disposable”
+
+Rejected by `hinge-standard`: annotation text is not hinge geometry, but it carries the explicit commercial-variant mapping present in the source.
+
 ## Open questions
 
 1. What is the minimum evidence needed to identify/select a factual subject in composite sources?
 2. Can source role be inferred robustly enough for automation, or should it often be explicit/user-approved?
 3. Which foreground-occupancy/effective-scale metrics add information beyond bbox utilization without becoming another magic score?
 4. What human-review checklist is sufficient for slide geometry, piece count, holes/fittings and segmentation damage?
-5. How should multi-piece factual groups such as hinge families differ from composite source images containing application/context imagery?
-6. Does a grounded Class C edit add enough utility over the best A/B candidate to justify its additional fidelity risk?
+5. Which signals are sufficient to distinguish a homogeneous multi-piece product group from heterogeneous roles such as product + application imagery?
+6. When may source annotations be removed because equivalent semantics are already present in catalog data/layout?
+7. Does a grounded Class C edit add enough utility over the best A/B candidate to justify its additional fidelity risk?
