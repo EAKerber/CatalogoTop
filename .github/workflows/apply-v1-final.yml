@@ -1,0 +1,40 @@
+name: Apply V1 Final Retirement
+
+on:
+  push:
+    branches:
+      - chore/v1-final-retire-external-image-variations
+    paths:
+      - scripts/_apply-v1-final.py
+      - .github/workflows/apply-v1-final.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/v1-final-retire-external-image-variations
+          fetch-depth: 0
+      - name: Guard base and apply
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --quiet
+          test "$(git rev-parse origin/main)" = "b892664c2c83748eafea056df72b1cf0ea5d1b19"
+          python3 scripts/_apply-v1-final.py
+          npm test
+      - name: Commit functional tree and remove staging harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "catalogotop-ops"
+          git config user.email "actions@users.noreply.github.com"
+          git rm -f scripts/_apply-v1-final.py .github/workflows/apply-v1-final.yml
+          git add index.html src/core.js src/v1-retirement.js scripts/v1-retirement-fixture.mjs package.json README.md AGENTS.md docs/v1-stable.md
+          git commit -m "v1.0.0 — retire external image variations from stable V1"
+          git push origin HEAD:chore/v1-final-retire-external-image-variations
