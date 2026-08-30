@@ -147,6 +147,7 @@ try {
     const form = document.querySelector('#productForm');
     const contextual = document.querySelector('#productLibraryPanel');
     const path = document.querySelector('#productFolderPath');
+    const legacyShim = document.querySelector('[data-r1d-legacy-product-list-compat]');
     const legacyFolders = document.querySelector('#categoryFolders');
     const visibleTable = document.querySelector('.cadastro-product-table')?.closest('.table-wrap');
     return {
@@ -154,12 +155,14 @@ try {
       formDisplay: getComputedStyle(form).display,
       contextualDisplay: getComputedStyle(contextual).display,
       pathDisplay: getComputedStyle(path).display,
-      legacyFoldersDisplay: getComputedStyle(legacyFolders).display,
+      legacyShimHidden: Boolean(legacyShim?.hidden),
+      legacyShimDisplay: legacyShim ? getComputedStyle(legacyShim).display : '',
+      legacyFoldersRects: legacyFolders?.getClientRects().length || 0,
       tableOverflow: visibleTable ? Math.max(0, visibleTable.scrollWidth - visibleTable.clientWidth) : -1,
       destructiveVisible: [...contextual.querySelectorAll('[data-delete-product-direct], [data-delete-category]')].some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length)
     };
   });
-  if (products.formDisplay === 'none' || products.contextualDisplay === 'none' || products.pathDisplay === 'none' || products.legacyFoldersDisplay !== 'none' || products.tableOverflow > 3 || products.destructiveVisible) {
+  if (products.formDisplay === 'none' || products.contextualDisplay === 'none' || products.pathDisplay === 'none' || !products.legacyShimHidden || products.legacyShimDisplay !== 'none' || products.legacyFoldersRects !== 0 || products.tableOverflow > 3 || products.destructiveVisible) {
     throw new Error(`Cadastro desktop deve usar formulário + consulta contextual, sem filesystem/destruição legados: ${JSON.stringify(products)}`);
   }
 
