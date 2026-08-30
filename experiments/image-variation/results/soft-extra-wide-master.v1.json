@@ -1,0 +1,62 @@
+{
+  "kind": "catalogotop.image-variation-master-render-result",
+  "version": 1,
+  "status": "research-only",
+  "caseId": "soft-extra-wide",
+  "profile": "card-wide-4x",
+  "source": {
+    "sourceId": "soft-extra",
+    "sha256": "07edaca7d481149a3703a0b70cda099afcd88612bacaaee33f2d107c37d7628b",
+    "widthPx": 800,
+    "heightPx": 800,
+    "authority": "family-match-with-exact-pixel-readback"
+  },
+  "composition": {
+    "placementWidthPx": 440,
+    "placementHeightPx": 180,
+    "masterWidthPx": 1760,
+    "masterHeightPx": 720,
+    "masterScaleFactor": 4,
+    "safeMarginRatio": 0.07,
+    "orientation": "align-horizontal",
+    "principalAxisDeg": -31.541814104080995,
+    "placementScaleFromSource": 0.7513729663578947,
+    "masterScaleFromSource": 3.005491865431579,
+    "bboxUtilization": 0.5221386909944165,
+    "relativeGeometryChangedBetweenPlacementAndMaster": false
+  },
+  "renderer": {
+    "path": "scripts/research/image-render-master.mjs",
+    "sampling": "inverse affine bilinear over premultiplied factual coverage",
+    "background": "opaque neutral white",
+    "placementDerivation": "4x4 deterministic box downsample from master"
+  },
+  "coverageEvidence": {
+    "placementDirectEquivalentPx": 11856.862745098038,
+    "masterEquivalentPxNormalizedToPlacement": 11856.362990196078,
+    "masterDownsampleEquivalentPx": 11856.313725490196,
+    "normalizedMasterVsDirectDeltaRatio": 0.00004630441395660464,
+    "partialCoveragePixels": {
+      "placementDirect": 1475,
+      "master": 23422,
+      "masterDownsample": 2878
+    }
+  },
+  "rasterComparison": {
+    "directPlacementVsMasterDownsampleRgbMeanAbsoluteChannelDifference": 0.25075757575757573,
+    "directPlacementVsMasterDownsampleMaxChannelDifference": 30,
+    "interpretation": "The master/downsample path changes boundary sampling slightly while leaving effective factual coverage and composition effectively unchanged."
+  },
+  "resolutionHonesty": {
+    "masterRequiresSourceUpscaling": true,
+    "claimOfNewFactualDetail": false,
+    "interpretation": "The 800x800 source is stronger than the H45 source in raw raster dimensions, but a 1760x720 master still exceeds source sampling along the fitted product axis. The master is a transform/presentation raster, not recovered product detail."
+  },
+  "review": {
+    "presentationOutcome": "PASS FOR MASTER BASELINE",
+    "fidelityReference": "experiments/image-variation/reviews/elongated-wide-review.v1.json",
+    "fidelityOutcome": "REVIEW-REQUIRED",
+    "productionApproval": false,
+    "reading": "The resolution/renderer layer generalizes to Soft Extra without changing the prior semantic conclusion: most utility comes from removing wasted source canvas and the family-level source-authority question remains independent."
+  }
+}
