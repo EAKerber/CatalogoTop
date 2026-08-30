@@ -1,3 +1,4 @@
+# Registered in a prior commit so this push executes the guarded patch.
 name: Apply R1b Merge Guard
 
 on:
