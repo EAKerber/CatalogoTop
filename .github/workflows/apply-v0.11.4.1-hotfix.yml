@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   apply:
-    if: github.event.head_commit.message == 'ops: stage hotfix patch runner'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -19,10 +18,11 @@ jobs:
         with:
           ref: fix/v0.11.4.1-variation-export-mobile-history
           fetch-depth: 0
-      - name: Verify stable main baseline
+      - name: Verify stable main baseline and branch
         shell: bash
         run: |
           set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'fix/v0.11.4.1-variation-export-mobile-history'
           expected='acf18f4a4d67313d82d46389089f3e4bdae22a84'
           actual="$(git ls-remote origin refs/heads/main | cut -f1)"
           test "$actual" = "$expected" || { echo "main moved: $actual" >&2; exit 1; }
