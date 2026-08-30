@@ -6,7 +6,7 @@ Stable baseline: `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v1.0.0`
 
 ## Current state
 
-The read-only biopsy required by the kickstart is complete enough to begin R-IMG-1 without changing product runtime code.
+The kickstart biopsy is complete enough to run R-IMG-1 without changing product runtime code.
 
 Verified boundaries:
 
@@ -22,23 +22,15 @@ No production runtime module, ProductStore/backend contract, `v2`, `main`, deplo
 
 ## Benchmark v1
 
-Authoritative research fixture:
+Authoritative fixture:
 
 `experiments/image-variation/benchmark.v1.json`
 
-It predeclares 14 cases across 7 previously sourced Top Mobili hardware families before any new variant is generated.
+It predeclares 14 cases across 7 previously sourced Top Mobili hardware families **before** any new variant is generated.
 
-Coverage intentionally includes:
+Coverage intentionally includes elongated slides/rails, a small Collection-member target, a multi-piece hinge source, illustrative-source cases, a known low-resolution caster, a vertical round-leg negative control and explicit `no-variant-preferred` outcomes.
 
-- elongated slides/rails in standard and wide targets;
-- a small Collection-member target;
-- a multi-piece/multi-variant hinge source;
-- an illustrative-source piston case;
-- a known low-resolution caster case;
-- a vertical round-leg case where target aspect must **not** force a semantically wrong 90° rotation;
-- explicit `no-variant-preferred` outcomes.
-
-Expected decisions in v1:
+Expected decisions:
 
 - `variant-expected`: 3
 - `conditional`: 6
@@ -50,7 +42,7 @@ Acceptance ceilings:
 - Class B: 8 cases
 - Class C: 0 automatically acceptable cases
 
-A source-grounded Class C approach remains in the benchmark only as a **comparison-only** research arm and always requires human review. It cannot silently become a fallback when Class A/B fails.
+A source-grounded Class C approach remains comparison-only and always requires human review. It cannot silently become a fallback when Class A/B fails.
 
 ## Target profiles
 
@@ -60,7 +52,18 @@ The first benchmark uses three repeatable research profiles:
 - `collection-member`: `180 × 140 px`, copied from the same fixture family;
 - `card-wide`: `440 × 180 px`, a research stress profile motivated by the observed wide-horizontal slide-card failure.
 
-These dimensions are fixtures, not a new production layout contract. A later compatibility pass should replace/augment them with fresh rendered measurements from the current V2 placement owner when integration is actually proposed.
+These are fixtures, not a new production layout contract.
+
+## Current source-authority readback
+
+Fresh web readback on 2026-08-30 added an important distinction between **pixel-source fidelity** and **product truth**:
+
+- H45: the current Ipê Ferragens page confirms the Renna 500 mm / 35 kg product and exposes the same historical image locator used by the prior authoring exercise. This is a stronger product/source match, although exact bytes/hash still need materialization.
+- Soft Close: the current GMAD page exposes the same historical `343303-2` image locator but explicitly states that product images are merely illustrative. Therefore preserving those pixels does **not** by itself prove factual product fidelity.
+- Soft Extra: a current matching HD Ferragens family page confirms invisible soft-closing, 35 kg and the size family, but exact historical image bytes still need readback.
+- Caster: the current MadeiraMadeira page confirms the Renna 35 mm caster with brake and factory code `36503296`; the historical source remains a low-resolution negative control.
+
+These observations are recorded inside the benchmark source entries instead of being kept as chat-only context.
 
 ## Baseline validator
 
@@ -70,26 +73,56 @@ Run:
 node scripts/research/image-variation-baseline.mjs
 ```
 
-The script validates that:
+It validates closed source/target references, unique case IDs, predeclared outcomes, fidelity invariants, unacceptable changes and Class A/B automatic acceptance ceilings.
 
-- benchmark/source/target references are closed and unique;
-- each case declares expected outcome before generation;
-- each case declares fidelity invariants and unacceptable changes;
-- automatic acceptance ceilings remain Class A/B;
-- source-canvas geometry is reported only where pixel dimensions have evidence.
+It computes `containAreaRatio` only when source-canvas dimensions have evidence. This is deliberately weak: it measures full source-canvas occupancy, **not** product-object utilization.
 
-It also computes a deliberately weak `containAreaRatio` baseline when source-canvas dimensions are known. This measures **full source-canvas occupancy**, not product-object utilization, and therefore must not be mistaken for a fidelity or usefulness score.
-
-Current source-pixel readback status:
+Current source-pixel status:
 
 - measured from prior explicit evidence: `caster` = `128 × 128 px`;
-- pending fresh materialization/readback: `soft-extra`, `h45`, `soft-close`, `hinge`, `piston`, `round-leg`.
+- pending exact materialization/readback: `soft-extra`, `h45`, `soft-close`, `hinge`, `piston`, `round-leg`.
 
-For the square 128 px caster, orthogonal rotation cannot improve canvas fit at all. More importantly, creating a larger raster would not create factual resolution. This is retained as a negative-control case against scoring simple upscaling as improvement.
+The benchmark validator passes locally with all 14 cases.
 
-## Provisional research interpretation
+## Deterministic factual-pixel recomposition prototype
 
-The repository biopsy narrows the architecture substantially:
+Research core:
+
+`scripts/research/image-recomposition-core.mjs`
+
+The prototype is intentionally narrow and removable. It targets elongated hardware photographed on a light neutral background and does four things:
+
+1. removes only light/neutral background pixels connected to the image border via flood fill;
+2. estimates the foreground principal axis from factual source pixels;
+3. compares preserved, horizontal-axis and vertical-axis placement under a declared safe margin;
+4. renders a target raster by copying source foreground colors with nearest-neighbor scaling onto a neutral canvas.
+
+The module does **not** decide whether a product is semantically allowed to rotate. That permission remains an external benchmark/product-class constraint.
+
+Run the self-test:
+
+```bash
+node scripts/research/image-recomposition-core.mjs
+```
+
+Synthetic self-test result:
+
+- status: `pass`;
+- vertical elongated object in a wide holder chose `align-horizontal`;
+- foreground bounding-box utilization changed from `0.0433` to `0.2587`;
+- the generated raster introduced no color absent from the source/background set;
+- an enclosed white detail was preserved, proving that the flood fill is border-connected rather than a global “delete white” operation.
+
+This is evidence of composition gain only. Nearest-neighbor scaling is deliberately **not** presented as quality upscale, and the prototype does not encode/persist production assets.
+
+Known limitations:
+
+- light product pixels connected to the border can still be misclassified;
+- principal-axis geometry is evidence, not semantic authority;
+- multi-piece products and illustrative sources need stronger review semantics;
+- no source decoder/materializer is bundled into this module yet.
+
+## Provisional architecture
 
 ```text
 CatalogDocument placement
@@ -105,9 +138,9 @@ Class A/B/C candidate experiment
 utility evidence + fidelity evidence
 ```
 
-The missing authority is **generation intent/evidence**, not another placement model and not a richer ZIP format.
+The missing authority is generation intent/evidence, not another placement model and not a richer ZIP format.
 
-The first hypothesis remains deliberately subtractive:
+Current subtractive hypothesis:
 
 > A meaningful share of catalog value may come from segmentation + whole-object reorientation + deterministic recomposition + safe canvas/background work, without reconstructing product geometry.
 
@@ -115,11 +148,13 @@ The benchmark must disprove or narrow that hypothesis before a production schema
 
 ## Next step
 
-1. Materialize/read back the six pending factual sources and record exact byte hash, MIME and pixel dimensions without treating internet previews as source truth.
-2. Record Original source-canvas baseline and, where feasible, product-object/silhouette bounding boxes separately from canvas dimensions.
-3. Implement the smallest Class A/B recomposition prototype for elongated hardware only: preserve the factual object pixels, compare preserve-vs-orthogonal orientation, fit inside declared safe margins and expand neutral canvas as needed.
-4. Run first on `soft-extra-wide`, `h45-wide` and `soft-close-wide`, plus negative controls (`round-leg-wide`, `caster-lowres`).
-5. Only after that evidence exists, compare a source-grounded generative edit on a small subset. Do not freeze `generationIntent` or result schema yet.
+1. Materialize/read back the six pending source images and record exact bytes/hash, MIME and pixel dimensions.
+2. Run the factual-pixel core first on `h45-wide`; it currently has the strongest source/product readback among the elongated cases.
+3. Record Original source-canvas and foreground/silhouette measurements separately.
+4. Compare `preserve` vs axis-aligned recomposition on H45, then repeat on Soft Extra if its exact source can be materialized.
+5. Keep Soft Close as a **source-authority stress case**, not as unquestioned factual ground truth.
+6. Run negative controls (`round-leg-wide`, `caster-lowres`) to verify the system can reject geometrically tempting but semantically or informationally invalid improvements.
+7. Only after these results exist, compare a source-grounded generative edit on a small subset. Do not freeze `generationIntent` or result schema yet.
 
 ## Escalation boundary
 
