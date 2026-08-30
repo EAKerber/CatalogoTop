@@ -64,6 +64,38 @@ Evidence: the piston edge-gated experiment over gradient percentiles 92–96 kee
 
 Consequence: experimental isolation may expose stable/uncertain pixels or equivalent confidence evidence; uncertainty must not be silently erased before fidelity review.
 
+### D8 — Logical placement geometry and master raster resolution are separate axes
+
+A target such as `440×180` describes the intended composition in the catalog. It must not silently become the raster-resolution contract for the reusable derivative.
+
+Evidence: R-IMG-1.1 renders the same H45 and Soft Extra placement plans as 4× masters (`1760×720`) while preserving relative geometry and normalized factual coverage.
+
+Consequence: placement planning remains the composition authority; master resolution is a downstream render choice.
+
+### D9 — Placement preview should derive from the master render
+
+Direct placement rendering and master-then-downsample rendering can differ slightly at transform boundaries even when composition is identical.
+
+Evidence: H45 direct-vs-master-downsample RGB mean absolute channel difference is ~0.85; Soft Extra is ~0.25, while normalized factual coverage remains effectively unchanged in both cases.
+
+Consequence: once a master profile is selected, derive placement previews deterministically from that master instead of independently re-rendering/re-planning the placement.
+
+### D10 — Higher master raster dimensions do not imply higher factual source resolution
+
+A denser render can improve antialiasing, downstream reduction, crop flexibility and presentation stability while still relying on exactly the same source evidence.
+
+Evidence: H45 450×450 → 1760×720 master requires ~3.62× fitted source scaling; Soft Extra 800×800 → 1760×720 requires ~3.01×. Neither operation resolves new holes, fittings or texture.
+
+Consequence: always record source dimensions separately from master dimensions. Master scale is a rendering property, not a factual-detail claim.
+
+### D11 — The current Class C producer path is closed after contract failure
+
+The first H45 Class C comparison was predeclared narrowly and allowed only presentation cleanup over the reviewed deterministic geometry.
+
+Evidence: three bounded producer attempts returned report/infographic images rather than an edited factual photograph, including after explicit source binding. The outputs also introduced unmeasured text/metrics/verdicts.
+
+Consequence: current result is `CLASS_C_NOT_JUSTIFIED_PRODUCER_CONTRACT_FAILURE`. Do not expand that producer path to other benchmark cases. This conclusion is scoped to the tested producer/channel and does not claim all grounded generative editors must fail.
+
 ## Provisional
 
 ### P1 — Connected-light-neutral border segmentation is a useful narrow baseline
@@ -112,6 +144,18 @@ Cross-source evidence is mixed by design:
 
 Consequence: retain this method under `scripts/research/`; do not promote it into the recomposition core or production behavior yet.
 
+### P6 — Alpha-aware master rendering is the stronger deterministic presentation baseline
+
+R-IMG-1.1 passes the new presentation gate on H45 and Soft Extra. The master/downsample path preserves composition and normalized factual coverage while improving the sampling model beyond the nearest-neighbor fidelity prototype.
+
+Consequence: test the same renderer on preserve-orientation, multi-piece and source-limited cases before promoting it into the recomposition core. Any future Class C trial should compare against this stronger baseline rather than the old placement-sized nearest-neighbor render.
+
+### P7 — Fixed 4× is a useful research fixture, not yet the correct default policy
+
+The 4× master cleanly separates composition from raster resolution, but both initial cases still upscale source sampling materially.
+
+Consequence: compare fixed 4× against a source-aware/adaptive factor before freezing any production or long-lived research default.
+
 ## Rejected
 
 ### R1 — “Elongated product => rotate horizontally”
@@ -120,7 +164,7 @@ Rejected by factual comparison. The rule helps H45, barely helps Soft Extra and 
 
 ### R2 — “Bigger output => higher quality/resolution”
 
-Rejected by the caster negative control.
+Rejected by the caster negative control and reinforced by R-IMG-1.1. A bigger raster may improve transform presentation; it does not by itself add factual source detail.
 
 ### R3 — “One image-level principal axis is enough to determine product orientation”
 
@@ -142,6 +186,10 @@ Rejected by `piston-wide`. Threshold sensitivity is a robustness warning, not a 
 
 Rejected experimentally on the piston: corner-only seeding produced the same split as the all-border baseline. The failure is not merely where the flood starts; light-neutral connectivity through the product is the deeper issue.
 
+### R8 — “Ask for a high-resolution output and treat that as the resolution solution”
+
+Rejected as an evaluation rule. Resolution must be represented explicitly as source evidence + master render profile + placement/downsample behavior. Output dimensions alone are not enough.
+
 ## Open questions
 
 1. What is the minimum evidence needed to identify/select a factual subject in composite sources?
@@ -150,4 +198,6 @@ Rejected experimentally on the piston: corner-only seeding produced the same spl
 4. Which signals are sufficient to distinguish a homogeneous multi-piece product group from heterogeneous roles such as product + application imagery?
 5. When may source annotations be removed because equivalent semantics are already present in catalog data/layout?
 6. What isolation method is robust enough for white-on-white factual product imagery without silently deleting light geometry or retaining excessive halo/context?
-7. Does a grounded Class C edit add enough utility over the reviewed H45 A/B candidate to justify its additional fidelity risk?
+7. Does the alpha-aware master path remain useful on preserve-orientation, multi-piece and source-limited cases?
+8. What source-aware/adaptive master factor is preferable to a fixed 4× research fixture?
+9. Is a producer with a reliable source-image edit contract available that can materially beat the deterministic master baseline without adding factual uncertainty?
