@@ -20,7 +20,7 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 - Código e descrição são a validação mínima para importação.
 - Colunas desconhecidas de planilha devem ser preservadas como especificações quando possível, não descartadas silenciosamente.
 - Header/footer são componentes compartilhados. Templates não devem copiá-los.
-- No header da aplicação, estado de sincronização permanece visível; importação, modo da importação, CSV modelo e backup são utilidades secundárias agrupadas no menu `Dados`.
+- No header da aplicação, estado de sincronização permanece visível; importação, modo da importação, CSV modelo, utilidades de imagem e backup são ações secundárias agrupadas no menu `Dados`.
 - Paginação deve derivar do contrato do template, das categorias, da ordem editorial efetiva e da geometria declarada das unidades editoriais.
 - `selectedIds` representa somente membership local: quais produtos pertencem ao catálogo. Não usar `selectedIds` como mecanismo de reorder.
 - `catalog.presentation.order` representa somente ordem editorial persistida. Não usar `presentation.order` para incluir/remover membership.
@@ -63,6 +63,20 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 - No cadastro manual, categoria deve ser escolhida ou criada pelo mesmo campo sobrescrevível; não criar um CRUD paralelo de pastas vazias enquanto isso não for necessário.
 - Presets de conteúdo, ênfase, largura, ordem e blocos pertencem ao catálogo local, nunca ao produto remoto. `Visual` e `Simples` são os defaults atuais para cards sem override.
 - Enquadramento de imagem pertence à apresentação local (`presentation.imageFrames`), não ao asset/produto remoto. O renderer aplica o frame de forma não destrutiva ao uso editorial suportado; não promover esse estado ao ProductStore.
+- `product.image` é o Original canônico e fallback de imagem. Escolhas editoriais, imports e derivados nunca podem sobrescrevê-lo silenciosamente.
+- `product.imageGallery` contém somente alternativas fiéis e reutilizáveis aprovadas para o produto. Ela é semanticamente separada de `product.variants`, que continua representando cores/acabamentos comerciais.
+- `presentation.imageVariants` contém derivados locais do catálogo. Importar um Result Bundle não promove automaticamente esses derivados para `Product.imageGallery`, não altera o produto remoto e não publica ProductStore.
+- `presentation.imageSelections` é um override editorial esparso. Ausência ou referência obsoleta deve resolver deterministicamente para o Original. A seleção da imagem e `presentation.imageFrames` permanecem eixos independentes.
+- A imagem escolhida é resolvida antes do framing e preview/print devem usar a mesma resolução. Cards com grade de imagens comerciais não devem receber simultaneamente um seletor concorrente de imagem principal.
+- Chaves de placement do Variation Bundle devem derivar do modelo materializado (`CatalogDocument`), nunca da posição no DOM. A V1 suporta `card:<productId>` e `collection:<blockId>:member:<productId>`.
+- `usageSignature` deve cobrir o contexto material do job: produto, placement, uso, target e hash da fonte. `requestId` não deve depender de metadados informativos/voláteis como `catalog.createdAt`; mudanças materiais de target/source/contexto continuam invalidando o pedido.
+- ZIP de resultado externo é entrada não confiável. Validar pacote inteiro, paths, limites, CRC/compressão suportada, MIME pelos bytes, SHA-256, request/job/product/placement/signature e transformações permitidas antes de preparar, enviar ou mutar estado.
+- Result Bundle aceita somente raster passivo PNG/JPEG/WebP no primeiro contrato. Não executar nem importar HTML/JS/SVG ativo por esse fluxo.
+- A importação de Result Bundle pode solicitar sessão de escrita exclusivamente para armazenar blobs no AssetStore. Ela não pode usar essa sessão para publicar a base de produtos.
+- Depois de uploads assíncronos, recalcular/revalidar o pedido antes do commit. Se o contexto mudou, falhar fechado sem mutação editorial; um blob content-addressed já enviado pode ficar órfão, mas não deve provocar importação parcial.
+- O commit de resultado aceito deve ser uma única mutação em `presentation.imageVariants`. Reimport idêntico é idempotente; imagem nova não deve ser auto-selecionada.
+- Backup JSON da V1 preserva estado completo, inclusive galeria, variantes locais, proveniência, seleções e framing. A sessão local de catálogo em elaboração não deve ser confundida com persistência futura de catálogos salvos.
+- Persistência remota/filesystem de catálogos e a futura Biblioteca pertencem à V2. Não consolidar `localStorage` como solução de biblioteca/persistência de catálogos.
 - Netlify está autorizado como backend **estreito** para a base compartilhada de produtos e assets. Não promover seleção atual, template escolhido, estado de UI ou catálogo em elaboração a estado remoto sem decisão explícita.
 - Produtos remotos usam snapshot revisionado e escrita protegida; não fazer overwrite silencioso quando `expectedRevision` divergir.
 - Deploy Preview nunca deve gravar no store global de produção. Produção usa store global; previews/branches usam store ligado ao deploy.
@@ -91,6 +105,8 @@ Recorte v0.11.2 consolidado na `main`: enquadramento de imagem é apresentação
 
 Recorte v0.11.3.0 consolidado na `main`: comandos compactos do compositor, atalhos de Collection/Table e histórico editorial efêmero com undo/redo foram introduzidos sem alterar schema, ProductStore, `CatalogDocument` ou A4. Ver `docs/editor-shortcuts-history-v0.11.3.0.md`.
 
-Recorte v0.11.3.1 corrige o lifecycle de tabs usado pelo history mobile e reduz autoridades redundantes de runtime: `App.switchTab` publica `catalogotop:tab-changed`; CSS de comandos e framing volta ao bootstrap/stylesheet estático; o browser gate cobre Catálogo → Produtos/Templates em mobile; `runtime-boundaries-fixture` impede regressão desses contratos. Ver `docs/editor-shortcuts-history-v0.11.3.0.md`.
+Recorte v0.11.3.1 consolidado na `main`: corrige o lifecycle de tabs usado pelo history mobile e reduz autoridades redundantes de runtime. `App.switchTab` publica `catalogotop:tab-changed`; CSS de comandos e framing usa bootstrap/stylesheet estático; browser gate cobre Catálogo → Produtos/Templates em mobile; `runtime-boundaries-fixture` impede regressão desses contratos. Ver `docs/editor-shortcuts-history-v0.11.3.0.md`.
+
+Recorte v0.11.4 em estabilização: schema 7 introduz `Product.imageGallery`, seleção editorial e derivados locais sem substituir `product.image`; o inspector permite ciclar Original/alternativas/derivados; o Variation Bundle exporta request ZIP com contexto material e importa result ZIP fail-closed, transacional e local-only. Preview/print, framing, backup round-trip, ZIP e segurança possuem gates dedicados. Ver `docs/image-variants-v0.11.4.md`.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.

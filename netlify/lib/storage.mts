@@ -126,6 +126,20 @@ export function verifyAccessPhrase(phrase: string) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
+function validImageGallery(value: unknown) {
+  if (value == null) return true;
+  if (!Array.isArray(value) || value.length > 24) return false;
+  return value.every(entry => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
+    const item = entry as Record<string, unknown>;
+    if (typeof item.id !== 'string' || !item.id.trim() || item.id.length > 180) return false;
+    if (typeof item.image !== 'string' || !item.image.trim() || item.image.length > 2400) return false;
+    if (item.label != null && (typeof item.label !== 'string' || item.label.length > 300)) return false;
+    if (item.provenance != null && (typeof item.provenance !== 'object' || Array.isArray(item.provenance))) return false;
+    return true;
+  });
+}
+
 export function validateProducts(products: unknown) {
   if (!Array.isArray(products)) return 'products deve ser um array.';
   if (products.length > 5000) return 'Limite de 5000 produtos excedido.';
@@ -135,6 +149,7 @@ export function validateProducts(products: unknown) {
     if (typeof product.id !== 'string' || product.id.length > 180) return 'Produto sem id válido.';
     if (typeof product.code !== 'string' || !product.code.trim() || product.code.length > 180) return 'Produto sem código válido.';
     if (typeof product.description !== 'string' || !product.description.trim() || product.description.length > 1200) return 'Produto sem descrição válida.';
+    if (!validImageGallery(product.imageGallery)) return 'Galeria de imagens inválida.';
     if (product.variants && (!Array.isArray(product.variants) || product.variants.length > 24)) return 'Variações inválidas.';
     if (product.tableRows && (!Array.isArray(product.tableRows) || product.tableRows.length > 48)) return 'Tabela comercial inválida.';
     if (product.specs && (!Array.isArray(product.specs) || product.specs.length > 64)) return 'Especificações inválidas.';

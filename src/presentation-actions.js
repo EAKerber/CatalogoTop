@@ -108,6 +108,67 @@
     });
   }
 
+  function setImageSelection(productId, selection) {
+    const id = String(productId || '');
+    if (!id || !NS.ImageVariants) return null;
+    return mutatePresentation(presentation => {
+      presentation.imageSelections = presentation.imageSelections && typeof presentation.imageSelections === 'object'
+        ? { ...presentation.imageSelections }
+        : {};
+      if (!selection || selection.source === 'original') {
+        delete presentation.imageSelections[id];
+        return;
+      }
+      const normalized = NS.ImageVariants.normalizeImageSelections({ [id]: selection });
+      if (normalized[id]) presentation.imageSelections[id] = normalized[id];
+      else delete presentation.imageSelections[id];
+    });
+  }
+
+  function resetImageSelection(productId) {
+    return setImageSelection(productId, null);
+  }
+
+  function cycleImageSelection(productId, delta = 1) {
+    const id = String(productId || '');
+    const current = NS.Core?.getState?.();
+    if (!id || !current || !NS.ImageVariants) return null;
+    const product = current.products.find(item => String(item.id) === id);
+    if (!product) return null;
+    const presentation = NS.Composition.normalizePresentation(current.catalog?.presentation);
+    const available = NS.ImageVariants.availableImages(product, presentation);
+    if (available.length < 2) return current;
+    const resolved = NS.ImageVariants.resolveImage(product, presentation);
+    let index = available.findIndex(item => item.source === resolved.source && item.id === resolved.id);
+    if (index < 0) index = 0;
+    const direction = Number(delta) < 0 ? -1 : 1;
+    const next = available[(index + direction + available.length) % available.length];
+    return setImageSelection(id, next.source === 'original' ? null : { source: next.source, id: next.id });
+  }
+
+  function primaryImageForEditorTarget(node) {
+    if (node.matches('.catalog-card[data-product-id]')) return node.querySelector('.catalog-card-visuals.single > img');
+    if (node.matches('.catalog-collection-item[data-product-id]')) return node.querySelector('.catalog-collection-image > img');
+    return null;
+  }
+
+  function applyImageSelections(root, state) {
+    if (!root?.querySelectorAll || !state || !NS.ImageVariants || !NS.Composition) return;
+    const presentation = NS.Composition.normalizePresentation(state.catalog?.presentation);
+    const byId = new Map((Array.isArray(state.products) ? state.products : []).map(product => [String(product.id), product]));
+    root.querySelectorAll('.catalog-card[data-product-id],.catalog-collection-item[data-product-id]').forEach(node => {
+      const product = byId.get(String(node.dataset.productId || ''));
+      const image = primaryImageForEditorTarget(node);
+      if (!product || !image) return;
+      const resolved = NS.ImageVariants.resolveImage(product, presentation);
+      if (!resolved.image) return;
+      image.src = resolved.image;
+      image.dataset.imageVariantSource = resolved.source;
+      image.dataset.imageVariantId = resolved.id;
+      image.dataset.imageVariantFallback = String(Boolean(resolved.isFallback));
+    });
+  }
+
   function setImageFrame(productId, patch) {
     const ids = editorialSelectionFor(productId);
     if (!ids.length) return null;
@@ -130,12 +191,6 @@
       if (!presentation.imageFrames || typeof presentation.imageFrames !== 'object') return;
       ids.forEach(id => { delete presentation.imageFrames[id]; });
     });
-  }
-
-  function primaryImageForEditorTarget(node) {
-    if (node.matches('.catalog-card[data-product-id]')) return node.querySelector('.catalog-card-visuals.single > img');
-    if (node.matches('.catalog-collection-item[data-product-id]')) return node.querySelector('.catalog-collection-image > img');
-    return null;
   }
 
   function applyImageFrames(root, state) {
@@ -245,6 +300,10 @@
     });
   }
 
+  NS.ImageVariantRender = Object.freeze({
+    applyImageSelections
+  });
+
   NS.ImageFraming = {
     IMAGE_FRAME_FITS,
     DEFAULT_IMAGE_FRAME,
@@ -257,6 +316,9 @@
   NS.PresentationActions = {
     mutatePresentation,
     setCardStyle,
+    setImageSelection,
+    resetImageSelection,
+    cycleImageSelection,
     setImageFrame,
     resetImageFrame,
     updateCollection,

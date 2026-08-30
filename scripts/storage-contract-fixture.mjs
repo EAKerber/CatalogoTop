@@ -41,6 +41,7 @@ const checks = [
   ['assets exigem sessão só para POST', files.assets.includes("request.method === 'GET'") && files.assets.includes('if (!await hasWriteSession(request))')],
   ['browser reduz imagem antes do upload', files.assetClient.includes('MAX_EDGE = 1800') && files.assetClient.includes('canvas.toBlob')],
   ['data URLs são materializados antes de persistir', files.assetClient.includes('materializeProducts') && files.assetClient.includes('isDataUrl')],
+  ['imageGallery usa o mesmo pipeline content-addressed', files.assetClient.includes('product.imageGallery') && files.assetClient.includes('entry.image = await materializeImageValue(entry.image)') && files.storage.includes('validImageGallery')],
   ['cache local usa IndexedDB', files.cache.includes('indexedDB.open') && files.cache.includes('products-current')],
   ['base remota vazia não publica local automaticamente', files.client.includes('migrationNeeded = true') && files.client.includes('Local · publicar')],
   ['alteração pendente é preservada no cache', files.client.includes('pendingWrite: true')],

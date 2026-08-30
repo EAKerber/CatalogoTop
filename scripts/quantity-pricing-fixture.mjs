@@ -34,7 +34,7 @@ for (const [index, source] of sources.entries()) vm.runInNewContext(source, cont
 const { Core, Importer, TableBlock } = context.window.CatalogoTop;
 const fail = message => { throw new Error(message); };
 
-if (Core.SCHEMA_VERSION !== 6) fail(`schema esperado 6, recebeu ${Core.SCHEMA_VERSION}`);
+if (Core.SCHEMA_VERSION !== 7) fail(`schema esperado 7, recebeu ${Core.SCHEMA_VERSION}`);
 
 const normalized = Core.normalizeProduct({
   id: 'p1', code: '1', description: 'Produto', category: 'Teste', price: '54,9',
@@ -69,10 +69,10 @@ const migrated = Core.migrate({
   selectedIds: [],
   catalog: {}
 });
-if (migrated.schemaVersion !== 6 || migrated.products[0]?.quantityPrice !== null) fail(`migração v5→v6 inesperada: ${JSON.stringify(migrated)}`);
+if (migrated.schemaVersion !== 7 || migrated.products[0]?.quantityPrice !== null) fail(`migração v5→v7 inesperada: ${JSON.stringify(migrated)}`);
 
 Core.setState({
-  schemaVersion: 6,
+  schemaVersion: 7,
   products: [{ id: 'merge', code: 'M', description: 'Antes', price: '20', quantityPrice: { minQuantity: 10, price: '18' } }],
   selectedIds: [],
   catalog: {}
@@ -110,4 +110,4 @@ const rowB = commercialRows.find(row => row.rowId === 'p1:r2');
 if (rowA?.quantityPrice !== 'R$ 35,50' || rowA?.minQuantity !== '5') fail(`Table commercialRows perdeu preço da linha: ${JSON.stringify(rowA)}`);
 if (rowB?.quantityPrice) fail(`Table commercialRows herdou condição do produto indevidamente: ${JSON.stringify(rowB)}`);
 
-console.log('PASS quantity pricing fixture: schema 6, normalização, merge conservador, importação e Table sem herança indevida');
+console.log('PASS quantity pricing fixture: schema 7, normalização, merge conservador, importação e Table sem herança indevida');

@@ -4,10 +4,12 @@
   const NS = window.CatalogoTop;
   const Core = NS?.Core;
   const Money = NS?.Money;
+  const AssetClient = NS?.AssetClient;
   const form = document.getElementById('productForm');
   const priceField = document.getElementById('price');
   const variantsField = document.getElementById('variants');
   const tableRowsField = document.getElementById('commercialRows');
+  const imageDropzone = document.getElementById('imageDropzone');
   if (!Core || !form || !priceField || !variantsField || !tableRowsField) return;
 
   const priceGrid = priceField.closest('.field-grid');
@@ -21,25 +23,83 @@
     </div>`;
   priceGrid?.after(quantityEditor);
 
+  const galleryEditor = document.createElement('section');
+  galleryEditor.className = 'product-image-gallery-editor';
+  galleryEditor.innerHTML = `
+    <div class="product-image-gallery-head"><strong>Imagens alternativas</strong><span>Até 24 por produto</span></div>
+    <div class="product-image-gallery-list" id="productImageGalleryList"></div>
+    <label class="button secondary compact file-button product-image-gallery-add">+ Adicionar imagens
+      <input id="productImageGalleryFiles" type="file" accept="image/*" multiple />
+    </label>`;
+  imageDropzone?.after(galleryEditor);
+
   const quantityToggle = document.getElementById('hasQuantityPrice');
   const quantityFields = document.getElementById('quantityPriceFields');
   const quantityMinField = document.getElementById('quantityMin');
   const quantityPriceField = document.getElementById('quantityPrice');
+  const galleryList = document.getElementById('productImageGalleryList');
+  const galleryFiles = document.getElementById('productImageGalleryFiles');
+  let galleryDraft = [];
 
-  let pendingDetails = null;
-  const normalizeProduct = Core.normalizeProduct;
+  function cloneGallery(value) {
+    return Core.normalizeImageGallery(value).map(entry => ({
+      ...entry,
+      provenance: entry.provenance && typeof entry.provenance === 'object' ? { ...entry.provenance } : null
+    }));
+  }
 
-  Core.normalizeProduct = product => {
-    const normalized = normalizeProduct(product);
-    if (!pendingDetails) return normalized;
-    const productId = String(product?.id || normalized.id || '');
-    if (pendingDetails.id && pendingDetails.id !== productId) return normalized;
-    normalized.quantityPrice = pendingDetails.quantityPrice;
-    normalized.variants = pendingDetails.variants;
-    normalized.tableRows = pendingDetails.tableRows;
-    pendingDetails = null;
-    return normalized;
-  };
+  function galleryImageId() {
+    if (window.crypto?.randomUUID) return `image-${window.crypto.randomUUID()}`;
+    return `image-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error || new Error('Não foi possível ler a imagem.'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function renderGallery() {
+    if (!galleryList) return;
+    if (!galleryDraft.length) {
+      galleryList.innerHTML = '<div class="product-image-gallery-empty">Nenhuma imagem alternativa. A imagem principal continua sendo o Original.</div>';
+      return;
+    }
+    galleryList.innerHTML = galleryDraft.map((entry, index) => `
+      <div class="product-image-gallery-item" data-gallery-index="${index}">
+        <img src="${NS.Render.esc(entry.image)}" alt="" />
+        <input type="text" value="${NS.Render.esc(entry.label || '')}" placeholder="Nome opcional, ex.: detalhe" data-gallery-label="${index}" aria-label="Nome da imagem alternativa ${index + 1}" />
+        <button class="product-image-gallery-remove" type="button" data-gallery-remove="${index}" title="Remover imagem" aria-label="Remover imagem alternativa ${index + 1}">×</button>
+      </div>`).join('');
+  }
+
+  async function addGalleryFiles(files) {
+    if (!AssetClient || !files?.length) return;
+    const remaining = Math.max(0, (NS.ImageVariants?.MAX_PRODUCT_GALLERY_IMAGES || 24) - galleryDraft.length);
+    const selected = Array.from(files).slice(0, remaining);
+    if (!selected.length) return;
+    try {
+      const additions = [];
+      for (const file of selected) {
+        const prepared = await AssetClient.prepareImage(file);
+        additions.push({
+          id: galleryImageId(),
+          label: String(file.name || '').replace(/\.[^.]+$/, ''),
+          image: await blobToDataUrl(prepared),
+          provenance: { kind: 'manual-upload' }
+        });
+      }
+      galleryDraft = Core.normalizeImageGallery(galleryDraft.concat(additions));
+      renderGallery();
+    } catch (error) {
+      alert(error.message || 'Não foi possível preparar uma das imagens alternativas.');
+    } finally {
+      if (galleryFiles) galleryFiles.value = '';
+    }
+  }
 
   function setQuantityEnabled(enabled) {
     const active = Boolean(enabled);
@@ -62,6 +122,8 @@
     tableRowsField.setCustomValidity('');
     quantityMinField.value = '';
     quantityPriceField.value = '';
+    galleryDraft = [];
+    renderGallery();
     setQuantityEnabled(false);
   }
 
@@ -74,6 +136,8 @@
     }
     variantsField.value = Core.variantsToText(product.variants);
     tableRowsField.value = Core.tableRowsToText(product.tableRows);
+    galleryDraft = cloneGallery(product.imageGallery);
+    renderGallery();
     priceField.setCustomValidity('');
     tableRowsField.setCustomValidity('');
     const quantityPrice = Core.normalizeQuantityPrice(product.quantityPrice);
@@ -151,25 +215,18 @@
     return null;
   }
 
-  priceField.addEventListener('input', () => priceField.setCustomValidity(''));
-  priceField.addEventListener('blur', () => {
-    if (normalizeSinglePriceField()) return;
-    priceField.setCustomValidity('Informe um valor monetário válido, por exemplo R$ 54,90.');
-  });
-  quantityToggle.addEventListener('change', () => setQuantityEnabled(quantityToggle.checked));
-  quantityMinField.addEventListener('input', () => quantityMinField.setCustomValidity(''));
-  quantityMinField.addEventListener('blur', () => {
-    if (quantityToggle.checked) normalizeQuantityPriceFields();
-  });
-  quantityPriceField.addEventListener('input', () => quantityPriceField.setCustomValidity(''));
-  quantityPriceField.addEventListener('blur', () => {
-    if (quantityToggle.checked) normalizeQuantityPriceFields();
-  });
-  tableRowsField.addEventListener('input', () => tableRowsField.setCustomValidity(''));
-  tableRowsField.addEventListener('blur', normalizeCommercialRowsField);
+  function read() {
+    return {
+      quantityPrice: quantityToggle.checked
+        ? Core.normalizeQuantityPrice({ minQuantity: quantityMinField.value, price: quantityPriceField.value })
+        : null,
+      imageGallery: Core.normalizeImageGallery(galleryDraft),
+      variants: Core.parseVariantsText(variantsField.value),
+      tableRows: Core.parseTableRowsText(tableRowsField.value)
+    };
+  }
 
-  form.addEventListener('submit', event => {
-    pendingDetails = null;
+  function validateSubmit(event) {
     if (!normalizeSinglePriceField()) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -196,23 +253,59 @@
       document.querySelector('[data-form-step-target="3"]')?.click();
       tableRowsField.reportValidity();
       tableRowsField.focus();
-      return;
     }
+  }
 
-    pendingDetails = {
-      id: document.getElementById('productId')?.value || '',
-      quantityPrice: quantity.value,
-      variants: Core.parseVariantsText(variantsField.value),
-      tableRows: Core.parseTableRowsText(tableRowsField.value)
-    };
-  }, true);
+  priceField.addEventListener('input', () => priceField.setCustomValidity(''));
+  priceField.addEventListener('blur', () => {
+    if (normalizeSinglePriceField()) return;
+    priceField.setCustomValidity('Informe um valor monetário válido, por exemplo R$ 54,90.');
+  });
+  quantityToggle.addEventListener('change', () => setQuantityEnabled(quantityToggle.checked));
+  quantityMinField.addEventListener('input', () => quantityMinField.setCustomValidity(''));
+  quantityMinField.addEventListener('blur', () => {
+    if (quantityToggle.checked) normalizeQuantityPriceFields();
+  });
+  quantityPriceField.addEventListener('input', () => quantityPriceField.setCustomValidity(''));
+  quantityPriceField.addEventListener('blur', () => {
+    if (quantityToggle.checked) normalizeQuantityPriceFields();
+  });
+  tableRowsField.addEventListener('input', () => tableRowsField.setCustomValidity(''));
+  tableRowsField.addEventListener('blur', normalizeCommercialRowsField);
+  galleryFiles?.addEventListener('change', event => addGalleryFiles(event.target.files));
+  galleryList?.addEventListener('input', event => {
+    const input = event.target.closest('[data-gallery-label]');
+    if (!input) return;
+    const index = Number(input.dataset.galleryLabel);
+    if (galleryDraft[index]) galleryDraft[index].label = input.value;
+  });
+  galleryList?.addEventListener('click', event => {
+    const button = event.target.closest('[data-gallery-remove]');
+    if (!button) return;
+    galleryDraft.splice(Number(button.dataset.galleryRemove), 1);
+    renderGallery();
+  });
+
+  form.addEventListener('submit', validateSubmit, true);
 
   document.getElementById('productRows')?.addEventListener('click', event => {
     if (!event.target.closest('[data-edit-product]')) return;
     queueMicrotask(loadDetails);
   });
+  window.addEventListener('catalogotop:tab-changed', event => {
+    if (event.detail?.tabId === 'products') queueMicrotask(loadDetails);
+  });
 
   ['btnNewProduct', 'btnCancelEdit'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', () => queueMicrotask(clearDetails));
+  });
+
+  renderGallery();
+
+  NS.ProductDetails = Object.freeze({
+    read,
+    loadDetails,
+    clearDetails,
+    renderGallery
   });
 })();
