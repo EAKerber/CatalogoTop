@@ -3,6 +3,16 @@
 Branch principal de evolução: **`v2`**  
 Baseline imutável de produção: **`main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v1.0.0`**.
 
+## Documentos autoritativos da V2
+
+Leia nesta ordem:
+
+1. `docs/v2/START-HERE.md` — bootstrap e fronteiras da linha V2;
+2. `docs/v2/ROADMAP.md` — ordem de dependências e recortes gerais;
+3. `docs/v2/R1-PRODUCT-LIBRARY-INTENT.md` — contrato de intenção e decisões do primeiro recorte.
+
+O `START-HERE` é deliberadamente resumido. Quando houver divergência de detalhe sobre R1, o documento de intenção mais específico prevalece enquanto não for explicitamente revisado.
+
 ## Regra de separação
 
 - `main` representa a V1 estável publicada e não deve receber desenvolvimento da V2 por rotina.
