@@ -4,273 +4,248 @@ Date: 2026-08-30
 Branch: `research/semantic-image-variation-v2`  
 Stable baseline: `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v1.0.0`
 
-## State
+## Current state
 
-The current R-IMG-1 evidence cycle covers three elongated-hardware cases, two negative controls, one multi-piece semantic-group case, one white-on-white/source-authority stress case, an explicit human fidelity-review pass and a cross-source isolation robustness probe. Product/runtime boundaries remain unchanged: no ProductStore/backend, main-editor runtime, deploy, `main` or `v2` semantics were changed.
+R-IMG-1 has moved beyond the initial “can we make a better-looking variant?” question. The research path now separates:
 
-Completed result records:
+1. factual source identity / authority;
+2. semantic subject/group interpretation;
+3. placement composition utility;
+4. source-isolation uncertainty;
+5. deterministic render quality;
+6. master raster resolution;
+7. human fidelity / presentation review;
+8. optional Class C generation risk.
 
-- `experiments/image-variation/results/h45-wide.v1.json`
-- `experiments/image-variation/results/soft-extra-wide.v1.json`
-- `experiments/image-variation/results/soft-close-wide.v1.json`
-- `experiments/image-variation/results/caster-lowres.v1.json`
-- `experiments/image-variation/results/round-leg-wide.v1.json`
-- `experiments/image-variation/results/hinge-standard.v1.json`
-- `experiments/image-variation/results/piston-wide.v1.json`
-- `experiments/image-variation/results/piston-isolation-consensus.v1.json`
+No ProductStore/backend, main-editor runtime, deploy, `main` or `v2` semantics have been changed.
 
-Supporting research artifacts:
+The current production-facing conclusion remains **research only**.
 
-- `experiments/image-variation/source-readback.v1.json` — exact readback evidence for all seven source families;
-- `experiments/image-variation/reviews/elongated-wide-review.v1.json` — first explicit human-review outcomes;
-- `docs/research/image-variation/DECISIONS.md` — evidence-backed/provisional/rejected research decisions;
-- `docs/research/image-variation/FIDELITY-REVIEW.md` — compact human fidelity gate for benchmark candidates;
-- `scripts/research/image-isolation-consensus.mjs` — research-only edge-gated isolation/uncertainty experiment with deterministic self-test.
+## Evidence inventory
 
-## Exact source readback
+### Benchmark and exact sources
 
-An isolated GitHub Actions probe on `research/source-readback-h45` / PR #46 materialized exact public bytes because the local runtime could not resolve the source CDNs directly. The same probe was extended instead of creating parallel download paths.
+- `experiments/image-variation/benchmark.v1.json` — 14 predeclared placement cases across seven source families.
+- `experiments/image-variation/source-readback.v1.json` — exact MIME, dimensions, byte lengths and SHA-256 evidence for all seven source families.
 
-Latest complete run: `33333171026`; artifact: `9738228935`.
+Exact source families:
 
-| Source | MIME | Dimensions | Bytes | SHA prefix |
-| --- | --- | ---: | ---: | --- |
-| H45 | JPEG | 450×450 | 16417 | `e6ed49ef777d…` |
-| Soft Extra | PNG | 800×800 | 54347 | `07edaca7d481…` |
-| Soft Close | JPEG | 420×420 | 9781 | `d0694fc2278a…` |
-| Hinge | JPEG | 450×450 | 20634 | `222a41f6f770…` |
-| Piston | PNG | 450×450 | 55284 | `a85d30da4633…` |
-| Caster | JPEG | 128×128 | 2627 | `d92dadcbb33e…` |
-| Round leg | WebP | 800×800 | 6418 | `3b415b130300…` |
+| Source | Dimensions | Key role |
+| --- | ---: | --- |
+| H45 | 450×450 | strong elongated-hardware case |
+| Soft Extra | 800×800 | canvas-removal-dominant slide case |
+| Soft Close | 420×420 | illustrative-source authority case |
+| Hinge | 450×450 | multi-piece group + semantic labels |
+| Piston | 450×450 | white-on-white + illustrative warning |
+| Caster | 128×128 | source-resolution negative control |
+| Round leg | 800×800 | composite source / semantic-role negative control |
 
-All seven benchmark source families now have exact MIME, dimensions, byte length and SHA-256 readback evidence. Platform materialization remains useful transport plumbing without making the V1 bundle architecture the semantic solution.
+The source readback used an isolated GitHub Actions probe because the local runtime could not resolve the public source CDNs directly. That remains transport evidence only; it is not the semantic image solution.
 
-## Elongated wide-placement evidence
+## Deterministic composition results
 
-Research target: `440 × 180 px`, safe margin 7%.
-
-### H45
+### H45 wide
 
 - Original contain bbox utilization: **15.7%**
 - segmented/preserve: **41.4%**
-- aligned horizontal: **74.0%**
-- best gain vs Original: **4.71×**
-- rotation gain after segmentation: **1.79×**
+- align horizontal: **74.0%**
+- explicit fidelity review: **PASS FOR BENCHMARK COMPARISON**
 
-Canvas removal and reorientation are both materially useful.
+Canvas removal and whole-group reorientation are both materially useful.
 
-### Soft Extra
+### Soft Extra wide
 
 - Original contain: **6.6%**
 - segmented/preserve: **45.8%**
-- aligned horizontal: **52.2%**
-- best gain vs Original: **7.90×**
-- rotation gain after segmentation: **1.14×**
+- align horizontal: **52.2%**
+- fidelity/authority review: **REVIEW-REQUIRED**
 
-The dominant gain is source-canvas removal; rotation adds little.
+Most utility comes from removing wasted canvas; rotation adds comparatively little. Exact pixels are known, but commercial authority remains family-level.
 
-### Soft Close
+### Soft Close wide
 
 - Original contain: **11.5%**
 - segmented/preserve: **70.1%**
 - forced horizontal: **27.4%**
-- preserve gain vs Original: **6.10×**
+- fidelity/authority review: **REVIEW-REQUIRED**
 
-The planner correctly prefers preserve. The current product page also marks imagery as illustrative, so pixel fidelity is not automatically product-truth fidelity.
+The correct geometric decision is preserve. The current product page describes imagery as illustrative, so source-pixel fidelity is not enough to establish product truth.
 
-## First explicit fidelity-review outcomes
+## Semantic / negative-control results
 
-The first review pass uses `docs/research/image-variation/FIDELITY-REVIEW.md` and is recorded in `experiments/image-variation/reviews/elongated-wide-review.v1.json`.
+### Hinge standard
 
-### H45-wide — PASS FOR BENCHMARK COMPARISON
-
-- source authority: stronger product match;
-- two primary slide pieces remain present;
-- characteristic rail geometry, holes and fittings remain visually coherent with the exact source;
-- no observed piece duplication/removal or synthetic product detail;
-- deterministic nearest-neighbor edge roughness remains a presentation-quality limitation rather than an observed identity reconstruction.
-
-This is the first explicit R-IMG-1 benchmark-comparison pass. It is **not** production approval.
-
-### Soft Extra-wide — REVIEW-REQUIRED
-
-- source pixels and visible two-rail/fitting structure are preserved well enough for continued comparison;
-- placement benefit is measurable;
-- current authority is family-level rather than a strong exact commercial-variant linkage.
-
-Blocking question: whether family-level authority is sufficient for the intended catalog placement.
-
-### Soft Close-wide — REVIEW-REQUIRED
-
-- visible source geometry remains coherent under preserve-orientation recomposition;
-- placement presence improves materially;
-- the current product page explicitly describes imagery as illustrative.
-
-Blocking question: source-pixel fidelity cannot by itself establish product-truth fidelity.
-
-## Negative controls
-
-### Caster low resolution
-
-Exact source: `128 × 128 px`; estimated factual foreground bbox about `98 × 88 px`.
-
-- Original contain: **15.9%**
-- segmented/preserve: **33.7%**
-- horizontal: **35.1%**
-- preserve scale: about **1.76×**
-
-The object can become larger without gaining factual detail. Placement utility and effective/source resolution must remain separate evidence axes.
-
-### Round-leg composite source
-
-The source contains an isolated vertical product plus a circular application image. Naive segmentation finds 53 connected components, with two dominant semantic regions: the application inset (~44.8k pixels) and isolated leg (~18.6k pixels).
-
-One principal axis over the full source is therefore not a product-orientation authority. The correct current system outcome is **no automatic variant** until the factual subject/visual role is resolved.
-
-This exposes a semantic ordering requirement: **source subject decomposition precedes orientation planning**.
-
-## Multi-piece semantic group — hinge-standard
-
-Exact source: `450 × 450 px`; target: `300 × 220 px`, safe margin 8%.
-
-Connected-light-neutral segmentation produces 124 components, but six dominate the useful structure:
-
-- three large components (~10.7k, 7.8k and 6.9k pixels) corresponding to the three primary hinge representations;
-- three smaller components (~901, 442 and 337 pixels) corresponding to `SUPER CURVA`, `CURVA` and `RETA` labels.
-
-Measured candidates:
+The source decomposes into three dominant hinge components plus the labels `RETA`, `CURVA` and `SUPER CURVA`.
 
 - Original contain bbox utilization: **36.5%**
-- trim external neutral canvas while keeping labels: **60.0%**
-- product-only, same relative layout, labels removed: **62.3%**
+- trim external canvas while preserving labels: **60.0%**
+- product-only with same layout but labels removed: **62.3%**
 
-The safe/default candidate is **trim-preserve-annotations**. Removing the labels buys only about **3.8% relative** bbox-utilization over the trim candidate while discarding explicit variant mapping carried by the source.
+Preferred research candidate: **trim-preserve-annotations**. The small additional geometric gain does not justify throwing away commercial variant mapping.
 
-This case separates two concepts that must not collapse into one:
+### Round leg
 
-1. component decomposition is useful structural evidence;
-2. component identity/role is semantic evidence and cannot be inferred from size alone.
+The source contains an isolated product plus an application inset. Image-level principal axis is therefore not product-level semantic authority.
 
-## White-on-white / authority stress — piston-wide
+Current correct outcome: **no automatic variant** until visual role/subject selection is resolved.
 
-Exact source: `450 × 450 px`; target: `440 × 180 px`, safe margin 7%. The source itself visibly contains `Imagem meramente ilustrativa`.
+### Caster
 
-The default segmentation baseline is not robust here:
+Exact source is only 128×128. A larger placement/master can magnify the raster but cannot recover factual wheel/fork/brake detail.
 
-- threshold 242 splits the product into two dominant components (~20.1k + 6.4k px) because light factual pixels are removed;
-- threshold 246 reconnects a dominant ~27.5k-pixel product region, but this is threshold sensitivity, not a general fix;
-- the product reaches the source left and right borders, so source clipping may already limit factual geometry.
+Current role: explicit source-resolution negative control.
 
-Exploratory threshold-246 geometry:
+### Piston
 
-| Candidate | BBox utilization | Estimated factual foreground occupancy |
-| --- | ---: | ---: |
-| Original contain | 27.6% | 4.1% |
-| segmented/preserve | 33.2% | 5.0% |
-| align horizontal | 33.0% | 15.3% |
+The source visibly includes `Imagem meramente ilustrativa`, reaches source borders and is fragile under the simple light-neutral segmentation baseline.
 
-This established that bbox utilization cannot stand alone: preserve and horizontal are effectively tied by bbox while horizontal gives about **3.09×** the estimated factual foreground presence.
+An edge-gated percentile-consensus probe preserves the ~3× horizontal factual-presence finding while exposing parameter sensitivity, but remains research-only and is **not** promoted into the core segmenter.
 
-### Edge-gated consensus robustness probe
+## Core evidence-backed rules
 
-A minimal alternative was tested before inventing a new segmentation stack:
+Current strongest rules are:
 
-- changing background seeds from full border to corners only produced the same split and was rejected;
-- the color criterion remains fixed at `242 / 24`;
-- background flood is additionally prevented from crossing sufficiently strong image gradients;
-- instead of choosing one gradient cutoff, majority consensus is computed over global gradient percentiles **92, 93, 94, 95 and 96**;
-- stable and percentile-sensitive foreground pixels remain separately observable.
+- resolve factual subject / visual role before orientation planning;
+- remove irrelevant source canvas before deciding whether rotation is useful;
+- use disconnected components as structural evidence, not automatic semantic roles;
+- preserve low-cost semantic annotations unless their meaning is safely represented elsewhere;
+- evaluate bbox utilization together with factual foreground/effective presence;
+- expose segmentation/isolation sensitivity rather than tuning until an image looks right;
+- keep source authority separate from source-pixel fidelity;
+- keep output raster dimensions separate from factual source resolution;
+- keep `no variant` as a first-class valid result.
 
-Piston consensus evidence:
+## Human review
 
-- one dominant product component: **28,675 px**;
-- percentile-sensitive pixels: **1,608** (~5.5% of majority foreground);
-- preserve bbox utilization: **33.0%**;
-- horizontal bbox utilization: **33.4%**;
-- preserve estimated factual foreground occupancy: **5.1%**;
-- horizontal estimated factual foreground occupancy: **15.9%**;
-- horizontal foreground-presence gain: **3.11×**.
+`docs/research/image-variation/FIDELITY-REVIEW.md` covers factual identity/authority, piece count, geometry, holes/fittings, source boundaries, orientation, annotations, resolution honesty and provenance.
 
-The ~3× placement-presence conclusion therefore survives the full P92–P96 band without raising the per-case light threshold.
+Allowed outcomes remain:
 
-Cross-source comparison prevents overclaiming:
+- `PASS FOR BENCHMARK COMPARISON`
+- `REVIEW-REQUIRED`
+- `REJECT / NO VARIANT`
 
-| Source | Consensus vs baseline IoU | Sensitive/consensus foreground | Reading |
-| --- | ---: | ---: | --- |
-| H45 | 0.968 | 3.9% | close to baseline |
-| Soft Extra | 0.864 | 0.0% | material change; blank-heavy gradient band collapses to zero |
-| Soft Close | 0.955 | 5.1% | close to baseline |
-| Hinge | 0.972 | 2.6% | close to baseline |
-| Caster | 0.990 | 0.8% | very close to baseline |
-| Round leg | 0.880 | 10.3% | material change; composite control remains unsafe |
+No result is automatically production-approved.
 
-Conclusion: the edge-gated consensus is a useful research probe for white-on-white isolation and uncertainty, but **is not promoted into the recomposition core**. Better isolation still does not strengthen the piston's explicitly illustrative source authority or repair source clipping.
+## First grounded Class C trial
 
-## Human fidelity review gate
+Plan: `experiments/image-variation/class-c-h45-plan.v1.json`  
+Result: `experiments/image-variation/results/h45-class-c-producer-failure.v1.json`
 
-`FIDELITY-REVIEW.md` evaluates candidates across:
+The H45 trial was deliberately narrow: Class C was only allowed to improve presentation cleanup/edge quality while preserving the exact two-piece factual hardware group.
 
-1. source identity and authority;
-2. piece count/group membership;
-3. characteristic geometry;
-4. fittings/holes/local detail;
-5. segmentation and source-boundary integrity;
-6. semantic orientation and annotations;
-7. resolution honesty;
-8. transformation provenance.
+Three bounded attempts failed the producer contract. Instead of returning an edited factual photograph, the available producer repeatedly returned research-report/infographic images and introduced unmeasured text, metrics and verdicts.
 
-Allowed research outcomes are `PASS FOR BENCHMARK COMPARISON`, `REVIEW-REQUIRED`, and `REJECT / NO VARIANT`. A no-variant result remains explicitly valid.
+Current outcome:
 
-## Evidence-backed conclusion
+**`CLASS_C_NOT_JUSTIFIED_PRODUCER_CONTRACT_FAILURE`**
 
-The current stronger rule is:
+This is evidence against that producer/channel as the current R-IMG-1 Class C mechanism. It is **not** evidence that every possible source-grounded generative editor is incapable of adding value.
 
-> identify factual subject/visual role first; remove irrelevant source canvas and recompute factual scale; preserve low-cost semantic annotations; evaluate both bbox and factual foreground presence; expose isolation uncertainty; only then consider whole-object/group reorientation when it adds material utility and semantic orientation permits it.
+Invalid producer outputs must never be treated as benchmark evidence.
 
-The current cases establish seven independent constraints:
+## Deterministic render-quality control
 
-1. placement presence is not factual resolution;
-2. image-level geometry is not product-level semantics when the source is composite;
-3. disconnected components are evidence, not automatic semantic roles;
-4. non-product source pixels may still carry commercially relevant meaning;
-5. bbox utilization is not sufficient to score useful factual presence;
-6. threshold/parameter sensitivity is a robustness signal, not permission to tune until an image looks right;
-7. improved source isolation does not improve source authority or reconstruct clipped factual geometry.
+`experiments/image-variation/results/h45-render-quality.v1.json` showed that the presentation-quality objective reserved for Class C can be substantially addressed deterministically.
 
-No case is automatically production/fidelity-approved.
+The alpha-aware candidate uses deterministic interpolation over the same source pixels, foreground mask and reviewed composition. It adds antialiased boundary samples, not product geometry.
+
+Outcome: **PASS FOR BENCHMARK COMPARISON** as a stronger deterministic presentation baseline.
+
+## R-IMG-1.1 — placement / master resolution decoupling
+
+Current checkpoint: `docs/research/image-variation/R-IMG-1.1.md`
+
+The user's observed failure mode was valid: a logical holder such as `440×180` should not silently become the raster-resolution target of the reusable asset.
+
+Implemented research boundary:
+
+```text
+placement plan (logical geometry)
+        ↓
+master render profile (same relative geometry)
+        ↓
+alpha-aware deterministic master
+        ↓
+deterministic downsample
+        ↓
+placement preview
+```
+
+Artifacts:
+
+- `experiments/image-variation/render-profiles.v1.json`
+- `scripts/research/image-render-master.mjs`
+- `docs/research/image-variation/PRESENTATION-REVIEW.md`
+- `experiments/image-variation/results/master-render-self-test.v1.json`
+- `experiments/image-variation/results/h45-wide-master.v1.json`
+- `experiments/image-variation/results/soft-extra-wide-master.v1.json`
+
+Initial research profile: wide placement `440×180` → master `1760×720` (4×). The 4× factor is a fixture, **not** a production contract.
+
+### Renderer self-test
+
+- relative placement/master geometry preserved exactly;
+- deterministic antialias coverage present;
+- normalized factual-coverage delta: ~**0.00035%**;
+- placement preview derived from master by integer box downsample.
+
+### H45 4× master
+
+- composition remains ~**73.9%** bbox utilization;
+- normalized factual coverage remains effectively unchanged;
+- presentation outcome: **PASS FOR MASTER BASELINE**;
+- existing factual outcome: **PASS FOR BENCHMARK COMPARISON**.
+
+The 1760×720 raster is a denser transform asset. It does **not** convert the 450×450 source into higher factual source resolution.
+
+### Soft Extra 4× master
+
+- composition remains ~**52.2%** bbox utilization;
+- normalized factual coverage remains effectively unchanged;
+- presentation outcome: **PASS FOR MASTER BASELINE**;
+- source/fidelity outcome remains **REVIEW-REQUIRED**.
+
+This demonstrates that presentation/resolution quality can pass independently of source commercial authority.
 
 ## Current architecture
 
 ```text
 CatalogDocument placement
         +
-rendered target geometry
-        +
 factual source identity/pixels
         +
 source authority / visual role
         ↓
-subject / component decomposition when necessary
+subject/component decomposition when necessary
         ↓
 semantic role preservation or explicit selection
         ↓
-research-only composition intent
+placement composition plan
         ↓
-Class A/B/C experiment
+master render profile
         ↓
-placement utility evidence
-  (bbox + foreground/effective scale)
-        +
-isolation uncertainty evidence
-        +
-fidelity / authority review
+deterministic alpha-aware render
+        ↓
+placement downsample + detail review
+        ↓
+utility + isolation + fidelity + presentation evidence
+        ↓
+optional Class C comparison only if still justified
 ```
+
+## Current conclusion
+
+For the cases tested so far, the ordinary path is converging toward:
+
+> understand the source → isolate factual content → preserve semantic meaning → choose composition → render a high-quality master deterministically → derive placement preview → review fidelity/authority → say no when evidence is insufficient.
+
+Generation is no longer assumed to be the default method for obtaining a useful variant. Any future Class C producer must beat the stronger deterministic master baseline at both master and placement scale without adding factual uncertainty.
 
 ## Next step
 
-The deterministic research prerequisites originally placed before a Class C comparison are now substantially met: exact source bytes exist, H45 has an explicit benchmark-comparison pass, and the white-on-white isolation stress has a documented non-core alternative plus uncertainty evidence.
-
-1. Predeclare one narrowly scoped Class C comparison on **H45** against the reviewed A/B horizontal candidate. The only acceptable objective is marginal presentation utility (for example edge/background quality) while preserving the exact two-piece hardware identity; no new holes, fittings, rails, viewpoint or piece count may appear.
-2. Treat `Class C not justified` as a first-class result. If the generative candidate cannot materially outperform the reviewed A/B candidate without reconstructing uncertain hardware detail, stop rather than expanding generation scope.
-3. Keep Soft Extra, Soft Close and piston out of the first Class C trial because their source-authority caveats would confound generation-risk evaluation.
-4. Do not freeze a production `generationIntent`, result schema or generator integration from this comparison.
+1. Apply the master-render path to **Soft Close** and **hinge** to test preserve-orientation and multi-piece/annotation behavior.
+2. Apply it to **caster** as a source-limited negative control; a 4× master must not become a false “high-resolution success”.
+3. Compare fixed 4× against a source-aware/adaptive master factor before freezing any default resolution policy.
+4. Keep the current Class C trial closed unless a producer with a reliable source-image edit contract becomes available.
+5. Do not integrate the research renderer into production or freeze a production `generationIntent`/result schema from this evidence alone.
