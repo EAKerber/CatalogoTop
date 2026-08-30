@@ -6,114 +6,143 @@ Stable baseline: `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v1.0.0`
 
 ## State
 
-The kickstart biopsy is complete and R-IMG-1 is now producing factual-source evidence without changing product runtime code.
+R-IMG-1 has moved from biopsy/prototype into a first factual-source comparison across three elongated hardware cases.
 
-Current boundaries remain:
+The product/runtime boundaries remain unchanged:
 
 - `CatalogDocument` owns structural/materialized placement, not generation intent;
 - `product.image` remains canonical fallback;
 - `product.imageGallery`, `presentation.imageVariants`, `presentation.imageSelections` and `presentation.imageFrames` remain distinct domains;
-- existing V1 `placementKey`, target measurement, source hash and deterministic fallback concepts remain useful transport evidence;
-- V1 external variation remains retired from the product line;
-- research is isolated from `main` and `v2`.
+- V1 placement/source/signature concepts are transport evidence, not a frozen generative architecture;
+- external image variation remains retired from V1 and is not reactivated in V2;
+- research stays isolated from `main` and `v2`.
 
 No ProductStore/backend, main-editor runtime, deploy or production-data semantics were changed.
 
 ## Benchmark
 
-`experiments/image-variation/benchmark.v1.json` predeclares 14 cases across 7 hardware families before new outputs are evaluated.
+`experiments/image-variation/benchmark.v1.json` predeclares 14 cases across 7 hardware families.
 
-Expected decisions:
+Expected decisions remain:
 
 - `variant-expected`: 3
 - `conditional`: 6
 - `no-variant-preferred`: 5
 
-Automatic acceptance ceilings remain Class A/B only. Class C is comparison-only and requires human review.
+Class C remains comparison-only and requires human review.
 
-## Deterministic factual-pixel prototype
+## Factual-pixel research core
 
-`scripts/research/image-recomposition-core.mjs` remains the narrow Class A/B core:
+`scripts/research/image-recomposition-core.mjs`:
 
-1. remove only light/neutral background connected to the image border;
-2. estimate foreground principal axis;
-3. compare preserve/horizontal/vertical placement within safe margins;
-4. copy factual foreground pixels into the target raster with nearest-neighbor scaling.
+1. removes only light/neutral background connected to the image border;
+2. estimates the factual foreground principal axis;
+3. compares preserve/horizontal/vertical composition inside safe margins;
+4. copies factual source pixels into the target with nearest-neighbor scaling.
 
-The module deliberately does not decide whether a product is semantically allowed to rotate. Geometry is evidence, not product authority.
+The core does not grant semantic permission to rotate. Geometry is evidence only.
 
-Synthetic self-test still passes.
+## Source materialization
 
-## First factual benchmark result — H45 wide
+The local runtime could view the public sources through the browser research layer but could not resolve the source CDNs directly. An isolated platform fallback was therefore exercised on `research/source-readback-h45` / draft PR #46.
 
-Result record:
+GitHub Actions successfully materialized exact public bytes and recorded passive MIME/hash/dimension evidence. The probe is research-only and is not intended for product merge.
 
-`experiments/image-variation/results/h45-wide.v1.json`
+Current exact source readback:
 
-The current H45 public source was materialized through an isolated GitHub Actions research probe because the local runtime could not resolve the source CDN directly.
+| Source | MIME | Dimensions | Bytes | SHA-256 prefix |
+| --- | --- | ---: | ---: | --- |
+| H45 | JPEG | 450×450 | 16417 | `e6ed49ef777d…` |
+| Soft Extra | PNG | 800×800 | 54347 | `07edaca7d481…` |
+| Soft Close | JPEG | 420×420 | 9781 | `d0694fc2278a…` |
 
-Passive source evidence:
+Elongated readback run: `33332404497`; artifact: `9738020897`.
 
-- source: Renna H45 / 500 mm / 35 kg listing image;
-- MIME: JPEG;
-- dimensions: `450 × 450 px`;
-- bytes: `16417`;
-- SHA-256: `e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7`;
-- materialization run: `33332270953`;
-- artifact: `9737982426`.
+This confirms that the old platform-download idea remains useful plumbing when a local sandbox cannot fetch source bytes.
 
-The source foreground under the current connected-light-neutral segmentation contains `21466` pixels with bbox `379 × 277 px`. Its principal axis is approximately `30.54°`.
+## Factual wide-placement comparison
 
-For the research `card-wide` target (`440 × 180`, safe margin 7%):
+Target for all three cases: research `card-wide` = `440 × 180 px`, safe margin `7%`.
 
-- Original full-canvas contain bbox utilization: `0.156859` (~15.7%);
-- segmented foreground, orientation preserved: `0.413977` (~41.4%);
-- whole factual group aligned horizontally: `0.739028` (~74.0%);
-- horizontal gain vs Original contain: `4.7114×`;
-- horizontal gain vs segmented/preserve: `1.7852×`.
+Result records:
 
-This is strong evidence that a large fraction of the placement benefit can come from **removing irrelevant source canvas + whole-group factual recomposition**, without synthesizing product geometry.
+- `experiments/image-variation/results/h45-wide.v1.json`
+- `experiments/image-variation/results/soft-extra-wide.v1.json`
+- `experiments/image-variation/results/soft-close-wide.v1.json`
 
-It is **not yet a fidelity pass**. Human review still needs to confirm visible piece count, characteristic rail geometry, holes/fittings and model identity. The metric proves material utility, not safe automatic approval.
+### H45
 
-## Source-materialization lesson
+- Original full-canvas contain bbox utilization: **15.7%**
+- segmented foreground, orientation preserved: **41.4%**
+- whole factual group aligned horizontally: **74.0%**
+- best gain vs Original: **4.71×**
+- additional gain from rotation after segmentation: **1.79×**
 
-The V1-style platform fallback remains useful research plumbing:
+Interpretation: both canvas removal and whole-group reorientation are materially useful.
 
-```text
-local runtime cannot fetch source
-        ↓
-platform/GitHub Actions materializes public bytes
-        ↓
-passive MIME/hash/dimension evidence
-        ↓
-research prototype operates on factual bytes
-```
+### Soft Extra
 
-The isolated probe lives on `research/source-readback-h45` / draft PR #46 and is not intended for product merge.
+- Original full-canvas contain: **6.6%**
+- segmented/preserve: **45.8%**
+- aligned horizontally: **52.2%**
+- best gain vs Original: **7.90×**
+- additional gain from rotation after segmentation: only **1.14×**
 
-The same isolated path is now being used to read back Soft Extra and Soft Close so the elongated-hardware comparison can use exact bytes rather than previews.
+Interpretation: almost all value comes from removing the enormous neutral source canvas and scaling the factual group. Rotation is secondary.
 
-## Source-authority caveat
+### Soft Close
 
-Pixel fidelity and product-truth authority are separate.
+- Original full-canvas contain: **11.5%**
+- segmented/preserve: **70.1%**
+- forced horizontal alignment: **27.4%**
+- preserve gain vs Original: **6.10×**
+- geometric choice: **preserve**
 
-- H45 currently has a comparatively strong page/product/source match.
-- Soft Close remains an authority-stress case because the current GMAD page states that images are merely illustrative.
-- A faithful transform of an illustrative image is not automatically factual product evidence.
+Interpretation: the same planner that rotated H45 correctly rejects rotation here. “Elongated product” is not enough to justify “make it horizontal”.
 
-This distinction should influence future evidence metadata, but field names remain intentionally unfrozen.
+Soft Close also remains a source-authority stress case: the current GMAD page states that product images are merely illustrative. Pixel fidelity therefore cannot be treated as sufficient evidence of factual product truth.
 
-## Current interpretation
+## First conclusion that survived evidence
 
-The working architecture is still:
+The original hypothesis needs refinement.
+
+What the first three factual cases support is not:
+
+> elongated hardware should be rotated to fill wide cards.
+
+The stronger evidence-backed statement is:
+
+> first remove irrelevant source canvas and recompute factual foreground scale; only then consider whole-group reorientation when it creates a material additional placement benefit and semantic orientation permits it.
+
+Across all three cases, **canvas removal/recomposition is the dominant common source of value**. Rotation is strongly useful for H45, weakly useful for Soft Extra and actively harmful for Soft Close.
+
+That is a materially better contract direction than a flat transform allowlist.
+
+## Fidelity status
+
+None of the three cases is automatically approved yet.
+
+Human review still needs to check:
+
+- visible piece count;
+- characteristic rail geometry/proportions;
+- holes, fittings and connectors;
+- whether segmentation removed factual light pixels;
+- whether orientation remains commercially/semantically natural;
+- source authority, especially for illustrative/family-representative imagery.
+
+The current result is evidence of **utility**, not a final fidelity gate.
+
+## Current architecture
 
 ```text
 CatalogDocument placement
         +
 rendered target geometry
         +
-canonical/factual source identity and pixels
+factual source identity/pixels
+        +
+source-authority confidence
         +
 research-only generation intent
         ↓
@@ -122,20 +151,15 @@ Class A/B/C candidate experiment
 utility evidence + fidelity evidence
 ```
 
-The main open hypothesis is now narrower:
-
-> For elongated catalog hardware, how much reliable placement value can be obtained through source segmentation and whole-object/group recomposition before any generative reconstruction is justified?
-
-H45 provides the first positive factual datapoint: geometric utility is large enough that a non-generative path deserves serious evaluation.
+Source authority is now explicitly a separate concern from pixel similarity.
 
 ## Next step
 
-1. Finish exact source readback for Soft Extra and Soft Close.
-2. Run the same Original → segmented/preserve → aligned-horizontal comparison.
-3. Compare whether the H45 gain generalizes or is source-specific.
-4. Run semantic negative controls, especially the round-leg wide case, where a geometrically attractive 90° rotation should be rejected.
-5. Add human fidelity review notes to H45 before calling it a benchmark pass.
-6. Only after the A/B evidence is clearer, compare a grounded Class C edit on a small subset.
+1. Run semantic negative controls, beginning with the round-leg wide case: geometry should not be allowed to rotate a product whose meaningful presentation is vertical.
+2. Run the low-resolution caster control to ensure simple raster enlargement is not scored as newly created factual detail.
+3. Add human fidelity review notes for H45/Soft Extra/Soft Close.
+4. Decide whether foreground-canvas utilization should become a benchmark metric alongside bbox utilization; do not collapse them into one score.
+5. Only after these A/B boundaries are clearer, compare one grounded Class C edit on a small subset.
 
 Do not freeze a production `generationIntent` or result schema yet.
 
