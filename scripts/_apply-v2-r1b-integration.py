@@ -55,3 +55,11 @@ text = text.replace(
     "  ['contratos de folder/snapshot carregam antes do Core', files.html.indexOf('src/folder-tree.js') < files.html.indexOf('src/product-folder-migration.js') && files.html.indexOf('src/product-folder-migration.js') < files.html.indexOf('src/product-snapshot.js') && files.html.indexOf('src/product-snapshot.js') < files.html.indexOf('src/core.js')],\n  ['clientes de storage carregam antes do app', files.html.indexOf('src/product-store.js') < files.html.indexOf('src/app.js')]\n"
 )
 p.write_text(text, encoding='utf-8')
+
+p = Path('scripts/validate.mjs')
+text = p.read_text(encoding='utf-8')
+old = "  ['estado local migra para schema v7', core.includes('SCHEMA_VERSION = 7') && core.includes('imageGallery: normalizeImageGallery') && core.includes('order: []') && core.includes('blocks: []')],"
+new = "  ['estado local migra para schema v8 com folders', core.includes('SCHEMA_VERSION = 8') && core.includes('folders: organization.folders || []') && core.includes('folderId: String(product.folderId || \\\'\\\').trim()') && core.includes('imageGallery: normalizeImageGallery') && core.includes('order: []') && core.includes('blocks: []') && html.indexOf('src/folder-tree.js') < html.indexOf('src/product-folder-migration.js') && html.indexOf('src/product-folder-migration.js') < html.indexOf('src/product-snapshot.js') && html.indexOf('src/product-snapshot.js') < html.indexOf('src/core.js')],"
+if text.count(old) != 1:
+    raise SystemExit('scripts/validate.mjs: schema gate anchor mismatch')
+p.write_text(text.replace(old, new), encoding='utf-8')
