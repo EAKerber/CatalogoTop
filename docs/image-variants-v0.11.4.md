@@ -67,8 +67,11 @@ O pacote contém:
 
 - `manifest.json` — contrato autoritativo;
 - `context/layout.json` — contexto estrutural materializado;
-- `README.txt` — política resumida;
-- `sources/...` — originais canônicos deduplicados por SHA-256.
+- `README.txt` — política resumida e paved path do consumidor;
+- `tools/materialize-sources.py` — helper sem dependências de terceiros para materializar `remote-url` em arquivos locais;
+- `sources/...` — originais canônicos deduplicados por SHA-256 quando o navegador consegue ler os bytes.
+
+Quando CORS impede embedding, `source.mode=remote-url` continua apontando para a fonte canônica. O consumidor deve materializar esses bytes antes de editar; uma visualização obtida pela web não é substituto para o pixel source. O helper suporta download HTTP direto e também `plan` → downloader da plataforma → `ingest` para sandboxes cujo runtime local não possui rede. Ele gera índices auxiliares não autoritativos e preserva `manifest.json`, `requestId`, `jobId` e `usageSignature`.
 
 ### Placements suportados na V1
 
