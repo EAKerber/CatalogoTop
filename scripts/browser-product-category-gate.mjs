@@ -41,50 +41,21 @@ const server = createServer(async (request, response) => {
 
 function installFixture() {
   const NS = window.CatalogoTop;
-  const groups = [
-    ['Corrediças', 5],
-    ['Dobradiças', 4],
-    ['Pistões', 3],
-    ['Puxadores', 2],
-    ['Parafusos', 1]
-  ];
-  let serial = 0;
-  const products = groups.flatMap(([category, count]) => Array.from({ length: count }, () => {
-    serial += 1;
-    return NS.Core.normalizeProduct({
-      id: `p${serial}`,
-      code: `P${serial}`,
-      description: `${category} ${serial}`,
-      category,
-      subcategory: '',
-      price: '',
-      status: 'Ativo',
-      notes: '',
-      image: '',
-      specs: [],
-      variants: [],
-      tableRows: [],
-      updatedAt: '2026-08-27T00:00:00.000Z'
-    });
-  }));
-
   NS.ProductStore.publishCurrent = async () => true;
-  window.confirm = () => true;
   NS.Core.setState({
     schemaVersion: 7,
-    products,
-    selectedIds: products.slice(0, 4).map(product => product.id),
+    products: [
+      { id: 'p1', code: 'ABC-100', description: 'Corrediça telescópica', category: 'Ferragens', subcategory: 'Corrediças / Telescópicas', price: 'R$ 10,00', status: 'Ativo', notes: '', image: '', specs: [{ label: 'Carga', value: '35 kg' }], variants: [], tableRows: [] },
+      { id: 'p2', code: 'ABC-200', description: 'Corrediça comum', category: 'Ferragens', subcategory: 'Corrediças', price: '', status: 'Ativo', notes: '', image: '', specs: [], variants: [], tableRows: [] },
+      { id: 'p3', code: 'DOB-1', description: 'Dobradiça', category: 'Ferragens', subcategory: 'Dobradiças', price: '', status: 'Ativo', notes: '', image: '', specs: [], variants: [], tableRows: [] }
+    ],
+    selectedIds: [],
     catalog: {
-      title: 'Product/category UX gate',
+      title: 'Cadastro R1d gate',
       templateId: 'technical',
       showPrices: true,
-      createdAt: '2026-08-27T00:00:00.000Z',
-      presentation: NS.Composition.normalizePresentation({
-        order: products.slice(0, 4).map(product => product.id),
-        blocks: [],
-        itemStyles: {},
-        imageFrames: {}
-      })
+      createdAt: '2026-08-30T00:00:00.000Z',
+      presentation: { order: [], blocks: [] }
     }
   }, { persist: false });
   window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));
@@ -98,77 +69,96 @@ const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => Boolean(
-    window.CatalogoTop?.Core
-    && window.CatalogoTop?.ProductActions?.deleteCategory
-    && document.querySelector('#categoryPicker')
-  ));
-
+  await page.waitForFunction(() => Boolean(window.CatalogoTop?.CadastroSurface && document.querySelector('#productFolderPath')));
   await page.evaluate(installFixture);
-  await page.waitForFunction(() => document.querySelectorAll('#categoryFolders [data-category-folder]').length === 6);
+  await page.waitForFunction(() => document.querySelectorAll('#cadastroProductRows tr').length === 3);
 
-  const categoryInput = page.locator('#category');
-  await categoryInput.focus();
-  await page.waitForSelector('#categoryPicker:not([hidden])');
-
-  let picker = await page.evaluate(() => ({
-    suggestions: [...document.querySelectorAll('#categoryPicker .category-picker-option.suggested [data-unused], #categoryPicker .category-picker-option.suggested > span')].map(node => node.textContent.trim()),
-    allChoices: [...document.querySelectorAll('#categoryPicker [data-category-choice]')].map(node => node.dataset.categoryChoice),
-    maxHeight: getComputedStyle(document.querySelector('#categoryPicker')).maxHeight,
-    overflowY: getComputedStyle(document.querySelector('#categoryPicker')).overflowY
+  const shell = await page.evaluate(() => ({
+    categoryHidden: document.querySelector('#category')?.closest('label')?.hidden,
+    subcategoryHidden: document.querySelector('#subcategory')?.closest('label')?.hidden,
+    deleteHidden: document.querySelector('#btnDeleteProduct')?.hidden,
+    mobileLabel: document.querySelector('[data-mobile-workspace-target="library"]')?.textContent?.trim(),
+    legacyDeleteVisible: Boolean(document.querySelector('#productLibraryPanel [data-delete-product-direct]'))
   }));
-  if (picker.suggestions.join(',') !== 'Corrediças,Dobradiças,Pistões') throw new Error(`3 recomendações iniciais inesperadas: ${JSON.stringify(picker)}`);
-  if (new Set(picker.allChoices).size !== 5) throw new Error(`lista completa deveria expor 5 categorias: ${JSON.stringify(picker)}`);
-  if (picker.overflowY !== 'auto') throw new Error(`seletor deve ser rolável: ${JSON.stringify(picker)}`);
+  if (!shell.categoryHidden || !shell.subcategoryHidden || !shell.deleteHidden || shell.mobileLabel !== 'Existentes' || shell.legacyDeleteVisible) {
+    throw new Error(`Cadastro ainda expõe responsabilidades legadas/destrutivas: ${JSON.stringify(shell)}`);
+  }
 
-  await categoryInput.fill('cor');
-  await page.waitForFunction(() => document.querySelector('#categoryPicker .category-picker-option.suggested > span')?.textContent === 'Corrediças');
-  picker = await page.evaluate(() => ({
-    firstSuggestion: document.querySelector('#categoryPicker .category-picker-option.suggested > span')?.textContent?.trim(),
-    allCount: new Set([...document.querySelectorAll('#categoryPicker [data-category-choice]')].map(node => node.dataset.categoryChoice)).size
+  await page.fill('#productFolderPath', 'Ferragens / Corrediças');
+  await page.waitForFunction(() => document.querySelectorAll('#cadastroProductRows tr').length === 2);
+  let scope = await page.evaluate(() => [...document.querySelectorAll('#cadastroProductRows tr')].map(row => row.dataset.cadastroProduct));
+  if (scope.join(',') !== 'p1,p2') throw new Error(`scope recursivo inesperado: ${scope.join(',')}`);
+
+  await page.fill('#cadastroProductSearch', 'ABC-100');
+  await page.waitForFunction(() => document.querySelectorAll('#cadastroProductRows tr').length === 1);
+  scope = await page.evaluate(() => [...document.querySelectorAll('#cadastroProductRows tr')].map(row => row.dataset.cadastroProduct));
+  if (scope.join(',') !== 'p1') throw new Error(`busca contextual não priorizou código exato: ${scope.join(',')}`);
+  await page.fill('#cadastroProductSearch', '');
+
+  await page.click('[data-cadastro-clone="p1"]');
+  const cloneDraft = await page.evaluate(() => ({
+    productId: document.querySelector('#productId').value,
+    code: document.querySelector('#code').value,
+    path: document.querySelector('#productFolderPath').value,
+    title: document.querySelector('#formTitle').textContent,
+    sourceCount: window.CatalogoTop.Core.getState().products.length,
+    deleteHidden: document.querySelector('#btnDeleteProduct').hidden
   }));
-  if (picker.firstSuggestion !== 'Corrediças' || picker.allCount !== 5) throw new Error(`busca deveria priorizar correspondência e manter acesso a todas: ${JSON.stringify(picker)}`);
+  if (!cloneDraft.productId || cloneDraft.productId === 'p1' || cloneDraft.code !== '' || cloneDraft.path !== 'Ferragens / Corrediças / Telescópicas' || cloneDraft.sourceCount !== 3 || !cloneDraft.deleteHidden || !cloneDraft.title.includes('ABC-100')) {
+    throw new Error(`Usar como base não ficou como draft desacoplado: ${JSON.stringify(cloneDraft)}`);
+  }
 
-  await categoryInput.fill('Dob');
-  await page.click('#categoryPicker [data-category-choice="Dobradiças"]');
-  let categoryState = await page.evaluate(() => ({
-    value: document.querySelector('#category').value,
-    mode: document.querySelector('#category').dataset.categoryMode,
-    hidden: document.querySelector('#categoryPicker').hidden
+  await page.fill('#code', ' abc-100 ');
+  await page.locator('#productForm').evaluate(form => form.requestSubmit());
+  await page.waitForTimeout(50);
+  const duplicate = await page.evaluate(() => ({
+    count: window.CatalogoTop.Core.getState().products.length,
+    validity: document.querySelector('#code').validationMessage
   }));
-  if (categoryState.value !== 'Dobradiças' || categoryState.mode !== 'existing' || !categoryState.hidden) throw new Error(`seleção de categoria existente falhou: ${JSON.stringify(categoryState)}`);
+  if (duplicate.count !== 3 || !duplicate.validity) throw new Error(`código duplicado não bloqueou o submit sem mutação: ${JSON.stringify(duplicate)}`);
 
-  await categoryInput.fill('Nova Linha');
-  await page.waitForSelector('#categoryPicker [data-category-create="Nova Linha"]');
-  await page.click('#categoryPicker [data-category-create="Nova Linha"]');
-  categoryState = await page.evaluate(() => ({ value: document.querySelector('#category').value, mode: document.querySelector('#category').dataset.categoryMode }));
-  if (categoryState.value !== 'Nova Linha' || categoryState.mode !== 'new') throw new Error(`criação de nova categoria não ficou explícita: ${JSON.stringify(categoryState)}`);
-
-  const productDelete = await page.evaluate(() => {
-    const button = document.querySelector('[data-delete-product-direct]');
-    return button ? {
-      aria: button.getAttribute('aria-label'),
-      pseudo: getComputedStyle(button, '::after').content
-    } : null;
+  await page.click('#btnNewProduct');
+  await page.waitForTimeout(0);
+  await page.fill('#productFolderPath', 'Ferragens / Corrediças / Telescópicas / Premium');
+  await page.fill('#code', 'NEW-1');
+  await page.fill('#description', 'Corrediça premium');
+  await page.locator('#productForm').evaluate(form => form.requestSubmit());
+  await page.waitForFunction(() => window.CatalogoTop.Core.getState().products.some(product => product.code === 'NEW-1'));
+  const created = await page.evaluate(() => {
+    const NS = window.CatalogoTop;
+    const product = NS.Core.getState().products.find(item => item.code === 'NEW-1');
+    return {
+      count: NS.Core.getState().products.length,
+      path: NS.FolderTree.pathOf(NS.Core.getState().folders, product.folderId).map(item => item.name),
+      category: product.category,
+      subcategory: product.subcategory
+    };
   });
-  if (!productDelete || productDelete.aria !== 'Excluir produto' || !productDelete.pseudo.includes('Excluir')) throw new Error(`exclusão de produto não está explícita: ${JSON.stringify(productDelete)}`);
+  if (created.count !== 4 || created.path.join(' / ') !== 'Ferragens / Corrediças / Telescópicas / Premium' || created.category !== 'Ferragens' || created.subcategory !== 'Corrediças / Telescópicas / Premium') {
+    throw new Error(`criação profunda pelo Cadastro não preservou hierarquia/mirrors: ${JSON.stringify(created)}`);
+  }
 
-  const parafusoId = await page.evaluate(() => window.CatalogoTop.Core.getState().products.find(product => product.category === 'Parafusos')?.id);
-  await page.click(`[data-delete-product-direct="${parafusoId}"]`);
-  await page.waitForFunction(id => !window.CatalogoTop.Core.getState().products.some(product => product.id === id), parafusoId);
-
-  const beforeCategoryDelete = await page.evaluate(() => window.CatalogoTop.Core.getState().products.filter(product => product.category === 'Puxadores').length);
-  if (beforeCategoryDelete !== 2) throw new Error(`fixture de Puxadores inesperada: ${beforeCategoryDelete}`);
-  await page.click('#categoryFolders [data-delete-category="Puxadores"]');
-  await page.waitForFunction(() => !window.CatalogoTop.Core.getState().products.some(product => product.category === 'Puxadores'));
-  const deletionState = await page.evaluate(() => ({
-    remaining: window.CatalogoTop.Core.getState().products.filter(product => product.category === 'Puxadores').length,
-    folder: Boolean(document.querySelector('#categoryFolders [data-category-folder="Puxadores"]')),
-    deleteControl: Boolean(document.querySelector('#categoryFolders [data-delete-category="Puxadores"]'))
+  await page.fill('#productFolderPath', 'Ferragens / Corrediças');
+  await page.fill('#cadastroProductSearch', 'ABC-200');
+  await page.waitForFunction(() => document.querySelectorAll('#cadastroProductRows tr').length === 1);
+  await page.click('[data-cadastro-edit="p2"]');
+  const edit = await page.evaluate(() => ({
+    productId: document.querySelector('#productId').value,
+    path: document.querySelector('#productFolderPath').value,
+    code: document.querySelector('#code').value
   }));
-  if (deletionState.remaining || deletionState.folder || deletionState.deleteControl) throw new Error(`categoria excluída permaneceu na UI/estado: ${JSON.stringify(deletionState)}`);
+  if (edit.productId !== 'p2' || edit.path !== 'Ferragens / Corrediças' || edit.code !== 'ABC-200') throw new Error(`Editar contextual perdeu identidade/pasta: ${JSON.stringify(edit)}`);
 
-  console.log('PASS browser product/category gate: exclusões explícitas e combobox com 3 sugestões + lista completa');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.click('[data-mobile-workspace-target="library"]');
+  const mobile = await page.evaluate(() => ({
+    selected: document.querySelector('[data-mobile-workspace-target="library"]')?.getAttribute('aria-selected'),
+    panelActive: document.querySelector('#productLibraryPanel')?.classList.contains('mobile-workspace-active'),
+    display: getComputedStyle(document.querySelector('#productLibraryPanel')).display
+  }));
+  if (mobile.selected !== 'true' || !mobile.panelActive || mobile.display === 'none') throw new Error(`mobile não abriu Existentes de forma explícita: ${JSON.stringify(mobile)}`);
+
+  console.log('PASS browser Cadastro R1d gate: folder path, recursive context, clone draft, duplicate guard, deep create and mobile existing-products surface');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
