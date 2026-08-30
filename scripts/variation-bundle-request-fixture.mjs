@@ -173,12 +173,17 @@ if (first.manifest.jobs[0].placementKey !== 'card:p1' || first.manifest.jobs[1].
 if (first.manifest.jobs[0].target.imageFrame.zoom !== 1.4 || first.manifest.jobs[0].source.originalRef !== sharedSource || first.manifest.jobs[0].source.mode !== 'embedded' || first.manifest.jobs[0].source.fingerprint !== first.manifest.jobs[0].source.sha256) fail('job não preservou framing/source canônico embutido');
 if (!first.manifest.jobs.every(job => /^job-[a-f0-9]{20}$/.test(job.jobId) && /^[a-f0-9]{64}$/.test(job.usageSignature))) fail('jobId/usageSignature inválidos');
 if (first.manifest.policy.resultScope !== 'catalog-local' || !first.manifest.policy.identityAndGeometryMustBePreserved) fail('policy não mantém resultado local/fidelidade');
+const resultContract = VariationBundle.resultContract(first.requestId);
+if (resultContract.kind !== 'catalogotop.image-variation-result-contract' || resultContract.version !== 1) fail(`contrato de resultado inválido: ${JSON.stringify(resultContract)}`);
+if (resultContract.requestManifest.version !== 2 || resultContract.resultManifest.kind !== 'catalogotop.image-variation-result' || resultContract.resultManifest.version !== 1 || resultContract.resultManifest.topLevelArray !== 'variants' || !resultContract.resultManifest.forbiddenTopLevelArrays.includes('results')) fail(`Request v2 precisa declarar Result v1/variants sem espelhamento: ${JSON.stringify(resultContract)}`);
+if (!resultContract.allowedMimeTypes.includes('image/png') || resultContract.allowedMimeTypes.includes('image/svg+xml') || !resultContract.allowedTransforms.includes('focus-reframe') || resultContract.allowedTransforms.includes('downscale')) fail(`whitelists do Result contract divergiram: ${JSON.stringify(resultContract)}`);
 if (JSON.stringify(first.manifest).includes('R$ 99,90')) fail('manifest de imagem não deve transportar fatos comerciais desnecessários');
 if (fetchCount !== 2) fail(`cada build deve deduplicar a mesma sourceRef; fetches totais esperados=2, recebido=${fetchCount}`);
 
 const sourceEntries = first.archive.entries.filter(item => item.path.startsWith('sources/'));
 if (sourceEntries.length !== 1) fail(`asset compartilhado deveria aparecer uma vez no ZIP: ${JSON.stringify(sourceEntries)}`);
 if (!first.archive.entries.some(item => item.path === 'manifest.json') || !first.archive.entries.some(item => item.path === 'context/layout.json')) fail('ZIP precisa conter manifest e layout context');
+if (!first.archive.entries.some(item => item.path === 'context/result-contract.json')) fail('ZIP precisa carregar contrato machine-readable do Result Bundle v1');
 if (!first.archive.entries.some(item => item.path === 'tools/materialize-sources.py')) fail('ZIP precisa carregar paved path de materialização para consumidores externos');
 if (new DataView(first.archive.bytes.buffer, first.archive.bytes.byteOffset, first.archive.bytes.byteLength).getUint32(0, true) !== 0x04034b50) fail('request bundle não é ZIP válido');
 
