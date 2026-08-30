@@ -1,0 +1,78 @@
+{
+  "kind": "catalogotop.image-variation-benchmark-result",
+  "version": 1,
+  "caseId": "piston-wide",
+  "status": "provisional-no-auto-accept",
+  "sourceEvidence": {
+    "sourceId": "piston",
+    "sourceUrl": "https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186698/22-5q9ac2njj1-uxd9aksc9v.png",
+    "mimeType": "image/png",
+    "byteLength": 55284,
+    "sha256": "a85d30da46332fc9d81d65ffead780bf0252bc6e01bf2753157509118cacf19d",
+    "widthPx": 450,
+    "heightPx": 450,
+    "materializationTransport": "github-actions-public-https",
+    "materializationRunId": 33333171026,
+    "artifactId": 9738228935,
+    "authorityNote": "The source image itself contains the visible disclaimer 'Imagem meramente ilustrativa'."
+  },
+  "target": {
+    "profile": "card-wide",
+    "widthPx": 440,
+    "heightPx": 180,
+    "safeMarginRatio": 0.07
+  },
+  "segmentation": {
+    "method": "connected-light-neutral-border",
+    "chromaTolerance": 24,
+    "thresholdSensitivity": {
+      "threshold242": {
+        "componentCount": 11,
+        "largestComponents": [
+          {"pixels": 20146, "bbox": [0, 155, 291, 430]},
+          {"pixels": 6363, "bbox": [274, 20, 450, 170]}
+        ],
+        "interpretation": "failure: light factual product pixels are removed and the product splits into two dominant regions"
+      },
+      "threshold246": {
+        "componentCount": 21,
+        "largestComponentPixels": 27512,
+        "largestComponentBBox": [0, 20, 450, 430],
+        "interpretation": "exploratory only: the main product reconnects, demonstrating threshold sensitivity rather than a robust fix"
+      }
+    }
+  },
+  "geometry": {
+    "principalAxisDegAtThreshold246": -42.5089,
+    "originalContain": {
+      "scale": 0.344,
+      "bboxUtilization": 0.275669,
+      "estimatedForegroundOccupancy": 0.041107
+    },
+    "segmentedPreserveAtThreshold246": {
+      "scale": 0.377561,
+      "bboxUtilization": 0.332082,
+      "estimatedForegroundOccupancy": 0.049519
+    },
+    "alignHorizontalAtThreshold246": {
+      "scale": 0.663905,
+      "bboxUtilization": 0.329551,
+      "estimatedForegroundOccupancy": 0.153112
+    },
+    "foregroundOccupancyGainHorizontalVsPreserve": 3.092
+  },
+  "interpretation": {
+    "utility": "strong-foreground-presence-gain-hidden-by-bbox",
+    "fidelity": "not-auto-acceptable",
+    "candidateClass": "B",
+    "currentSystemOutcome": "no-variant-until-robust-isolation-and-review",
+    "notes": [
+      "BBox utilization alone nearly ties preserve and horizontal candidates even though the horizontal candidate has about 3.09x greater estimated factual foreground occupancy.",
+      "This establishes that bbox utilization and factual foreground presence/effective scale are complementary metrics rather than substitutes.",
+      "The default segmentation threshold 242 damages the white-on-white product and splits it into two dominant components; tuning to 246 reconnects it but is not a robust general solution.",
+      "The product touches the source left and right borders, so source clipping may already limit factual geometry before any transformation.",
+      "The source is explicitly illustrative; preserving source pixels does not authorize promotion to factual product truth.",
+      "No Class C reconstruction should be used to hide source clipping or weak authority without explicit human review."
+    ]
+  }
+}
