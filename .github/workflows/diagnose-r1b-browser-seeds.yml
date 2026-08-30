@@ -1,4 +1,4 @@
-name: Diagnose R1b Browser Seeds
+name: Normalize R1b Browser Seeds
 
 on:
   push:
@@ -8,20 +8,52 @@ on:
       - .github/workflows/diagnose-r1b-browser-seeds.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  diagnose:
+  normalize:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: List current-schema browser seeds
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Normalize unrelated browser fixtures to legacy input
         shell: bash
         run: |
           set -euo pipefail
-          echo '=== Core.SCHEMA_VERSION ==='
-          grep -RniF 'schemaVersion: Core.SCHEMA_VERSION' scripts/browser-*.mjs || true
-          echo '=== numeric schema 8 ==='
-          grep -RniE 'schemaVersion:[[:space:]]*8([^0-9]|$)' scripts/browser-*.mjs || true
-          echo '=== all browser schemaVersion occurrences ==='
-          grep -RniE 'schemaVersion:' scripts/browser-*.mjs || true
+          python - <<'PY'
+          from pathlib import Path
+
+          total = 0
+          changed = []
+          for path in sorted(Path('scripts').glob('browser-*.mjs')):
+              text = path.read_text(encoding='utf-8')
+              count = text.count('schemaVersion: NS.Core.SCHEMA_VERSION') + text.count('schemaVersion: Core.SCHEMA_VERSION')
+              if not count:
+                  continue
+              text = text.replace('schemaVersion: NS.Core.SCHEMA_VERSION', 'schemaVersion: 7')
+              text = text.replace('schemaVersion: Core.SCHEMA_VERSION', 'schemaVersion: 7')
+              path.write_text(text, encoding='utf-8')
+              total += count
+              changed.append(str(path))
+
+          if total != 19:
+              raise SystemExit(f'expected 19 current-schema browser seeds, found {total}')
+          print('\n'.join(changed))
+          PY
+          if grep -RniF 'schemaVersion: NS.Core.SCHEMA_VERSION' scripts/browser-*.mjs; then exit 1; fi
+          if grep -RniF 'schemaVersion: Core.SCHEMA_VERSION' scripts/browser-*.mjs; then exit 1; fi
+          for file in scripts/browser-*.mjs; do node --check "$file"; done
+      - name: Commit normalized fixtures and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "CatalogoTop Ops"
+          git config user.email "actions@users.noreply.github.com"
+          git rm -f .github/workflows/diagnose-r1b-browser-seeds.yml
+          git add scripts/browser-*.mjs
+          git commit -m "test: make legacy browser seeds explicit under schema 8"
+          git push origin HEAD:feat/v2-r1b-product-snapshot
