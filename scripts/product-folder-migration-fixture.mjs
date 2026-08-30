@@ -42,6 +42,11 @@ const reversedByCode = new Map(reversed.products.map(product => [product.code, p
 for (const product of first.products) {
   assert.equal(reversedByCode.get(product.code).folderId, product.folderId, `folderId deve ser independente da ordem para ${product.code}`);
 }
+assert.deepEqual(
+  reversed.folders.map(folder => folder.id),
+  first.folders.map(folder => folder.id),
+  'ordem serializada dos folderIds deve depender apenas das chaves canônicas, não da ordem de produtos'
+);
 
 const deepFolders = FolderTree.normalize([
   { id: 'a', parentId: null, name: 'Ferragens' },
@@ -64,4 +69,4 @@ assert.match(Migration.deterministicFolderId(['ferragens']), /^pf1-[0-9a-f]{32}$
 assert.equal(Migration.deterministicFolderId(['ferragens']), Migration.deterministicFolderId(['ferragens']));
 assert.notEqual(Migration.deterministicFolderId(['ferragens']), Migration.deterministicFolderId(['perfis']));
 
-console.log('PASS product folder migration fixture: deterministic IDs, legacy projection and order independence');
+console.log('PASS product folder migration fixture: deterministic IDs, stable ordering, legacy projection and order independence');
