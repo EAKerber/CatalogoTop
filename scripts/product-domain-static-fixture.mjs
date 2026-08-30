@@ -33,7 +33,10 @@ assert.ok(importer.includes('NS.ProductDomain.duplicateCodes(products)') && impo
 assert.ok(storage.includes("from './product-codes.mts'") && storage.includes('validateUniqueProductCodes(products)'), 'storage deve usar helper puro de código, não regra ad hoc');
 assert.ok(serverCodes.includes("trim().toLowerCase()") && domain.includes("trim().toLowerCase()"), 'browser/server devem compartilhar semântica trim + case-insensitive');
 
-assert.ok(app.includes("alert(error.message || 'Não foi possível salvar a alteração.')"), 'mutação manual rejeitada deve continuar apresentando erro controlado na UI existente');
+const saveStart = app.indexOf('function save(mutator)');
+const saveEnd = app.indexOf('\n  async function publishProducts()', saveStart);
+const saveSource = app.slice(saveStart, saveEnd);
+assert.ok(saveStart >= 0 && saveSource.includes('try {') && saveSource.includes('Core.mutate(mutator)') && saveSource.includes('catch (error)') && saveSource.includes('alert(error.message'), 'mutação manual rejeitada deve continuar apresentando erro controlado na UI existente');
 assert.ok(!domain.includes('selectedIds') && !domain.includes('presentation.imageSelections') && !domain.includes('catalog.presentation'), 'clone/domínio não podem copiar estado editorial do catálogo');
 
 console.log('PASS product domain static fixture: bootstrap, purity, code authority, importer/server wiring and clone boundaries');
