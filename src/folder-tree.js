@@ -55,30 +55,34 @@
       byId.set(folder.id, folder);
     }
 
-    const siblingKeys = new Set();
+    const siblingNamesByParent = new Map();
     for (const folder of folders) {
       if (folder.parentId && !byId.has(folder.parentId)) {
         throw issue('folder_parent_missing', `Pasta pai ausente para ${folder.id}.`, { id: folder.id, parentId: folder.parentId });
       }
       if (folder.parentId === folder.id) throw issue('folder_cycle', `Pasta ${folder.id} não pode ser pai de si mesma.`, { id: folder.id });
-      const key = `${folder.parentId || '<root>'}\u0000${nameKey(folder.name)}`;
-      if (siblingKeys.has(key)) {
+      const parentKey = folder.parentId;
+      if (!siblingNamesByParent.has(parentKey)) siblingNamesByParent.set(parentKey, new Set());
+      const siblingKey = nameKey(folder.name);
+      if (siblingNamesByParent.get(parentKey).has(siblingKey)) {
         throw issue('folder_sibling_name_duplicate', `Nome de pasta duplicado entre irmãos: ${folder.name}.`, { id: folder.id, parentId: folder.parentId, name: folder.name });
       }
-      siblingKeys.add(key);
+      siblingNamesByParent.get(parentKey).add(siblingKey);
     }
 
     const state = new Map();
-    function visit(id) {
-      const current = state.get(id) || 0;
-      if (current === 1) throw issue('folder_cycle', `Ciclo detectado na pasta ${id}.`, { id });
-      if (current === 2) return;
-      state.set(id, 1);
-      const parentId = byId.get(id)?.parentId;
-      if (parentId) visit(parentId);
-      state.set(id, 2);
+    for (const folder of folders) {
+      if (state.get(folder.id) === 2) continue;
+      let currentId = folder.id;
+      const chain = [];
+      while (currentId && state.get(currentId) !== 2) {
+        if (state.get(currentId) === 1) throw issue('folder_cycle', `Ciclo detectado na pasta ${currentId}.`, { id: currentId });
+        state.set(currentId, 1);
+        chain.push(currentId);
+        currentId = byId.get(currentId)?.parentId || '';
+      }
+      for (const id of chain) state.set(id, 2);
     }
-    for (const folder of folders) visit(folder.id);
 
     return folders;
   }
@@ -156,8 +160,9 @@
   }
 
   function renameFolder(value, id, name) {
-    const next = normalizedFolders(value).map(item => item.id === String(id) ? { ...item, name } : { ...item });
-    if (!next.some(item => item.id === String(id))) throw issue('folder_not_found', `Pasta não encontrada: ${id}.`, { id: String(id) });
+    const targetId = normalizeId(id);
+    const next = normalizedFolders(value).map(item => item.id === targetId ? { ...item, name } : { ...item });
+    if (!next.some(item => item.id === targetId)) throw issue('folder_not_found', `Pasta não encontrada: ${targetId}.`, { id: targetId });
     return normalizedFolders(next);
   }
 
@@ -176,7 +181,7 @@
     const current = normalizedFolders(value);
     if (!current.some(item => item.id === targetId)) throw issue('folder_not_found', `Pasta não encontrada: ${targetId}.`, { id: targetId });
     if (current.some(item => item.parentId === targetId)) throw issue('folder_not_empty', `Pasta ${targetId} contém subpastas.`, { id: targetId });
-    const occupied = new Set((Array.isArray(occupiedFolderIds) ? occupiedFolderIds : []).map(String));
+    const occupied = new Set((Array.isArray(occupiedFolderIds) ? occupiedFolderIds : []).map(value => normalizeId(value)).filter(Boolean));
     if (occupied.has(targetId)) throw issue('folder_not_empty', `Pasta ${targetId} contém produtos.`, { id: targetId });
     return normalizedFolders(current.filter(item => item.id !== targetId));
   }
