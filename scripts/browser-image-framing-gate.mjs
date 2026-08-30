@@ -63,7 +63,7 @@ function fixtureStateScript() {
   const p4 = product('p4', [{ label: 'A', image: svg('A') }, { label: 'B', image: svg('B') }]);
   const products = [p1, p2, p3, p4];
   NS.Core.setState({
-    schemaVersion: NS.Core.SCHEMA_VERSION,
+    schemaVersion: 7,
     products,
     selectedIds: products.map(item => item.id),
     catalog: {

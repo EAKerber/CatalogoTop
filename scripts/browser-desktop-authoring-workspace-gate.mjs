@@ -26,7 +26,7 @@ function installFixture() {
     category: categories[index % categories.length], subcategory: '', price: `R$ ${10 + index},90`, status: 'Ativo', notes: '', image: index === 1 ? image : '', specs: [], variants: [], tableRows: [], updatedAt: '2026-08-28T00:00:00.000Z'
   }));
   NS.Core.setState({
-    schemaVersion: NS.Core.SCHEMA_VERSION,
+    schemaVersion: 7,
     products,
     selectedIds: products.map(product => product.id),
     catalog: { title: 'Desktop workspace gate', templateId: 'technical', showPrices: true, createdAt: '2026-08-28T00:00:00.000Z', presentation: NS.Composition.normalizePresentation({ order: products.map(product => product.id), itemStyles: {}, imageFrames: {}, blocks: [] }) }

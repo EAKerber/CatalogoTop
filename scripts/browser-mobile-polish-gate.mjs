@@ -27,7 +27,7 @@ function installFixture() {
     image: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="90"%3E%3Crect width="120" height="90" fill="white"/%3E%3Crect x="12" y="34" width="96" height="22" rx="5" fill="%23999"/%3E%3C/svg%3E',
     specs: [], variants: [], tableRows: [], updatedAt: '2026-08-28T00:00:00.000Z'
   }));
-  NS.Core.setState({ schemaVersion: NS.Core.SCHEMA_VERSION, products, selectedIds: products.map(product => product.id), catalog: {
+  NS.Core.setState({ schemaVersion: 7, products, selectedIds: products.map(product => product.id), catalog: {
     title: 'Mobile polish gate', templateId: 'technical', showPrices: true, createdAt: '2026-08-28T00:00:00.000Z',
     presentation: NS.Composition.normalizePresentation({ order: products.map(product => product.id), itemStyles: {}, imageFrames: {}, blocks: [] })
   }}, { persist: false });

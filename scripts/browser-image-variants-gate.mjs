@@ -47,7 +47,7 @@ function seedState() {
   p3.variants = [{ id: 'white', label: 'Branco', image: svg('white') }, { id: 'black', label: 'Preto', image: svg('black') }];
   const products = [p1, p2, p3];
   NS.Core.setState({
-    schemaVersion: NS.Core.SCHEMA_VERSION,
+    schemaVersion: 7,
     products,
     selectedIds: products.map(item => item.id),
     catalog: {

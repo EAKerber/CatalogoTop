@@ -78,7 +78,7 @@ function installFixture(longDescription) {
     ]
   });
   NS.Core.setState({
-    schemaVersion: NS.Core.SCHEMA_VERSION,
+    schemaVersion: 7,
     products,
     selectedIds: order,
     catalog: {

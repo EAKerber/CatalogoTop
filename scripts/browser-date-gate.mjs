@@ -57,7 +57,7 @@ function fixtureStateScript() {
     updatedAt: '2026-08-26T00:00:00.000Z'
   };
   NS.Core.setState({
-    schemaVersion: NS.Core.SCHEMA_VERSION,
+    schemaVersion: 7,
     products: [product],
     selectedIds: [product.id],
     catalog: {
