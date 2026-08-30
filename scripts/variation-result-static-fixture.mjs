@@ -9,15 +9,15 @@ const [html, result, controls] = await Promise.all([
 const importStart = controls.indexOf('async function importResult');
 const importEnd = controls.indexOf("input.addEventListener('change'", importStart);
 const importFlow = importStart >= 0 && importEnd > importStart ? controls.slice(importStart, importEnd) : '';
-const validatesBeforeUpload = /validatePackage\(packageData, request\)[\s\S]*prepareValidated\(validated[\s\S]*uploadWithSession\(prepared/.test(importFlow);
-const revalidatesBeforeCommit = /uploadWithSession\(prepared[\s\S]*result_request_changed_during_import[\s\S]*commitUploaded\(uploaded\)/.test(importFlow);
+const validatesBeforeUpload = /validatePackage\(packageData, request\)[\s\S]*checkCapacity\(validated\)[\s\S]*assets: capacity\.assets[\s\S]*prepareValidated\(importable[\s\S]*uploadWithSession\(prepared/.test(importFlow);
+const revalidatesBeforeCommit = /uploadWithSession\(prepared[\s\S]*result_request_changed_during_import[\s\S]*checkCapacity\(importable\)[\s\S]*commitUploaded\(uploaded\)/.test(importFlow);
 
 const checks = [
   ['Dados expõe importação de resultado e status', html.includes('id="importImageVariationResult"') && html.includes('id="variationResultStatus"')],
   ['reader/result têm bootstrap estático e ordenado', html.includes('src/zip-reader.js') && html.includes('src/variation-result.js') && html.indexOf('src/zip-store.js') < html.indexOf('src/zip-reader.js') && html.indexOf('src/variation-bundle.js') < html.indexOf('src/variation-result.js')],
   ['controle de resultado carrega após app', html.includes('src/variation-result-controls.js') && html.indexOf('src/app.js') < html.indexOf('src/variation-result-controls.js')],
   ['resultado aceita somente raster passivo', result.includes("['image/png', 'image/jpeg', 'image/webp']") && result.includes('sniffMime') && !result.includes('image/svg+xml')],
-  ['pacote inteiro valida antes de prepare/upload', validatesBeforeUpload],
+  ['pacote inteiro valida antes de dedupe/prepare/upload', validatesBeforeUpload],
   ['capacidade local é verificada antes e depois dos awaits', (controls.match(/checkCapacity\(/g) || []).length >= 3 && controls.includes('MAX_CATALOG_IMAGE_VARIANTS')],
   ['catálogo é revalidado após upload e antes do commit', revalidatesBeforeCommit],
   ['importação não publica ProductStore', !controls.includes('publishCurrent') && !controls.includes('publishProducts') && !result.includes('publishCurrent') && !result.includes('publishProducts')],
