@@ -6,7 +6,7 @@ Stable baseline: `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v1.0.0`
 
 ## State
 
-The current R-IMG-1 evidence cycle covers three elongated-hardware cases, two negative controls and one multi-piece semantic-group case. Product/runtime boundaries remain unchanged: no ProductStore/backend, main-editor runtime, deploy, `main` or `v2` semantics were changed.
+The current R-IMG-1 evidence cycle covers three elongated-hardware cases, two negative controls, one multi-piece semantic-group case and one white-on-white/source-authority stress case. Product/runtime boundaries remain unchanged: no ProductStore/backend, main-editor runtime, deploy, `main` or `v2` semantics were changed.
 
 Completed result records:
 
@@ -16,8 +16,13 @@ Completed result records:
 - `experiments/image-variation/results/caster-lowres.v1.json`
 - `experiments/image-variation/results/round-leg-wide.v1.json`
 - `experiments/image-variation/results/hinge-standard.v1.json`
+- `experiments/image-variation/results/piston-wide.v1.json`
 
-The exact readback set is recorded separately in `experiments/image-variation/source-readback.v1.json` so benchmark intent remains distinct from transport evidence.
+Supporting research artifacts:
+
+- `experiments/image-variation/source-readback.v1.json` — exact readback evidence for all seven source families;
+- `docs/research/image-variation/DECISIONS.md` — only evidence-backed/provisional/rejected research decisions;
+- `docs/research/image-variation/FIDELITY-REVIEW.md` — compact human fidelity gate for benchmark candidates.
 
 ## Exact source readback
 
@@ -35,7 +40,7 @@ Latest complete run: `33333171026`; artifact: `9738228935`.
 | Caster | JPEG | 128×128 | 2627 | `d92dadcbb33e…` |
 | Round leg | WebP | 800×800 | 6418 | `3b415b130300…` |
 
-All seven benchmark source families now have exact MIME, dimensions, byte length and SHA-256 readback evidence. This confirms that platform materialization remains useful transport plumbing without making the V1 bundle architecture the semantic solution.
+All seven benchmark source families now have exact MIME, dimensions, byte length and SHA-256 readback evidence. Platform materialization remains useful transport plumbing without making the V1 bundle architecture the semantic solution.
 
 ## Elongated wide-placement evidence
 
@@ -115,24 +120,59 @@ This case separates two concepts that must not collapse into one:
 
 The current Renna hinge page still exposes commercial coverage variants including reta, curva and super curva, reinforcing the relevance of preserving that mapping during research evaluation.
 
+## White-on-white / authority stress — piston-wide
+
+Exact source: `450 × 450 px`; target: `440 × 180 px`, safe margin 7%. The source itself visibly contains `Imagem meramente ilustrativa`.
+
+The default segmentation baseline is not robust here:
+
+- threshold 242 splits the product into two dominant components (~20.1k + 6.4k px) because light factual pixels are removed;
+- threshold 246 reconnects a dominant ~27.5k-pixel product region, but this is threshold sensitivity, not a general fix;
+- the product reaches the source left and right borders, so source clipping may already limit factual geometry.
+
+Exploratory threshold-246 geometry:
+
+| Candidate | BBox utilization | Estimated factual foreground occupancy |
+| --- | ---: | ---: |
+| Original contain | 27.6% | 4.1% |
+| segmented/preserve | 33.2% | 5.0% |
+| align horizontal | 33.0% | 15.3% |
+
+This is the strongest evidence so far that bbox utilization cannot stand alone. Preserve and horizontal are effectively tied by bbox, while horizontal gives about **3.09×** the estimated factual foreground presence.
+
+The current system outcome remains **no auto-accept**: geometric utility is promising, but the isolation baseline is threshold-sensitive, the source touches/clips at its boundaries, and source authority is explicitly illustrative.
+
+## Human fidelity review gate
+
+`FIDELITY-REVIEW.md` now evaluates candidates across:
+
+1. source identity and authority;
+2. piece count/group membership;
+3. characteristic geometry;
+4. fittings/holes/local detail;
+5. segmentation and source-boundary integrity;
+6. semantic orientation and annotations;
+7. resolution honesty;
+8. transformation provenance.
+
+Allowed research outcomes are `PASS FOR BENCHMARK COMPARISON`, `REVIEW-REQUIRED`, and `REJECT / NO VARIANT`. A no-variant result remains explicitly valid.
+
 ## Evidence-backed conclusion
 
-The data rejects a blanket rule such as:
+The current stronger rule is:
 
-> elongated hardware should be rotated to fill a wide card.
+> identify factual subject/visual role first; remove irrelevant source canvas and recompute factual scale; preserve low-cost semantic annotations; evaluate both bbox and factual foreground presence; only then consider whole-object/group reorientation when it adds material utility and semantic orientation permits it.
 
-Current stronger rule:
-
-> identify factual subject/visual role first; remove irrelevant source canvas and recompute factual scale; preserve low-cost semantic annotations; only then consider whole-object/group reorientation when it adds material utility and semantic orientation permits it.
-
-The current cases establish four independent constraints:
+The current cases establish six independent constraints:
 
 1. placement presence is not factual resolution;
 2. image-level geometry is not product-level semantics when the source is composite;
 3. disconnected components are evidence, not automatic semantic roles;
-4. non-product source pixels may still carry commercially relevant meaning.
+4. non-product source pixels may still carry commercially relevant meaning;
+5. bbox utilization is not sufficient to score useful factual presence;
+6. threshold sensitivity is a robustness failure signal, not permission to tune until an image looks right.
 
-No case is automatically fidelity-approved yet.
+No case is automatically production/fidelity-approved.
 
 ## Current architecture
 
@@ -153,15 +193,17 @@ research-only composition intent
         ↓
 Class A/B/C experiment
         ↓
-utility evidence + fidelity evidence
+placement utility evidence
+  (bbox + foreground/effective scale)
+        +
+fidelity / authority review
 ```
 
 ## Next step
 
-1. Run the same evidence split on `piston-wide`, now that exact piston bytes are materialized; keep the historically illustrative-source caveat explicit.
-2. Add a compact human fidelity-review checklist covering piece count, characteristic geometry, fittings/holes, segmentation damage and source-role preservation.
-3. Investigate what minimal evidence distinguishes a homogeneous product group from heterogeneous roles such as product + application imagery, without freezing production field names.
-4. Keep factual foreground occupancy/effective scale separate from bbox utilization and source resolution.
-5. After the piston and fidelity checklist, compare one grounded Class C edit to the best A/B candidate to determine whether reconstruction adds enough utility to justify its risk.
+1. Apply `FIDELITY-REVIEW.md` to H45, Soft Extra and Soft Close and record explicit benchmark-review outcomes.
+2. Prototype a more robust white-on-white isolation comparison for piston without adopting a per-case threshold rule; edge-aware or externally supplied subject evidence are valid research directions.
+3. Investigate minimal evidence distinguishing homogeneous product groups from heterogeneous roles such as product + application imagery, without freezing production field names.
+4. After the review pass and isolation comparison, run one tightly scoped source-grounded Class C comparison against the strongest A/B case. The purpose is to measure marginal utility versus added fidelity risk, not to create a production generator.
 
 Do not freeze a production `generationIntent` or result schema yet.
