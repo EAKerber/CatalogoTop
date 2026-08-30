@@ -6,7 +6,7 @@ Stable baseline: `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v1.0.0`
 
 ## State
 
-The current R-IMG-1 evidence cycle covers three elongated-hardware cases, two negative controls, one multi-piece semantic-group case and one white-on-white/source-authority stress case. Product/runtime boundaries remain unchanged: no ProductStore/backend, main-editor runtime, deploy, `main` or `v2` semantics were changed.
+The current R-IMG-1 evidence cycle covers three elongated-hardware cases, two negative controls, one multi-piece semantic-group case, one white-on-white/source-authority stress case, an explicit human fidelity-review pass and a cross-source isolation robustness probe. Product/runtime boundaries remain unchanged: no ProductStore/backend, main-editor runtime, deploy, `main` or `v2` semantics were changed.
 
 Completed result records:
 
@@ -17,17 +17,19 @@ Completed result records:
 - `experiments/image-variation/results/round-leg-wide.v1.json`
 - `experiments/image-variation/results/hinge-standard.v1.json`
 - `experiments/image-variation/results/piston-wide.v1.json`
+- `experiments/image-variation/results/piston-isolation-consensus.v1.json`
 
 Supporting research artifacts:
 
 - `experiments/image-variation/source-readback.v1.json` — exact readback evidence for all seven source families;
 - `experiments/image-variation/reviews/elongated-wide-review.v1.json` — first explicit human-review outcomes;
 - `docs/research/image-variation/DECISIONS.md` — evidence-backed/provisional/rejected research decisions;
-- `docs/research/image-variation/FIDELITY-REVIEW.md` — compact human fidelity gate for benchmark candidates.
+- `docs/research/image-variation/FIDELITY-REVIEW.md` — compact human fidelity gate for benchmark candidates;
+- `scripts/research/image-isolation-consensus.mjs` — research-only edge-gated isolation/uncertainty experiment with deterministic self-test.
 
 ## Exact source readback
 
-An isolated GitHub Actions probe on `research/source-readback-h45` / draft PR #46 materialized exact public bytes because the local runtime could not resolve the source CDNs directly. The same probe was extended instead of creating parallel download paths.
+An isolated GitHub Actions probe on `research/source-readback-h45` / PR #46 materialized exact public bytes because the local runtime could not resolve the source CDNs directly. The same probe was extended instead of creating parallel download paths.
 
 Latest complete run: `33333171026`; artifact: `9738228935`.
 
@@ -149,8 +151,6 @@ This case separates two concepts that must not collapse into one:
 1. component decomposition is useful structural evidence;
 2. component identity/role is semantic evidence and cannot be inferred from size alone.
 
-The current Renna hinge page still exposes commercial coverage variants including reta, curva and super curva, reinforcing the relevance of preserving that mapping during research evaluation.
-
 ## White-on-white / authority stress — piston-wide
 
 Exact source: `450 × 450 px`; target: `440 × 180 px`, safe margin 7%. The source itself visibly contains `Imagem meramente ilustrativa`.
@@ -169,13 +169,46 @@ Exploratory threshold-246 geometry:
 | segmented/preserve | 33.2% | 5.0% |
 | align horizontal | 33.0% | 15.3% |
 
-This is the strongest evidence so far that bbox utilization cannot stand alone. Preserve and horizontal are effectively tied by bbox, while horizontal gives about **3.09×** the estimated factual foreground presence.
+This established that bbox utilization cannot stand alone: preserve and horizontal are effectively tied by bbox while horizontal gives about **3.09×** the estimated factual foreground presence.
 
-The current system outcome remains **no auto-accept**: geometric utility is promising, but the isolation baseline is threshold-sensitive, the source touches/clips at its boundaries, and source authority is explicitly illustrative.
+### Edge-gated consensus robustness probe
+
+A minimal alternative was tested before inventing a new segmentation stack:
+
+- changing background seeds from full border to corners only produced the same split and was rejected;
+- the color criterion remains fixed at `242 / 24`;
+- background flood is additionally prevented from crossing sufficiently strong image gradients;
+- instead of choosing one gradient cutoff, majority consensus is computed over global gradient percentiles **92, 93, 94, 95 and 96**;
+- stable and percentile-sensitive foreground pixels remain separately observable.
+
+Piston consensus evidence:
+
+- one dominant product component: **28,675 px**;
+- percentile-sensitive pixels: **1,608** (~5.5% of majority foreground);
+- preserve bbox utilization: **33.0%**;
+- horizontal bbox utilization: **33.4%**;
+- preserve estimated factual foreground occupancy: **5.1%**;
+- horizontal estimated factual foreground occupancy: **15.9%**;
+- horizontal foreground-presence gain: **3.11×**.
+
+The ~3× placement-presence conclusion therefore survives the full P92–P96 band without raising the per-case light threshold.
+
+Cross-source comparison prevents overclaiming:
+
+| Source | Consensus vs baseline IoU | Sensitive/consensus foreground | Reading |
+| --- | ---: | ---: | --- |
+| H45 | 0.968 | 3.9% | close to baseline |
+| Soft Extra | 0.864 | 0.0% | material change; blank-heavy gradient band collapses to zero |
+| Soft Close | 0.955 | 5.1% | close to baseline |
+| Hinge | 0.972 | 2.6% | close to baseline |
+| Caster | 0.990 | 0.8% | very close to baseline |
+| Round leg | 0.880 | 10.3% | material change; composite control remains unsafe |
+
+Conclusion: the edge-gated consensus is a useful research probe for white-on-white isolation and uncertainty, but **is not promoted into the recomposition core**. Better isolation still does not strengthen the piston's explicitly illustrative source authority or repair source clipping.
 
 ## Human fidelity review gate
 
-`FIDELITY-REVIEW.md` now evaluates candidates across:
+`FIDELITY-REVIEW.md` evaluates candidates across:
 
 1. source identity and authority;
 2. piece count/group membership;
@@ -192,16 +225,17 @@ Allowed research outcomes are `PASS FOR BENCHMARK COMPARISON`, `REVIEW-REQUIRED`
 
 The current stronger rule is:
 
-> identify factual subject/visual role first; remove irrelevant source canvas and recompute factual scale; preserve low-cost semantic annotations; evaluate both bbox and factual foreground presence; only then consider whole-object/group reorientation when it adds material utility and semantic orientation permits it.
+> identify factual subject/visual role first; remove irrelevant source canvas and recompute factual scale; preserve low-cost semantic annotations; evaluate both bbox and factual foreground presence; expose isolation uncertainty; only then consider whole-object/group reorientation when it adds material utility and semantic orientation permits it.
 
-The current cases establish six independent constraints:
+The current cases establish seven independent constraints:
 
 1. placement presence is not factual resolution;
 2. image-level geometry is not product-level semantics when the source is composite;
 3. disconnected components are evidence, not automatic semantic roles;
 4. non-product source pixels may still carry commercially relevant meaning;
 5. bbox utilization is not sufficient to score useful factual presence;
-6. threshold sensitivity is a robustness failure signal, not permission to tune until an image looks right.
+6. threshold/parameter sensitivity is a robustness signal, not permission to tune until an image looks right;
+7. improved source isolation does not improve source authority or reconstruct clipped factual geometry.
 
 No case is automatically production/fidelity-approved.
 
@@ -227,14 +261,16 @@ Class A/B/C experiment
 placement utility evidence
   (bbox + foreground/effective scale)
         +
+isolation uncertainty evidence
+        +
 fidelity / authority review
 ```
 
 ## Next step
 
-1. Prototype and compare a more robust white-on-white isolation strategy for `piston-wide` without adopting a per-case threshold rule. Edge-aware/background-model or externally supplied subject evidence are valid research directions; silent reconstruction is not.
-2. Determine the minimum evidence needed to distinguish family-level authority from exact-variant authority and homogeneous product groups from heterogeneous visual roles, without freezing production field names.
-3. Re-evaluate whether a Class C comparison is still informative after the deterministic results. If yes, run **one** tightly scoped source-grounded comparison on H45, the strongest A/B case, and score only marginal utility versus added fidelity risk.
-4. If Class C cannot materially beat the reviewed H45 A/B candidate without reconstructing uncertain hardware detail, record `Class C not justified` as a valid research result rather than expanding the generator surface.
+The deterministic research prerequisites originally placed before a Class C comparison are now substantially met: exact source bytes exist, H45 has an explicit benchmark-comparison pass, and the white-on-white isolation stress has a documented non-core alternative plus uncertainty evidence.
 
-Do not freeze a production `generationIntent` or result schema yet.
+1. Predeclare one narrowly scoped Class C comparison on **H45** against the reviewed A/B horizontal candidate. The only acceptable objective is marginal presentation utility (for example edge/background quality) while preserving the exact two-piece hardware identity; no new holes, fittings, rails, viewpoint or piece count may appear.
+2. Treat `Class C not justified` as a first-class result. If the generative candidate cannot materially outperform the reviewed A/B candidate without reconstructing uncertain hardware detail, stop rather than expanding generation scope.
+3. Keep Soft Extra, Soft Close and piston out of the first Class C trial because their source-authority caveats would confound generation-risk evaluation.
+4. Do not freeze a production `generationIntent`, result schema or generator integration from this comparison.
