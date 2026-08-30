@@ -1,0 +1,73 @@
+{
+  "kind": "catalogotop.image-variation-benchmark-result",
+  "version": 1,
+  "caseId": "hinge-standard",
+  "status": "provisional-human-review-required",
+  "sourceEvidence": {
+    "sourceId": "hinge",
+    "sourceUrl": "https://cdn.awsli.com.br/600x450/2716/2716952/produto/258208402/banhomais-c337v5khji.jpg",
+    "mimeType": "image/jpeg",
+    "byteLength": 20634,
+    "sha256": "222a41f6f770af0ab6a3999c48c0263e0db3a049d1fb673fbf2d4222b6ec491e",
+    "widthPx": 450,
+    "heightPx": 450,
+    "materializationTransport": "github-actions-public-https",
+    "materializationRunId": 33333171026,
+    "artifactId": 9738228935
+  },
+  "target": {
+    "profile": "card-standard",
+    "widthPx": 300,
+    "heightPx": 220,
+    "safeMarginRatio": 0.08
+  },
+  "segmentation": {
+    "method": "connected-light-neutral-border",
+    "threshold": 242,
+    "chromaTolerance": 24,
+    "foregroundPixels": 27279,
+    "foregroundBBox": {
+      "minX": 31,
+      "minY": 65,
+      "maxX": 437,
+      "maxY": 415,
+      "width": 407,
+      "height": 351
+    },
+    "connectedComponentCount": 124,
+    "dominantComponents": [
+      {"pixels": 10729, "bbox": [64, 254, 228, 379], "observedRole": "primary-hinge-piece"},
+      {"pixels": 7812, "bbox": [245, 133, 409, 249], "observedRole": "primary-hinge-piece"},
+      {"pixels": 6894, "bbox": [31, 65, 204, 183], "observedRole": "primary-hinge-piece"},
+      {"pixels": 901, "bbox": [177, 400, 256, 416], "observedRole": "variant-label"},
+      {"pixels": 442, "bbox": [394, 282, 437, 298], "observedRole": "variant-label"},
+      {"pixels": 337, "bbox": [191, 210, 219, 226], "observedRole": "variant-label"}
+    ]
+  },
+  "geometry": {
+    "originalContainBBoxUtilization": 0.365037,
+    "trimPreserveAnnotationsBBoxUtilization": 0.599995,
+    "productOnlyNoRemosaicBBoxUtilization": 0.622905,
+    "trimGainVsOriginal": 1.6437,
+    "productOnlyGainVsOriginal": 1.7064,
+    "productOnlyGainVsTrim": 1.0382,
+    "estimatedForegroundOccupancy": {
+      "originalContain": 0.069705,
+      "trimPreserveAnnotations": 0.114571,
+      "productOnlyNoRemosaic": 0.133485
+    }
+  },
+  "interpretation": {
+    "utility": "material-canvas-trim-gain",
+    "fidelity": "preserve-variant-mapping-by-default",
+    "candidateClass": "A/B-boundary",
+    "preferredCandidate": "trim-preserve-annotations",
+    "notes": [
+      "The three dominant disconnected components correspond to the three primary hinge representations; three smaller components correspond to the RETA/CURVA/SUPER CURVA labels.",
+      "Trimming external neutral canvas materially improves placement utility while preserving every visible primary hinge piece and its source annotation.",
+      "Removing the labels produces only a small additional bbox-utilization gain (about 3.8% relative over trim-preserve) while losing the explicit mapping between pictured pieces and commercial variants.",
+      "Connected-component dominance is useful structural evidence for subject decomposition, but component identity is not semantic authority by itself.",
+      "No remosaic/reordering of individual hinge pieces was attempted because relative group presentation is part of the benchmark fidelity constraint."
+    ]
+  }
+}
