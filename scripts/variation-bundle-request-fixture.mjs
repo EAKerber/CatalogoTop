@@ -229,6 +229,40 @@ if (remoteSource.mode !== 'remote-url' || remoteSource.url !== remoteProduct.ima
 if (remoteRequest.archive.entries.some(item => item.path.startsWith('sources/'))) fail('fallback remote-url não pode fingir bytes de imagem no ZIP');
 if (!remoteRequest.manifest.policy.externalUrlFallback) fail('policy precisa declarar fallback de URL externa');
 
+const producerCalls = [];
+const producerEmbedded = await VariationBundle.buildRequest(remoteState, {
+  documentModel: remoteDocument,
+  measurements: { 'card:remote': { widthPx: 200, heightPx: 150, widthMm: 52.5, heightMm: 39.4, aspectRatio: 1.3333 } },
+  fetchFn: failingFetch,
+  remoteMaterializeFn: async (productId, sourceRef) => {
+    producerCalls.push({ productId, sourceRef });
+    return { blob: new Blob(['producer-canonical-pixels'], { type: 'image/png' }) };
+  },
+  generatedAt: '2026-08-29T12:00:00.000Z'
+});
+const producerSource = producerEmbedded.manifest.jobs[0]?.source;
+if (producerCalls.length !== 1 || producerCalls[0].productId !== remoteProduct.id || producerCalls[0].sourceRef !== remoteProduct.image) fail(`materializador do produtor recebeu autoridade errada: ${JSON.stringify(producerCalls)}`);
+if (producerSource?.mode !== 'embedded' || producerSource.originalRef !== remoteProduct.image || producerSource.sha256 !== producerSource.fingerprint) fail(`produtor não converteu URL externa em pixels embedded: ${JSON.stringify(producerSource)}`);
+if (!producerEmbedded.archive.entries.some(item => item.path === producerSource.path)) fail('pixels materializados pelo produtor precisam entrar fisicamente no ZIP');
+if (!producerEmbedded.manifest.policy.producerSideEmbedding) fail('policy precisa declarar producer-side embedding');
+
+let sessionRequiredPropagated = false;
+try {
+  await VariationBundle.buildRequest(remoteState, {
+    documentModel: remoteDocument,
+    measurements: { 'card:remote': { widthPx: 200, heightPx: 150, widthMm: 52.5, heightMm: 39.4, aspectRatio: 1.3333 } },
+    fetchFn: failingFetch,
+    remoteMaterializeFn: async () => {
+      const error = new Error('write_session_required');
+      error.code = 'write_session_required';
+      throw error;
+    }
+  });
+} catch (error) {
+  sessionRequiredPropagated = error?.code === 'write_session_required';
+}
+if (!sessionRequiredPropagated) fail('write_session_required do produtor não pode degradar silenciosamente para remote-url');
+
 const managedFailure = await VariationBundle.buildRequest({ ...state, products: [p1], selectedIds: ['p1'] }, {
   documentModel: { ...remoteDocument, orderedIds: ['p1'], pages: [{ ...remoteDocument.pages[0], items: [{ type: 'card', product: p1, productId: 'p1', row: 1, start: 1, span: 3, contentPreset: 'visual', emphasis: 'normal', width: 'simple' }] }] },
   measurements: { 'card:p1': measurements['card:p1'] },

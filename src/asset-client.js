@@ -71,6 +71,44 @@
     return payload.url;
   }
 
+  async function materializeProductSource(productId, value) {
+    const sourceRef = String(value || '').trim();
+    if (!sourceRef) throw new Error('remote_source_missing');
+    if (isManagedAsset(sourceRef)) {
+      const existing = await fetch(sourceRef, { credentials: 'same-origin', cache: 'force-cache' });
+      if (!existing.ok) throw new Error(`managed_source_fetch:${existing.status}`);
+      return { url: sourceRef, blob: await existing.blob(), sourceRef };
+    }
+    if (!/^https:\/\/[^\s]+$/i.test(sourceRef)) throw new Error('remote_source_https_required');
+    const response = await fetch('/api/assets/materialize-product-source', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ productId: String(productId || ''), sourceRef })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      const error = new Error('write_session_required');
+      error.code = 'write_session_required';
+      throw error;
+    }
+    if (response.status === 409) {
+      const error = new Error('source_authority_changed');
+      error.code = 'source_authority_changed';
+      throw error;
+    }
+    if (!response.ok || !isManagedAsset(payload.url)) {
+      const error = new Error(payload.detail || payload.error || `remote_source_materialization:${response.status}`);
+      error.code = payload.error || 'remote_source_materialization_failed';
+      throw error;
+    }
+    const asset = await fetch(payload.url, { credentials: 'same-origin', cache: 'force-cache' });
+    if (!asset.ok) throw new Error(`materialized_source_fetch:${asset.status}`);
+    const blob = await asset.blob();
+    if (!String(blob.type || '').startsWith('image/')) throw new Error(`materialized_source_not_image:${blob.type || 'unknown'}`);
+    return { url: payload.url, blob, sourceRef };
+  }
+
   async function materializeImageValue(value) {
     const current = String(value || '');
     if (!isDataUrl(current)) return current;
@@ -96,6 +134,7 @@
     prepareImage,
     uploadBlob,
     materializeProducts,
+    materializeProductSource,
     isManagedAsset,
     isDataUrl
   };
