@@ -417,9 +417,12 @@
       });
       if (!product.code || !product.description) return;
       save(draft => {
+        const assignedProduct = Core.assignProductToLegacyPath
+          ? Core.assignProductToLegacyPath(draft, product)
+          : product;
         const index = draft.products.findIndex(item => item.id === id);
-        if (index >= 0) draft.products[index] = product;
-        else draft.products.push(product);
+        if (index >= 0) draft.products[index] = assignedProduct;
+        else draft.products.push(assignedProduct);
       });
       clearProductForm();
       await publishProducts();

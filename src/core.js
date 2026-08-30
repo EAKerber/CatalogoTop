@@ -412,8 +412,21 @@
   }
 
   function assignProductToLegacyPath(draft, product) {
-    if (!NS.ProductSnapshot) return normalizeProduct(product);
-    const assigned = NS.ProductSnapshot.assignLegacyProduct(draft.folders || [], normalizeProduct(product), { idFactory: folderUuid });
+    const normalized = normalizeProduct(product);
+    if (!NS.ProductSnapshot) return normalized;
+
+    if (normalized.folderId && NS.ProductFolderMigration) {
+      try {
+        const projection = NS.ProductFolderMigration.projectLegacyForFolder(draft.folders || [], normalized.folderId);
+        if (projection.category === normalized.category && projection.subcategory === normalized.subcategory) {
+          return normalizeProduct({ ...normalized, ...projection });
+        }
+      } catch (error) {
+        if (error?.code !== 'folder_not_found') throw error;
+      }
+    }
+
+    const assigned = NS.ProductSnapshot.assignLegacyProduct(draft.folders || [], normalized, { idFactory: folderUuid });
     draft.folders = assigned.folders;
     return normalizeProduct(assigned.product);
   }
