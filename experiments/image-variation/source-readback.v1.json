@@ -1,0 +1,71 @@
+{
+  "kind": "catalogotop.research-source-readback-set",
+  "version": 1,
+  "status": "research-only",
+  "materialization": {
+    "branch": "research/source-readback-h45",
+    "draftPr": 46,
+    "workflowRunId": 33333171026,
+    "artifactId": 9738228935,
+    "transport": "github-actions-public-https",
+    "checkedAt": "2026-08-30"
+  },
+  "sources": [
+    {
+      "sourceId": "h45",
+      "mimeType": "image/jpeg",
+      "byteLength": 16417,
+      "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+      "widthPx": 450,
+      "heightPx": 450
+    },
+    {
+      "sourceId": "soft-extra",
+      "mimeType": "image/png",
+      "byteLength": 54347,
+      "sha256": "07edaca7d481149a3703a0b70cda099afcd88612bacaaee33f2d107c37d7628b",
+      "widthPx": 800,
+      "heightPx": 800
+    },
+    {
+      "sourceId": "soft-close",
+      "mimeType": "image/jpeg",
+      "byteLength": 9781,
+      "sha256": "d0694fc2278ac4c6b88b3f6c1e647c5bcf360f363fe96b80f9e1dff17c9fedec",
+      "widthPx": 420,
+      "heightPx": 420
+    },
+    {
+      "sourceId": "hinge",
+      "mimeType": "image/jpeg",
+      "byteLength": 20634,
+      "sha256": "222a41f6f770af0ab6a3999c48c0263e0db3a049d1fb673fbf2d4222b6ec491e",
+      "widthPx": 450,
+      "heightPx": 450
+    },
+    {
+      "sourceId": "piston",
+      "mimeType": "image/png",
+      "byteLength": 55284,
+      "sha256": "a85d30da46332fc9d81d65ffead780bf0252bc6e01bf2753157509118cacf19d",
+      "widthPx": 450,
+      "heightPx": 450
+    },
+    {
+      "sourceId": "caster",
+      "mimeType": "image/jpeg",
+      "byteLength": 2627,
+      "sha256": "d92dadcbb33e9bef01a3197f2ec584db34bf63c72d9a95347bcaa38405aad9ba",
+      "widthPx": 128,
+      "heightPx": 128
+    },
+    {
+      "sourceId": "round-leg",
+      "mimeType": "image/webp",
+      "byteLength": 6418,
+      "sha256": "3b415b13030013c7a10f7225879ca14874cd6adf8945191b98158bc27352fc43",
+      "widthPx": 800,
+      "heightPx": 800
+    }
+  ]
+}
