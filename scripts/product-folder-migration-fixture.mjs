@@ -57,16 +57,6 @@ assert.deepEqual(
   JSON.parse(JSON.stringify(Migration.projectLegacyForFolder(deepFolders, 'c'))),
   { category: 'Ferragens', subcategory: 'Corrediças / Telescópicas' }
 );
-assert.deepEqual(
-  Array.from(Migration.legacyPathFromProduct({ category: 'Ferragens', subcategory: 'Corrediças / Telescópicas' })),
-  ['Ferragens', 'Corrediças', 'Telescópicas'],
-  'projeção profunda deve voltar aos mesmos segmentos quando reutilizada pelo adaptador legado'
-);
-assert.deepEqual(
-  Array.from(Migration.legacyPathFromProduct({ category: 'Ferragens', subcategory: 'Corrediças/especiais' })),
-  ['Ferragens', 'Corrediças/especiais'],
-  'barra sem o delimitador editorial " / " continua pertencendo ao nome legado'
-);
 
 const projected = Migration.applyLegacyProjection({ id: 'p', folderId: 'c', category: 'velho', subcategory: 'velho' }, deepFolders);
 assert.equal(projected.category, 'Ferragens');
@@ -74,8 +64,9 @@ assert.equal(projected.subcategory, 'Corrediças / Telescópicas');
 assert.equal(projected.id, 'p');
 assert.equal(projected.folderId, 'c');
 
+assert.deepEqual(Array.from(Migration.legacyPathFromProduct({ category: 'Ferragens', subcategory: 'Corrediças / especiais' })), ['Ferragens', 'Corrediças / especiais'], 'migração V1 trata subcategoria legada como um único segmento');
 assert.match(Migration.deterministicFolderId(['ferragens']), /^pf1-[0-9a-f]{32}$/);
 assert.equal(Migration.deterministicFolderId(['ferragens']), Migration.deterministicFolderId(['ferragens']));
 assert.notEqual(Migration.deterministicFolderId(['ferragens']), Migration.deterministicFolderId(['perfis']));
 
-console.log('PASS product folder migration fixture: deterministic IDs, stable ordering and deep legacy projection round-trip');
+console.log('PASS product folder migration fixture: deterministic IDs, stable ordering, legacy projection and order independence');
