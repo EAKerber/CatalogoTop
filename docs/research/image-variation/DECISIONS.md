@@ -52,9 +52,17 @@ Consequence: the current preferred candidate is `trim-preserve-annotations`. Rem
 
 A candidate can occupy a similar bounding box while placing substantially more factual product pixels in the target.
 
-Evidence: `piston-wide` at exploratory threshold 246 gives 33.2% bbox utilization when preserving orientation and 33.0% when aligned horizontal, but estimated factual foreground occupancy rises from ~5.0% to ~15.3% (about 3.09×).
+Evidence: `piston-wide` gives ~33% bbox utilization both preserving orientation and aligned horizontal, while estimated factual foreground occupancy rises from about 5% to about 15%.
 
 Consequence: evaluate bbox utilization together with factual foreground occupancy/effective scale. Neither metric alone is sufficient.
+
+### D7 — Isolation uncertainty must remain observable
+
+When a foreground extraction changes materially across nearby parameter choices, the system should expose that sensitivity instead of selecting one visually convenient cutoff and presenting the mask as certain.
+
+Evidence: the piston edge-gated experiment over gradient percentiles 92–96 keeps one dominant product component and stable ~3.1× horizontal foreground-presence gain, while ~5.5% of the consensus foreground remains percentile-sensitive. Round-leg shows >10% sensitivity under the same experiment.
+
+Consequence: experimental isolation may expose stable/uncertain pixels or equivalent confidence evidence; uncertainty must not be silently erased before fidelity review.
 
 ## Provisional
 
@@ -92,6 +100,18 @@ The piston source visibly embeds `Imagem meramente ilustrativa`. A future deriva
 
 This is not yet a decision about how warnings should appear in production catalog layouts.
 
+### P5 — Edge-gated percentile consensus is a useful white-on-white research probe, not a replacement segmenter
+
+Keeping the 242/24 chromatic criterion and preventing background flood through sufficiently strong image gradients reconnects the piston without raising the light threshold. Majority consensus over P92–P96 makes parameter sensitivity explicit.
+
+Cross-source evidence is mixed by design:
+
+- H45, Soft Close, Hinge and Caster remain close to the baseline mask;
+- Soft Extra changes materially and its gradient percentile band collapses to zero because the source is extremely blank-heavy;
+- round-leg changes materially and remains a composite/no-auto-isolation control.
+
+Consequence: retain this method under `scripts/research/`; do not promote it into the recomposition core or production behavior yet.
+
 ## Rejected
 
 ### R1 — “Elongated product => rotate horizontally”
@@ -118,6 +138,10 @@ Rejected by `hinge-standard`: annotation text is not hinge geometry, but it carr
 
 Rejected by `piston-wide`. Threshold sensitivity is a robustness warning, not a fidelity argument.
 
+### R7 — “Changing background seeds to the corners solves source-edge contact”
+
+Rejected experimentally on the piston: corner-only seeding produced the same split as the all-border baseline. The failure is not merely where the flood starts; light-neutral connectivity through the product is the deeper issue.
+
 ## Open questions
 
 1. What is the minimum evidence needed to identify/select a factual subject in composite sources?
@@ -125,5 +149,5 @@ Rejected by `piston-wide`. Threshold sensitivity is a robustness warning, not a 
 3. Which foreground-occupancy/effective-scale formulation remains useful across sparse, dense and multi-piece products without becoming another magic score?
 4. Which signals are sufficient to distinguish a homogeneous multi-piece product group from heterogeneous roles such as product + application imagery?
 5. When may source annotations be removed because equivalent semantics are already present in catalog data/layout?
-6. What isolation method is robust enough for white-on-white factual product imagery without silently deleting light geometry?
-7. Does a grounded Class C edit add enough utility over the best A/B candidate to justify its additional fidelity risk?
+6. What isolation method is robust enough for white-on-white factual product imagery without silently deleting light geometry or retaining excessive halo/context?
+7. Does a grounded Class C edit add enough utility over the reviewed H45 A/B candidate to justify its additional fidelity risk?
