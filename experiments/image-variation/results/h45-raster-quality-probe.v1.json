@@ -1,0 +1,109 @@
+{
+  "kind": "catalogotop.image-raster-quality-probe-result",
+  "version": 1,
+  "status": "research-only",
+  "caseId": "h45-wide-raster-quality",
+  "purpose": "Separate rasterization quality from placement geometry and factual source resolution before expanding the master-render experiment to more product families.",
+  "source": {
+    "sourceId": "h45",
+    "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+    "widthPx": 450,
+    "heightPx": 450,
+    "authority": "stronger-product-match"
+  },
+  "placement": {
+    "profile": "card-wide",
+    "widthPx": 440,
+    "heightPx": 180,
+    "safeMarginRatio": 0.07,
+    "geometryFrozen": true
+  },
+  "probe": {
+    "constantInputs": [
+      "exact source bytes",
+      "foreground isolation",
+      "semantic two-piece group",
+      "horizontal orientation decision",
+      "safe-margin geometry"
+    ],
+    "variable": "sampling pipeline only",
+    "forbidden": [
+      "sharpening interpreted as factual recovery",
+      "super-resolution",
+      "generated texture/detail",
+      "re-segmentation",
+      "re-planning orientation or occupancy"
+    ]
+  },
+  "referencePipelines": [
+    {
+      "id": "bilinear-4x-box",
+      "role": "current R-IMG-1.1 baseline",
+      "masterScaleFactor": 4,
+      "edgeGradientMean": 31.3073,
+      "edgeGradientP95": 81.8517,
+      "nonWhiteOccupancy": 0.218864
+    },
+    {
+      "id": "bicubic-4x-box",
+      "role": "higher-order reconstruction reference",
+      "masterScaleFactor": 4,
+      "edgeGradientMean": 35.9918,
+      "edgeGradientP95": 98.7243,
+      "nonWhiteOccupancy": 0.222942
+    },
+    {
+      "id": "bicubic-8x-lanczos",
+      "role": "current quality-ceiling candidate",
+      "masterScaleFactor": 8,
+      "edgeGradientMean": 37.9401,
+      "edgeGradientP95": 107.0328,
+      "nonWhiteOccupancy": 0.219987
+    },
+    {
+      "id": "bicubic-12x-lanczos",
+      "role": "diminishing-return diagnostic only",
+      "masterScaleFactor": 12,
+      "edgeGradientMean": 37.9164,
+      "edgeGradientP95": 107.229,
+      "nonWhiteOccupancy": 0.219975,
+      "defaultEligible": false
+    }
+  ],
+  "pairwiseDifference": {
+    "metricScope": "absolute RGB difference after reduction to the same 440x180 placement; diagnostic only, not a quality score",
+    "bicubic4xVs8x": {
+      "meanAbsoluteChannelDifference": 1.6956,
+      "p95AbsoluteChannelDifference": 13,
+      "pixelRatioWithAnyChannelDifferenceAbove8": 0.080846
+    },
+    "bicubic8xVs12x": {
+      "meanAbsoluteChannelDifference": 0.51194,
+      "p95AbsoluteChannelDifference": 4,
+      "pixelRatioWithAnyChannelDifferenceAbove8": 0.005177
+    },
+    "baselineVsBicubic8x": {
+      "meanAbsoluteChannelDifference": 3.0832,
+      "p95AbsoluteChannelDifference": 23,
+      "pixelRatioWithAnyChannelDifferenceAbove8": 0.116048
+    }
+  },
+  "interpretation": [
+    "The current bilinear 4x + box renderer is visibly conservative and is a plausible contributor to weak antialiasing.",
+    "Moving from 4x to 8x still produces a material raster change under a higher-order reconstruction path.",
+    "Moving from 8x to 12x produces little additional change at placement scale, indicating diminishing returns rather than an unlimited supersampling benefit.",
+    "The 450x450 source remains the factual-detail ceiling; a denser or smoother raster cannot recover unsupported hardware texture or geometry.",
+    "Edge-gradient diagnostics describe sampling behavior only. They must not be interpreted as factual-resolution or fidelity scores."
+  ],
+  "decision": {
+    "currentBaseline": "bilinear-4x-box",
+    "nextCandidate": "premultiplied cubic reconstruction with an 8x experimental supersampling ceiling",
+    "rejectAsDefault": "12x supersampling",
+    "reason": "8x->12x gives marginal placement-scale change relative to cost while source resolution remains unchanged"
+  },
+  "nextGate": [
+    "run deterministic self-test for the cubic sampler",
+    "human review H45 at master, placement and zoom scales",
+    "if H45 passes, run caster 128x128 as the source-resolution negative control before broad rollout"
+  ]
+}
