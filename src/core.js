@@ -431,6 +431,42 @@
     return normalizeProduct(assigned.product);
   }
 
+  function prepareMergedProductOrganization(draft, rawProduct, normalized, existing = null) {
+    const source = rawProduct && typeof rawProduct === 'object' ? rawProduct : {};
+    const hasFolderId = Object.prototype.hasOwnProperty.call(source, 'folderId');
+    const hasCategory = Object.prototype.hasOwnProperty.call(source, 'category');
+    const hasSubcategory = Object.prototype.hasOwnProperty.call(source, 'subcategory');
+
+    if (hasFolderId) {
+      const folderId = String(source.folderId || '').trim();
+      if (!folderId) {
+        const error = new Error('Produto precisa apontar para uma pasta válida.');
+        error.code = 'product_folder_required';
+        throw error;
+      }
+      if (!NS.ProductFolderMigration) return normalizeProduct({ ...normalized, folderId });
+      const projection = NS.ProductFolderMigration.projectLegacyForFolder(draft.folders || [], folderId);
+      return normalizeProduct({ ...normalized, folderId, ...projection });
+    }
+
+    if (!existing) return assignProductToLegacyPath(draft, normalized);
+    if (!hasCategory && !hasSubcategory) {
+      return normalizeProduct({
+        ...normalized,
+        folderId: existing.folderId,
+        category: existing.category,
+        subcategory: existing.subcategory
+      });
+    }
+
+    return assignProductToLegacyPath(draft, {
+      ...normalized,
+      folderId: existing.folderId,
+      category: hasCategory ? normalized.category : existing.category,
+      subcategory: hasSubcategory ? normalized.subcategory : existing.subcategory
+    });
+  }
+
   function mergeProducts(incoming, mode = 'merge') {
     const source = Array.isArray(incoming) ? incoming : [];
     const explicitQuantityByCode = new Set(source
@@ -441,11 +477,12 @@
       .filter(product => product && Object.prototype.hasOwnProperty.call(product, 'imageGallery'))
       .map(product => String(product.code || '').trim().toLowerCase())
       .filter(Boolean));
-    const normalized = source.map(normalizeProduct).filter(p => p.code && p.description);
+    const entries = source
+      .map(raw => ({ raw, product: normalizeProduct(raw || {}) }))
+      .filter(entry => entry.product.code && entry.product.description);
     return mutate(draft => {
-      const prepared = normalized.map(product => assignProductToLegacyPath(draft, product));
       if (mode === 'replace') {
-        draft.products = prepared;
+        draft.products = entries.map(entry => prepareMergedProductOrganization(draft, entry.raw, entry.product));
         draft.selectedIds = [];
         draft.catalog.presentation.order = [];
         draft.catalog.presentation.itemStyles = {};
@@ -455,14 +492,16 @@
         return;
       }
       const byCode = new Map(draft.products.map((p, index) => [p.code.trim().toLowerCase(), index]));
-      prepared.forEach(product => {
-        const key = product.code.toLowerCase();
+      entries.forEach(entry => {
+        const key = entry.product.code.toLowerCase();
         const existingIndex = byCode.get(key);
         if (existingIndex === undefined) {
+          const product = prepareMergedProductOrganization(draft, entry.raw, entry.product);
           byCode.set(key, draft.products.length);
           draft.products.push(product);
         } else {
           const existing = draft.products[existingIndex];
+          const product = prepareMergedProductOrganization(draft, entry.raw, entry.product, existing);
           draft.products[existingIndex] = {
             ...existing,
             ...product,
