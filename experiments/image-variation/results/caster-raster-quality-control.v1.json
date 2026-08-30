@@ -1,0 +1,76 @@
+{
+  "kind": "catalogotop.image-raster-quality-negative-control",
+  "version": 1,
+  "status": "research-only-pass-negative-control",
+  "caseId": "caster-lowres-raster-quality",
+  "source": {
+    "sourceId": "caster",
+    "sha256": "d92dadcbb33e9bef01a3197f2ec584db34bf63c72d9a95347bcaa38405aad9ba",
+    "widthPx": 128,
+    "heightPx": 128,
+    "foregroundBBoxPx": [98, 88],
+    "authority": "exact-source-readback"
+  },
+  "placement": {
+    "profile": "card-wide",
+    "widthPx": 440,
+    "heightPx": 180,
+    "orientationStrategy": "preserve",
+    "segmentedPreserveScale": 1.7591
+  },
+  "purpose": "Verify that a higher-quality rasterization path improves transform presentation without making a severely source-limited product look like recovered factual high resolution.",
+  "pipelines": [
+    {
+      "id": "bilinear-4x-box",
+      "role": "current baseline",
+      "nonWhiteOccupancy": 0.17346,
+      "edgeGradientMean": 15.4825,
+      "edgeGradientP95": 45.4000
+    },
+    {
+      "id": "bicubic-8x-lanczos",
+      "role": "quality-ceiling reference",
+      "nonWhiteOccupancy": 0.170429,
+      "edgeGradientMean": 17.2197,
+      "edgeGradientP95": 51.5578
+    },
+    {
+      "id": "bicubic-12x-lanczos",
+      "role": "diminishing-return diagnostic",
+      "nonWhiteOccupancy": 0.170568,
+      "edgeGradientMean": 17.2270,
+      "edgeGradientP95": 51.5389,
+      "defaultEligible": false
+    }
+  ],
+  "pairwiseDifference": {
+    "bicubic4xVs8x": {
+      "meanAbsoluteChannelDifference": 0.47386,
+      "p95AbsoluteChannelDifference": 3,
+      "pixelRatioWithAnyChannelDifferenceAbove8": 0.010227
+    },
+    "bicubic8xVs12x": {
+      "meanAbsoluteChannelDifference": 0.06534,
+      "p95AbsoluteChannelDifference": 1,
+      "pixelRatioWithAnyChannelDifferenceAbove8": 0.0
+    },
+    "baselineVsBicubic8x": {
+      "meanAbsoluteChannelDifference": 0.80138,
+      "p95AbsoluteChannelDifference": 5,
+      "pixelRatioWithAnyChannelDifferenceAbove8": 0.028523
+    }
+  },
+  "review": {
+    "outcome": "PASS AS SOURCE-RESOLUTION NEGATIVE CONTROL",
+    "observed": "The 8x higher-order path modestly cleans transform edges but the caster remains visibly low-detail and source-limited. Wheel, fork and brake detail do not become newly resolved.",
+    "factualResolutionClaim": false,
+    "masterHighResolutionClaim": false
+  },
+  "interpretation": [
+    "Better sampling can improve presentation without improving factual evidence.",
+    "The 128x128 source remains visibly inadequate for a true high-resolution product asset.",
+    "8x->12x is essentially saturated on this control, reinforcing that supersampling cannot substitute for source detail.",
+    "The negative control therefore supports continuing the raster-quality experiment without weakening resolution honesty."
+  ],
+  "nextGate": "Human review H45 and caster side by side; if accepted, evaluate Soft Close and hinge using the same frozen sampling comparison."
+}
