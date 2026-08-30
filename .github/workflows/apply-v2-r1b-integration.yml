@@ -30,7 +30,7 @@ jobs:
           test "$actual" = "$expected"
       - name: Apply deterministic patch
         run: python scripts/_apply-v2-r1b-integration.py
-      - name: List legacy schema assertions
+      - name: List remaining legacy schema inputs
         shell: bash
         run: |
           grep -RniE "SCHEMA_VERSION[^0-9]*7|schemaVersion[^0-9]*7|schema esperado 7|schema 7" scripts || true
