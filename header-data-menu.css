@@ -66,6 +66,7 @@
   display: grid;
   gap: 3px;
 }
+.header-data-section[hidden] { display: none !important; }
 .header-data-label {
   padding: 4px 8px 3px;
   color: #8f96a1;
