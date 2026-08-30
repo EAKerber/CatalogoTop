@@ -60,6 +60,12 @@
     return keys.join(PATH_SEPARATOR);
   }
 
+  function compareCanonical(a, b) {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+  }
+
   function prefixRecords(path) {
     const records = [];
     for (let depth = 1; depth <= path.length; depth += 1) {
@@ -84,12 +90,12 @@
     }
 
     const usedIds = new Map();
-    const sorted = Array.from(records.values()).sort((a, b) => a.keys.length - b.keys.length || a.key.localeCompare(b.key));
+    const sorted = Array.from(records.values()).sort((a, b) => a.keys.length - b.keys.length || compareCanonical(a.key, b.key));
     const folders = sorted.map(record => {
       const id = deterministicFolderId(record.keys);
       const prior = usedIds.get(id);
       if (prior && prior !== record.key) {
-        throw issue('folder_id_collision', `Colisão de folderId entre caminhos canônicos distintos.`, { id, firstPathKey: prior, secondPathKey: record.key });
+        throw issue('folder_id_collision', 'Colisão de folderId entre caminhos canônicos distintos.', { id, firstPathKey: prior, secondPathKey: record.key });
       }
       usedIds.set(id, record.key);
       const parentKeys = record.keys.slice(0, -1);
