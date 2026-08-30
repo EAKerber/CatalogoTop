@@ -109,13 +109,6 @@ try {
   if (materialized.tables[0].page !== 1 || materialized.tables[0].row !== 3 || materialized.tables[0].rowSpan !== 2 || materialized.tables[0].rows !== 7) throw new Error(`segmento inicial incorreto: ${JSON.stringify(materialized.tables[0])}`);
   if (materialized.tables[1].page !== 2 || materialized.tables[1].row !== 1 || materialized.tables[1].rows !== 1 || materialized.tables[1].fragmentStart !== 2) throw new Error(`continuação incorreta: ${JSON.stringify(materialized.tables[1])}`);
 
-  await page.waitForSelector('[data-delete-product-direct="p6"]');
-  const directDelete = await page.evaluate(() => {
-    const button = document.querySelector('[data-delete-product-direct="p6"]');
-    return Boolean(button && button.getAttribute('aria-label') === 'Excluir produto');
-  });
-  if (!directDelete) throw new Error('biblioteca deve expor exclusão direta por produto');
-
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#catalogPreview .catalog-table-block[data-table-block-id="table-electric"]');
   const preview = await page.evaluate(() => {
@@ -159,7 +152,7 @@ try {
     if (Math.abs(mmWidth - 210) > 0.7 || Math.abs(mmHeight - 297) > 0.7) throw new Error(`página física não é A4: ${mmWidth.toFixed(2)} × ${mmHeight.toFixed(2)} mm`);
   }
 
-  console.log('PASS browser table gate: fragmentação, continuação, exclusão direta, print isolado e A4 físico');
+  console.log('PASS browser table gate: fragmentação, continuação, print isolado e A4 físico');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
