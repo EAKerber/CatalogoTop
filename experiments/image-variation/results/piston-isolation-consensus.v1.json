@@ -1,0 +1,93 @@
+{
+  "kind": "catalogotop.image-isolation-comparison-result",
+  "version": 1,
+  "status": "promising-research-only-not-core",
+  "caseId": "piston-wide",
+  "sourceId": "piston",
+  "sourceSha256": "a85d30da46332fc9d81d65ffead780bf0252bc6e01bf2753157509118cacf19d",
+  "purpose": "Test whether white-on-white isolation can be made less threshold-fragile without tuning the light/chroma threshold per case.",
+  "baseline": {
+    "method": "connected-light-neutral-border",
+    "lightThreshold": 242,
+    "chromaTolerance": 24,
+    "observedFailure": "the factual piston splits into two dominant components because light product pixels remain connected to the removable background candidate set"
+  },
+  "candidate": {
+    "method": "edge-gated-connected-light-neutral-consensus",
+    "lightThreshold": 242,
+    "chromaTolerance": 24,
+    "gradientPercentileBand": [92, 93, 94, 95, 96],
+    "majorityVotesRequired": 3,
+    "gradientThresholds": [2.692582, 3.905125, 5.907386, 8.726078, 13.583078],
+    "foregroundPixelsIncludingSourceAnnotations": 29502,
+    "largestProductComponentPixels": 28675,
+    "uncertainPixelsAcrossBand": 1608,
+    "uncertainPixelsVsMajorityForeground": 0.054505,
+    "largestProductBBox": [0, 19, 450, 431],
+    "principalAxisDeg": -42.5087,
+    "placement": {
+      "targetWidthPx": 440,
+      "targetHeightPx": 180,
+      "safeMarginRatio": 0.07,
+      "preserve": {
+        "bboxUtilization": 0.33047,
+        "estimatedForegroundOccupancy": 0.051112
+      },
+      "alignHorizontal": {
+        "bboxUtilization": 0.333796,
+        "estimatedForegroundOccupancy": 0.159172
+      },
+      "foregroundOccupancyGainHorizontalVsPreserve": 3.1142
+    }
+  },
+  "crossSourceCheck": [
+    {
+      "sourceId": "h45",
+      "consensusVsBaselineIoU": 0.968158,
+      "uncertainPixelsVsConsensusForeground": 0.039013,
+      "interpretation": "close to baseline"
+    },
+    {
+      "sourceId": "soft-extra",
+      "consensusVsBaselineIoU": 0.863741,
+      "uncertainPixelsVsConsensusForeground": 0.0,
+      "interpretation": "larger change; gradient percentile band collapses to zero on this blank-heavy source, so the rule needs separate scrutiny"
+    },
+    {
+      "sourceId": "soft-close",
+      "consensusVsBaselineIoU": 0.955191,
+      "uncertainPixelsVsConsensusForeground": 0.050546,
+      "interpretation": "close to baseline"
+    },
+    {
+      "sourceId": "hinge",
+      "consensusVsBaselineIoU": 0.972097,
+      "uncertainPixelsVsConsensusForeground": 0.025586,
+      "interpretation": "close to baseline"
+    },
+    {
+      "sourceId": "caster",
+      "consensusVsBaselineIoU": 0.989745,
+      "uncertainPixelsVsConsensusForeground": 0.007855,
+      "interpretation": "very close to baseline"
+    },
+    {
+      "sourceId": "round-leg",
+      "consensusVsBaselineIoU": 0.880353,
+      "uncertainPixelsVsConsensusForeground": 0.103423,
+      "interpretation": "materially different and highly uncertain; composite source remains a no-auto-isolation control"
+    }
+  ],
+  "interpretation": {
+    "result": "promising-isolation-evidence",
+    "promotionDecision": "do-not-promote-to-core-yet",
+    "notes": [
+      "Changing background seeds to corners alone did not improve the piston result and was discarded.",
+      "The edge-gated consensus reconnects the piston across the full 92-96 percentile band without changing the 242/24 color thresholds.",
+      "The candidate preserves a monotonic relationship with the baseline: edge gating can retain pixels the baseline would remove but does not create new source colors or factual geometry.",
+      "The uncertainty mask makes percentile sensitivity observable rather than hiding it behind one selected cutoff.",
+      "Soft Extra and round-leg change materially enough that the candidate must remain an experiment rather than a replacement segmentation rule.",
+      "The piston source is explicitly illustrative and appears clipped at source boundaries; improved isolation does not strengthen product-truth authority or authorize reconstruction."
+    ]
+  }
+}
