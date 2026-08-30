@@ -56,10 +56,20 @@
       const summary = NS.App.renderCatalog();
       await afterLayout();
       const state = NS.Core.getState();
-      const result = await NS.VariationBundle.buildRequest(state, {
+      const buildOptions = {
         root: preview,
         documentModel: summary?.document || NS.CatalogDocument?.build?.(state)
-      });
+      };
+      let result;
+      try {
+        result = await NS.VariationBundle.buildRequest(state, buildOptions);
+      } catch (error) {
+        if (error?.code !== 'write_session_required' || !NS.ProductStore?.unlock) throw error;
+        setStatus('A fonte externa precisa ser incorporada ao AssetStore. Liberando escrita…', 'working');
+        const unlocked = await NS.ProductStore.unlock();
+        if (!unlocked) throw new Error('Exportação cancelada: a fonte externa não pôde ser incorporada sem liberar a escrita.');
+        result = await NS.VariationBundle.buildRequest(state, buildOptions);
+      }
       const jobs = result.manifest.jobs.length;
       const issues = result.manifest.issues;
       const remoteJobs = result.manifest.jobs.filter(job => job?.source?.mode === 'remote-url').length;

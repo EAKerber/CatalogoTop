@@ -199,6 +199,32 @@
     };
   }
 
+  async function sourceDescriptorFromBlob(blob, sourceRef) {
+    const ref = String(sourceRef || '').trim();
+    if (!blob || typeof blob.arrayBuffer !== 'function') throw new Error('variation_source_blob_invalid');
+    if (!String(blob.type || '').startsWith('image/')) throw new Error(`variation_source_not_image:${blob.type || 'unknown'}`);
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (!bytes.length) throw new Error('variation_source_empty');
+    const hash = await sha256(bytes);
+    const extension = mimeExtension(blob.type, ref);
+    return {
+      mode: 'embedded',
+      sourceRef: ref,
+      mimeType: blob.type || 'application/octet-stream',
+      bytes,
+      sha256: hash,
+      fingerprint: hash,
+      path: `sources/sha256-${hash}.${extension}`
+    };
+  }
+
+  async function producerMaterializeRemoteSource(productId, sourceRef, materializeFn = NS.AssetClient?.materializeProductSource) {
+    if (typeof materializeFn !== 'function') throw new Error('variation_producer_materializer_unavailable');
+    const result = await materializeFn(String(productId || ''), String(sourceRef || '').trim());
+    const blob = result?.blob || result;
+    return sourceDescriptorFromBlob(blob, sourceRef);
+  }
+
   async function fetchSourceAsset(sourceRef, fetchFn = fetch) {
     const ref = String(sourceRef || '').trim();
     if (!ref) throw new Error('variation_source_missing');
@@ -215,20 +241,7 @@
         signal: controller?.signal
       });
       if (!response?.ok) throw new Error(`variation_source_fetch:${response?.status || 0}`);
-      const blob = await response.blob();
-      if (!String(blob.type || '').startsWith('image/')) throw new Error(`variation_source_not_image:${blob.type || 'unknown'}`);
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      const hash = await sha256(bytes);
-      const extension = mimeExtension(blob.type, ref);
-      return {
-        mode: 'embedded',
-        sourceRef: ref,
-        mimeType: blob.type || 'application/octet-stream',
-        bytes,
-        sha256: hash,
-        fingerprint: hash,
-        path: `sources/sha256-${hash}.${extension}`
-      };
+      return sourceDescriptorFromBlob(await response.blob(), ref);
     } finally {
       if (timer) clearTimeout(timer);
     }
@@ -642,7 +655,7 @@ if __name__ == "__main__":
       '',
       'Use manifest.json as the authoritative contract.',
       'For source.mode=embedded, source.path points to the canonical original included in this ZIP.',
-      'For source.mode=remote-url, source.url is the canonical external locator because browser CORS prevented embedding.',
+      'For source.mode=remote-url, source.url is the last-resort canonical locator because the producer could not embed the real pixels, including producer-side managed materialization.',
       'If any job uses source.mode=remote-url, preferred path: python3 tools/materialize-sources.py . --mode fetch',
       'If Python/local code has no outbound network, use: python3 tools/materialize-sources.py . --mode plan; then use the host/platform download tool to save every URL to its downloadPath from context/materialization-plan.json; finally run: python3 tools/materialize-sources.py . --mode ingest',
       'A platform downloader must save the response bytes to the declared local path. A browser screenshot, rendered preview or visual lookup is not equivalent.',
@@ -665,6 +678,7 @@ if __name__ == "__main__":
     const placements = placementsForDocument(documentModel);
     const measurements = options.measurements || measureRenderedPlacements(options.root, placements);
     const fetchFn = options.fetchFn || fetch;
+    const remoteMaterializeFn = options.remoteMaterializeFn || NS.AssetClient?.materializeProductSource;
     const sourceCache = new Map();
     const archiveAssets = new Map();
     const jobs = [];
@@ -687,7 +701,19 @@ if __name__ == "__main__":
       }
 
       if (!sourceCache.has(sourceRef)) {
-        sourceCache.set(sourceRef, fetchSourceAsset(sourceRef, fetchFn).catch(error => ({ error })));
+        sourceCache.set(sourceRef, (async () => {
+          try {
+            return await fetchSourceAsset(sourceRef, fetchFn);
+          } catch (directError) {
+            if (!isRemoteHttpSource(sourceRef) || typeof remoteMaterializeFn !== 'function') return { error: directError };
+            try {
+              return await producerMaterializeRemoteSource(placement.productId, sourceRef, remoteMaterializeFn);
+            } catch (producerError) {
+              if (producerError?.code === 'write_session_required') throw producerError;
+              return { error: directError, producerError };
+            }
+          }
+        })());
       }
       let source = await sourceCache.get(sourceRef);
       if (source?.error) {
@@ -794,6 +820,7 @@ if __name__ == "__main__":
       policy: {
         sourceAuthority: 'product.image',
         externalUrlFallback: true,
+        producerSideEmbedding: true,
         resultScope: 'catalog-local',
         identityAndGeometryMustBePreserved: true,
         allowedTransforms: Array.from(ALLOWED_TRANSFORMS),
@@ -838,6 +865,8 @@ if __name__ == "__main__":
     mimeExtension,
     isRemoteHttpSource,
     remoteSourceDescriptor,
+    sourceDescriptorFromBlob,
+    producerMaterializeRemoteSource,
     fetchSourceAsset,
     layoutContext,
     buildRequest
