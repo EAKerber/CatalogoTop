@@ -40,6 +40,7 @@
     const presentation = NS.Composition.normalizePresentation(state.catalog?.presentation);
     const max = Number(NS.ImageVariants?.MAX_CATALOG_IMAGE_VARIANTS) || 24;
     const incomingByProduct = new Map();
+    const assets = [];
     let duplicates = 0;
     validated.assets.forEach(asset => {
       const id = asset.variant.productId;
@@ -48,6 +49,7 @@
         duplicates += 1;
         return;
       }
+      assets.push(asset);
       incomingByProduct.set(id, (incomingByProduct.get(id) || 0) + 1);
     });
     incomingByProduct.forEach((incoming, productId) => {
@@ -58,7 +60,7 @@
         throw error;
       }
     });
-    return { duplicates, incoming: validated.assets.length - duplicates };
+    return { duplicates, incoming: assets.length, assets };
   }
 
   async function ensureWritableDefault() {
@@ -102,9 +104,10 @@
         setStatus(`Nenhuma variante nova · ${capacity.duplicates} ${capacity.duplicates === 1 ? 'duplicada' : 'duplicadas'}.`, 'warning');
         return { request, packageData, validated, report: { imported: 0, duplicates: capacity.duplicates } };
       }
+      const importable = Object.freeze({ ...validated, assets: capacity.assets });
 
       setStatus('Preparando imagens validadas…', 'working');
-      const prepared = await NS.VariationResult.prepareValidated(validated, options.prepareImage || NS.AssetClient?.prepareImage);
+      const prepared = await NS.VariationResult.prepareValidated(importable, options.prepareImage || NS.AssetClient?.prepareImage);
       const ensureWritable = options.ensureWritable || ensureWritableDefault;
       if (!await ensureWritable()) {
         setStatus('Importação cancelada antes do upload.', 'warning');
@@ -123,7 +126,7 @@
           throw error;
         }
       }
-      checkCapacity(validated);
+      checkCapacity(importable);
 
       const report = NS.VariationResult.commitUploaded(uploaded);
       const text = reportText(report, validated, capacity.duplicates);
