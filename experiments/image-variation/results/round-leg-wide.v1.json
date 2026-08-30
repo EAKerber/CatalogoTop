@@ -1,0 +1,72 @@
+{
+  "kind": "catalogotop.image-variation-benchmark-result",
+  "version": 1,
+  "caseId": "round-leg-wide",
+  "status": "negative-control-segmentation-not-authoritative",
+  "sourceEvidence": {
+    "sourceId": "round-leg",
+    "sourceUrl": "https://www.markferragens.com.br/_next/image?q=75&url=https%3A%2F%2Fimg.markferragens.com.br%2Fimagens%2F2623%2F1-pe-redondo-cromado-para-armarios-e-moveis-planejados-o3-x-10-cm.png%3Fw%3D800%26h%3D800%26r%3D10&w=1920",
+    "mimeType": "image/webp",
+    "byteLength": 6418,
+    "sha256": "3b415b13030013c7a10f7225879ca14874cd6adf8945191b98158bc27352fc43",
+    "widthPx": 800,
+    "heightPx": 800,
+    "materializationTransport": "github-actions-public-https",
+    "materializationRunId": 33332626528,
+    "artifactId": 9738077704,
+    "authorityCaveat": "The source is family-representative and visually composite: isolated product plus an application inset."
+  },
+  "target": {
+    "profile": "card-wide",
+    "widthPx": 440,
+    "heightPx": 180,
+    "safeMarginRatio": 0.07
+  },
+  "segmentation": {
+    "method": "connected-light-neutral-border",
+    "threshold": 242,
+    "chromaTolerance": 24,
+    "foregroundPixels": 63867,
+    "rawForegroundBBox": {
+      "minX": 2,
+      "minY": 2,
+      "maxX": 797,
+      "maxY": 797,
+      "width": 796,
+      "height": 796
+    },
+    "connectedComponents": 53,
+    "dominantComponents": [
+      {
+        "pixels": 44766,
+        "bbox": [488, 497, 737, 746],
+        "interpretation": "application inset / contextual image region"
+      },
+      {
+        "pixels": 18630,
+        "bbox": [354, 301, 487, 689],
+        "interpretation": "isolated vertical leg region"
+      }
+    ],
+    "assessment": "invalid-as-a-single-product-orientation-mask"
+  },
+  "geometry": {
+    "rawPrincipalAxisDeg": 44.2507,
+    "rawOriginalContainBBoxUtilization": 0.299546,
+    "rawSegmentedPreserveBBoxUtilization": 0.302564,
+    "warning": "These aggregate metrics are not semantically meaningful because the mask combines multiple visual roles and sparse artifacts."
+  },
+  "interpretation": {
+    "utility": "no-automatic-variant",
+    "fidelity": "source-decomposition-required-before-orientation-planning",
+    "candidateClass": "B",
+    "systemDecision": "no-variant-preferred",
+    "notes": [
+      "The naive foreground mask contains two dominant semantic regions: the isolated product and an application inset.",
+      "A principal axis computed over the full source is therefore not a product-orientation authority.",
+      "The benchmark expected vertical semantic orientation; a wide target must not force a 90-degree product rotation merely to increase coverage.",
+      "This case demonstrates the need to distinguish source subject selection from placement orientation. Source decomposition must occur before an orientation planner can be trusted.",
+      "Do not hide this failure by tuning the threshold until the desired answer appears; the composite-source semantics are the actual research finding."
+    ]
+  }
+}
