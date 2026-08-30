@@ -1,0 +1,27 @@
+name: Diagnose R1b Browser Seeds
+
+on:
+  push:
+    branches:
+      - feat/v2-r1b-product-snapshot
+    paths:
+      - .github/workflows/diagnose-r1b-browser-seeds.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: List current-schema browser seeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== Core.SCHEMA_VERSION ==='
+          grep -RniF 'schemaVersion: Core.SCHEMA_VERSION' scripts/browser-*.mjs || true
+          echo '=== numeric schema 8 ==='
+          grep -RniE 'schemaVersion:[[:space:]]*8([^0-9]|$)' scripts/browser-*.mjs || true
+          echo '=== all browser schemaVersion occurrences ==='
+          grep -RniE 'schemaVersion:' scripts/browser-*.mjs || true
