@@ -195,12 +195,19 @@ try {
     await page.click(`[data-tab="${tabId}"]`);
     await page.waitForSelector(`#${tabId}.panel.active`);
     await page.waitForTimeout(50);
-    const outsideMobile = await page.evaluate(() => ({
-      hidden: document.querySelector('.editor-history-controls').hidden,
-      parentClass: document.querySelector('.editor-history-controls').parentElement?.className || '',
-      snapshot: JSON.stringify(window.CatalogoTop.EditorHistory.snapshot())
-    }));
-    if (!outsideMobile.hidden || !outsideMobile.parentClass.includes('app-primary-tools')) throw new Error(`histórico mobile visível fora de Catálogo em ${tabId}: ${JSON.stringify(outsideMobile)}`);
+    const outsideMobile = await page.evaluate(() => {
+      const history = document.querySelector('.editor-history-controls');
+      const rect = history.getBoundingClientRect();
+      return {
+        hidden: history.hidden,
+        display: getComputedStyle(history).display,
+        width: rect.width,
+        height: rect.height,
+        parentClass: history.parentElement?.className || '',
+        snapshot: JSON.stringify(window.CatalogoTop.EditorHistory.snapshot())
+      };
+    });
+    if (!outsideMobile.hidden || outsideMobile.display !== 'none' || outsideMobile.width !== 0 || outsideMobile.height !== 0 || !outsideMobile.parentClass.includes('heading-actions')) throw new Error(`histórico mobile vazou visualmente fora de Catálogo em ${tabId}: ${JSON.stringify(outsideMobile)}`);
     await page.evaluate(() => { window.__dispatchEditorShortcut('z'); window.__dispatchEditorShortcut('y'); });
     const afterShortcut = await page.evaluate(() => JSON.stringify(window.CatalogoTop.EditorHistory.snapshot()));
     if (outsideMobile.snapshot !== mobileSnapshot || afterShortcut !== mobileSnapshot) throw new Error(`atalho de histórico alterou estado fora de Catálogo em ${tabId}`);
@@ -215,13 +222,14 @@ try {
       const t = tabs.getBoundingClientRect();
       return {
         hidden: history.hidden,
+        parentClass: history.parentElement?.className || '',
         historyTop: h.top,
         tabsTop: t.top,
         headerHeight: header.getBoundingClientRect().height,
         snapshot: JSON.stringify(window.CatalogoTop.EditorHistory.snapshot())
       };
     });
-    if (restored.hidden || Math.abs(restored.historyTop - restored.tabsTop) > 8 || restored.headerHeight > mobile.headerHeight + 2 || restored.snapshot !== mobileSnapshot) throw new Error(`histórico mobile não restaurou corretamente após ${tabId}: ${JSON.stringify(restored)}`);
+    if (restored.hidden || !restored.parentClass.includes('app-primary-tools') || Math.abs(restored.historyTop - restored.tabsTop) > 8 || restored.headerHeight > mobile.headerHeight + 2 || restored.snapshot !== mobileSnapshot) throw new Error(`histórico mobile não restaurou corretamente após ${tabId}: ${JSON.stringify(restored)}`);
   }
 
   const lifecycle = await page.evaluate(() => window.__tabLifecycle.slice());

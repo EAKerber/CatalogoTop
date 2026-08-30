@@ -40,6 +40,10 @@ function seedState() {
     {
       id: 'request-p2', code: 'REQ-2', description: 'Produto sem imagem', category: 'Teste', subcategory: '', price: 'R$ 60,00', status: 'Ativo', notes: '',
       image: '', imageGallery: [], specs: [], variants: [], tableRows: [], updatedAt: '2026-08-29T00:00:00.000Z'
+    },
+    {
+      id: 'request-p3', code: 'REQ-3', description: 'Produto com URL externa', category: 'Teste', subcategory: '', price: 'R$ 70,00', status: 'Ativo', notes: '',
+      image: 'https://cdn.example.invalid/request-p3.webp', imageGallery: [], specs: [], variants: [], tableRows: [], updatedAt: '2026-08-29T00:00:00.000Z'
     }
   ];
   NS.Core.setState({
@@ -68,6 +72,12 @@ try {
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.CatalogoTop?.VariationBundleControls && window.CatalogoTop?.VariationBundle && window.CatalogoTop?.ZipStore));
   await page.evaluate(seedState);
+  await page.evaluate(() => {
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = (...args) => String(args[0] || '').startsWith('https://cdn.example.invalid/')
+      ? Promise.reject(new TypeError('Failed to fetch'))
+      : nativeFetch(...args);
+  });
 
   const before = await page.evaluate(() => JSON.stringify(window.CatalogoTop.Core.getState()));
   await page.evaluate(() => {
@@ -90,10 +100,10 @@ try {
   }));
 
   if (!download.suggestedFilename().match(/^catalogotop-image-request-[a-f0-9]{12}\.zip$/)) throw new Error(`nome de download inválido: ${download.suggestedFilename()}`);
-  if (exported.detail.jobs !== 1 || exported.detail.issues?.length !== 1 || exported.detail.issues[0]?.reason !== 'missing-source') throw new Error(`resumo de exportação inesperado: ${JSON.stringify(exported.detail)}`);
+  if (exported.detail.jobs !== 2 || exported.detail.remoteJobs !== 1 || exported.detail.issues?.length !== 1 || exported.detail.issues[0]?.reason !== 'missing-source') throw new Error(`resumo de exportação inesperado: ${JSON.stringify(exported.detail)}`);
   if (exported.activeTab !== 'catalog' || exported.measuredImageWidth <= 0) throw new Error(`exportação não mediu o renderer visível: ${JSON.stringify(exported)}`);
   if (exported.after !== before) throw new Error('exportação de request não pode mutar estado do catálogo/produtos');
-  if (exported.statusState !== 'warning' || !exported.status.includes('1 imagem preparada') || !exported.status.includes('1 sem imagem original')) throw new Error(`status de exportação inesperado: ${JSON.stringify(exported)}`);
+  if (exported.statusState !== 'warning' || !exported.status.includes('2 imagens preparadas') || !exported.status.includes('1 por URL externa') || !exported.status.includes('1 sem imagem original')) throw new Error(`status de exportação inesperado: ${JSON.stringify(exported)}`);
   if (!Number.isFinite(exported.detail.byteLength) || exported.detail.byteLength <= 100) throw new Error(`ZIP exportado parece vazio: ${exported.detail.byteLength}`);
 
   // Quando todos os jobs ficam inelegíveis, deve bloquear sem alterar estado.
@@ -113,10 +123,10 @@ try {
     status: document.getElementById('variationBundleStatus')?.textContent || '',
     statusState: document.getElementById('variationBundleStatus')?.dataset.state || ''
   }));
-  if (blocked.detail.jobs !== 0 || blocked.detail.issues?.length !== 2) throw new Error(`bloqueio sem jobs incorreto: ${JSON.stringify(blocked)}`);
+  if (blocked.detail.jobs !== 0 || blocked.detail.issues?.length !== 3) throw new Error(`bloqueio sem jobs incorreto: ${JSON.stringify(blocked)}`);
   if (blocked.after !== blockedBefore || blocked.statusState !== 'error' || !blocked.status.includes('Nenhuma imagem elegível')) throw new Error(`bloqueio alterou estado/status: ${JSON.stringify(blocked)}`);
 
-  console.log('PASS browser variation bundle gate: export ZIP, renderer real, issues, zero-job block e estado imutável');
+  console.log('PASS browser variation bundle gate: export ZIP, fallback URL externa/CORS, renderer real, issues, zero-job block e estado imutável');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

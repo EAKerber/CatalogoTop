@@ -62,7 +62,9 @@
       });
       const jobs = result.manifest.jobs.length;
       const issues = result.manifest.issues;
+      const remoteJobs = result.manifest.jobs.filter(job => job?.source?.mode === 'remote-url').length;
       const issueText = issueSummary(issues);
+      const remoteText = remoteJobs ? `${remoteJobs} ${remoteJobs === 1 ? 'por URL externa' : 'por URLs externas'}` : '';
       if (!jobs) {
         setStatus(`Nenhuma imagem elegível para exportar${issueText ? ` · ${issueText}` : ''}.`, 'error');
         window.dispatchEvent(new CustomEvent('catalogotop:variation-request-blocked', {
@@ -71,12 +73,13 @@
         return result;
       }
       downloadBundle(result);
-      setStatus(`${jobs} ${jobs === 1 ? 'imagem preparada' : 'imagens preparadas'}${issueText ? ` · ${issueText}` : ''}.`, issues.length ? 'warning' : 'success');
+      setStatus(`${jobs} ${jobs === 1 ? 'imagem preparada' : 'imagens preparadas'}${remoteText ? ` · ${remoteText}` : ''}${issueText ? ` · ${issueText}` : ''}.`, remoteJobs || issues.length ? 'warning' : 'success');
       window.dispatchEvent(new CustomEvent('catalogotop:variation-request-exported', {
         detail: {
           requestId: result.requestId,
           fileName: result.fileName,
           jobs,
+          remoteJobs,
           issues: structuredClone(issues),
           byteLength: result.archive.byteLength
         }

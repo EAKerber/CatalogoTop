@@ -215,7 +215,7 @@
   function syncHistoryPlacement() {
     const controls = ensureHistoryControls();
     if (!controls || !historyMarker) return;
-    if (mobile.matches && appPrimaryTools) appPrimaryTools.appendChild(controls);
+    if (mobile.matches && isCatalogActive() && appPrimaryTools) appPrimaryTools.appendChild(controls);
     else if (historyMarker.isConnected) historyMarker.after(controls);
     syncHistoryControls();
   }
