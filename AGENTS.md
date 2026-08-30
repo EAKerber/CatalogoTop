@@ -112,3 +112,11 @@ Recorte v0.11.3.1 consolidado na `main`: corrige o lifecycle de tabs usado pelo 
 Recorte v0.11.4 em estabilização: schema 7 introduz `Product.imageGallery`, seleção editorial e derivados locais sem substituir `product.image`; o inspector permite ciclar Original/alternativas/derivados; o Variation Bundle exporta request ZIP com contexto material e importa result ZIP fail-closed, transacional e local-only. Preview/print, framing, backup round-trip, ZIP e segurança possuem gates dedicados. Ver `docs/image-variants-v0.11.4.md`.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.
+
+
+## V1 stable boundary — external image variations retired
+
+- A V1 estável é 1.0.0. O fluxo externo Image Variation Request/Result está aposentado e a UI correspondente deve permanecer literalmente `hidden` em `main` V1.
+- Preserve os campos schema 7 `imageVariants`/`imageSelections`; eles são compatibilidade reservada, não autorização para reativar a capability.
+- A normalização V1 remove somente derivados com `provenance.kind = external-variation` e seleções órfãs correspondentes. Não apague `product.imageGallery` nem framing.
+- Não reative geração/importação externa na linha V2 principal sem uma decisão explícita de produto e um contrato de composição semântica/qualidade. Trabalho exploratório deve permanecer isolado.
