@@ -1,0 +1,43 @@
+{
+  "kind": "catalogotop.image-variation-fidelity-review-set",
+  "version": 1,
+  "status": "research-only",
+  "reviewGuide": "docs/research/image-variation/FIDELITY-REVIEW.md",
+  "reviewedAt": "2026-08-30",
+  "cases": [
+    {
+      "caseId": "h45-wide",
+      "outcome": "PASS FOR BENCHMARK COMPARISON",
+      "sourceAuthority": "stronger-product-match",
+      "observations": [
+        "two primary slide pieces remain present",
+        "characteristic rail geometry, holes and fittings remain visually coherent with the exact source",
+        "no observed piece duplication/removal or synthetic product detail",
+        "deterministic nearest-neighbor edge roughness is a presentation-quality limitation, not observed identity reconstruction"
+      ],
+      "scopeCaveat": "This pass authorizes benchmark comparison only; it is not production approval."
+    },
+    {
+      "caseId": "soft-extra-wide",
+      "outcome": "REVIEW-REQUIRED",
+      "sourceAuthority": "family-match",
+      "observations": [
+        "two primary rails and visible terminal/fitting structures remain present",
+        "the recomposition gives measurable placement benefit without obvious piece-count change",
+        "current source authority is family-level rather than a strong exact-variant linkage"
+      ],
+      "blockingQuestion": "Is family-level source authority sufficient for the intended catalog placement, or is exact commercial-variant evidence required?"
+    },
+    {
+      "caseId": "soft-close-wide",
+      "outcome": "REVIEW-REQUIRED",
+      "sourceAuthority": "illustrative-product-image",
+      "observations": [
+        "visible rail structure and piece presentation remain coherent with the exact source pixels",
+        "preserve-orientation crop materially improves placement presence",
+        "the current product page explicitly describes imagery as illustrative"
+      ],
+      "blockingQuestion": "Source-pixel fidelity cannot establish product-truth fidelity for an explicitly illustrative source."
+    }
+  ]
+}
