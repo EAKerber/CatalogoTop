@@ -138,19 +138,32 @@ try {
   if (state.uploads !== 1 || state.publishes !== 0 || state.imports.imported !== 1) throw new Error(`upload/publicação incorretos: ${JSON.stringify(state)}`);
   if (state.statusState !== 'success' || !state.status.includes('1 variante importada')) throw new Error(`status de importação inesperado: ${JSON.stringify(state)}`);
 
-  // Reimport idêntico, no mesmo contexto editorial do request, deve parar antes de prepare/upload.
+  // Reimport idêntico, no mesmo contexto editorial, deve ser reconhecido como duplicado antes de prepare/upload.
   const uploadsBeforeDuplicate = state.uploads;
-  await page.setInputFiles('#importImageVariationResult', {
-    name: 'result-again.zip', mimeType: 'application/zip', buffer: Buffer.from(generated.bytes)
-  });
-  await page.waitForFunction(previous => window.__variationUploads === previous && document.getElementById('variationResultStatus')?.textContent.includes('Nenhuma variante nova'), uploadsBeforeDuplicate);
-  await page.waitForFunction(() => !document.getElementById('importImageVariationResult')?.disabled);
-  state = await page.evaluate(() => ({
-    uploads: window.__variationUploads,
-    variants: window.CatalogoTop.Core.getState().catalog.presentation.imageVariants?.['result-p1']?.length || 0,
-    status: document.getElementById('variationResultStatus')?.textContent || ''
-  }));
-  if (state.uploads !== uploadsBeforeDuplicate || state.variants !== 1 || !state.status.includes('1 duplicada')) throw new Error(`reimport duplicado não foi interrompido cedo: ${JSON.stringify(state)}`);
+  const duplicate = await page.evaluate(async bytes => {
+    const NS = window.CatalogoTop;
+    const request = await NS.VariationResultControls.currentRequest();
+    const file = new File([new Uint8Array(bytes)], 'result-again.zip', { type: 'application/zip' });
+    const packageData = await NS.VariationResult.readPackage(file);
+    const validated = await NS.VariationResult.validatePackage(packageData, request);
+    const capacity = NS.VariationResultControls.checkCapacity(validated);
+    const outcome = await NS.VariationResultControls.importResult(file, { currentRequest: request });
+    return {
+      requestId: request.requestId,
+      capacity: { duplicates: capacity.duplicates, incoming: capacity.incoming },
+      report: outcome?.report || null,
+      uploads: window.__variationUploads,
+      variants: NS.Core.getState().catalog.presentation.imageVariants?.['result-p1']?.length || 0,
+      status: document.getElementById('variationResultStatus')?.textContent || '',
+      statusState: document.getElementById('variationResultStatus')?.dataset.state || ''
+    };
+  }, generated.bytes);
+  if (duplicate.requestId !== generated.requestId || duplicate.capacity.duplicates !== 1 || duplicate.capacity.incoming !== 0) {
+    throw new Error(`dedupe não reconheceu request/proveniência existentes: ${JSON.stringify(duplicate)}`);
+  }
+  if (duplicate.uploads !== uploadsBeforeDuplicate || duplicate.variants !== 1 || duplicate.report?.duplicates !== 1 || duplicate.report?.imported !== 0 || duplicate.statusState !== 'warning' || !duplicate.status.includes('1 duplicada')) {
+    throw new Error(`reimport duplicado não foi interrompido cedo: ${JSON.stringify(duplicate)}`);
+  }
 
   // A derivada importada fica disponível ao mesmo ciclo editorial, sem auto-seleção.
   await page.click('#catalogPreview .catalog-card[data-product-id="result-p1"]');
