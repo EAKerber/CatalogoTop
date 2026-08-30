@@ -1,0 +1,82 @@
+{
+  "kind": "catalogotop.image-variation-class-c-experiment-result",
+  "version": 1,
+  "status": "completed-invalid-output",
+  "caseId": "h45-wide",
+  "plan": "experiments/image-variation/class-c-h45-plan.v1.json",
+  "source": {
+    "sourceId": "h45",
+    "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+    "mimeType": "image/jpeg",
+    "widthPx": 450,
+    "heightPx": 450,
+    "authority": "stronger-product-match"
+  },
+  "reviewedReference": {
+    "result": "experiments/image-variation/results/h45-wide.v1.json",
+    "review": "experiments/image-variation/reviews/elongated-wide-review.v1.json",
+    "outcome": "PASS FOR BENCHMARK COMPARISON",
+    "measuredBBoxUtilization": 0.739028
+  },
+  "producerTrial": {
+    "producerClass": "conversation-image-edit-generator",
+    "requestedOperation": "edit the exact factual H45 source into the predeclared wide grounded Class C candidate; return only the edited product photograph",
+    "attemptCount": 3,
+    "attempts": [
+      {
+        "attempt": 1,
+        "generationId": "1888527f-13e0-417e-96b3-5928b811452c",
+        "referenceBinding": "conversation source available; automatic target resolution",
+        "observedOutputClass": "research-report-infographic",
+        "validCandidate": false,
+        "failureReasons": [
+          "did not return an edited factual product photograph",
+          "introduced report text, metrics and conclusions outside the requested image-edit contract",
+          "therefore no Class C fidelity comparison can be performed"
+        ]
+      },
+      {
+        "attempt": 2,
+        "generationId": "e69bbc21-97c2-4562-bf7d-3aa0908115ae",
+        "referenceBinding": "source target restated explicitly after first failure",
+        "observedOutputClass": "research-report-infographic",
+        "validCandidate": false,
+        "failureReasons": [
+          "repeated the wrong output class instead of editing the source photograph",
+          "declared unmeasured metrics and a positive verdict",
+          "could not be treated as evidence of product fidelity or utility"
+        ]
+      },
+      {
+        "attempt": 3,
+        "generationId": "cc6a355a-5df6-4ec2-bd93-c6f936c10611",
+        "referenceBinding": "exact factual H45 image explicitly forced as the only visual reference",
+        "observedOutputClass": "research-report-infographic",
+        "validCandidate": false,
+        "failureReasons": [
+          "failed the edit-output contract despite explicit source binding",
+          "invented experimental metrics, verdict, commit/branch-like state and next steps inside the image",
+          "rendered product representations that cannot be accepted as the requested source-grounded edit"
+        ]
+      }
+    ]
+  },
+  "evaluation": {
+    "classCCandidateProduced": false,
+    "fidelityReviewPerformed": false,
+    "placementUtilityComparisonPerformed": false,
+    "outcome": "CLASS_C_NOT_JUSTIFIED_PRODUCER_CONTRACT_FAILURE",
+    "interpretation": "The available producer/channel failed to execute the predeclared image-edit contract. This is evidence against using this producer path as the R-IMG-1 Class C mechanism; it is not evidence that all grounded generative image editing is inherently incapable of adding value.",
+    "deterministicReferenceRemainsPreferred": true
+  },
+  "stopConditionTriggered": {
+    "triggered": true,
+    "reason": "No valid edited photograph was produced after three bounded attempts; continuing would amount to tuning around a producer-contract failure rather than evaluating the predeclared Class C hypothesis."
+  },
+  "provenanceNotes": [
+    "Invalid generated reports must not be used as benchmark metrics or fidelity evidence.",
+    "Any metrics/verdicts embedded inside invalid generated outputs are producer-generated text, not measured research results.",
+    "The factual H45 source and reviewed deterministic A/B candidate remain the only valid visual authorities for this case in the current experiment."
+  ],
+  "nextDecision": "Do not expand Class C to other benchmark cases. First decide whether a producer with an explicit source-image edit contract and inspectable output semantics is available; otherwise conclude R-IMG-1 with deterministic A/B as the currently supported path."
+}
