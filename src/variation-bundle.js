@@ -371,7 +371,6 @@
       version: REQUEST_VERSION,
       catalog: {
         title: String(state?.catalog?.title || ''),
-        createdAt: state?.catalog?.createdAt || null,
         templateId: String(documentModel?.template?.id || state?.catalog?.templateId || ''),
         orderedIds: (documentModel?.orderedIds || []).map(String)
       },
