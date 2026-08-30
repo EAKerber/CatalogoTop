@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Config, Context } from '@netlify/functions';
+import { PRODUCT_SNAPSHOT_VERSION } from '../lib/product-folders.mts';
 import {
   MAX_PRODUCTS_BYTES,
   currentSnapshot,
@@ -7,7 +8,7 @@ import {
   json,
   productsStore,
   sameOriginOrNonBrowser,
-  validateProducts
+  validateProductSnapshot
 } from '../lib/storage.mts';
 
 export default async (request: Request, _context: Context) => {
@@ -23,7 +24,7 @@ export default async (request: Request, _context: Context) => {
   const length = Number(request.headers.get('content-length') || 0);
   if (length && length > MAX_PRODUCTS_BYTES) return json({ error: 'payload_too_large' }, 413);
 
-  let body: { expectedRevision?: number; products?: unknown[]; writeId?: string };
+  let body: { expectedRevision?: number; folders?: unknown[]; products?: unknown[]; writeId?: string };
   try {
     body = await request.json();
   } catch {
@@ -33,8 +34,8 @@ export default async (request: Request, _context: Context) => {
   const serializedSize = Buffer.byteLength(JSON.stringify(body));
   if (serializedSize > MAX_PRODUCTS_BYTES) return json({ error: 'payload_too_large' }, 413);
 
-  const validationError = validateProducts(body.products);
-  if (validationError) return json({ error: 'invalid_products', message: validationError }, 422);
+  const validationError = validateProductSnapshot(body.folders, body.products);
+  if (validationError) return json({ error: 'invalid_product_snapshot', message: validationError }, 422);
 
   const current = await currentSnapshot();
   const expectedRevision = Number(body.expectedRevision);
@@ -43,10 +44,11 @@ export default async (request: Request, _context: Context) => {
   }
 
   const next = {
-    schemaVersion: 1,
+    schemaVersion: PRODUCT_SNAPSHOT_VERSION,
     revision: current.revision + 1,
     updatedAt: new Date().toISOString(),
     writeId: String(body.writeId || randomUUID()),
+    folders: body.folders || [],
     products: body.products || []
   };
 
