@@ -1,4 +1,4 @@
-name: Research Elongated Source Readback
+name: Research Benchmark Source Readback
 
 on:
   push:
@@ -26,21 +26,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p research-artifact
-          curl --fail --location --silent --show-error -A 'Mozilla/5.0 CatalogoTop-Research/1.0' \
-            --connect-timeout 15 --max-time 45 \
-            --output research-artifact/h45-source.bin \
+          UA='Mozilla/5.0 CatalogoTop-Research/1.0'
+          curl --fail --location --silent --show-error -A "$UA" --connect-timeout 15 --max-time 45 --output research-artifact/h45-source.bin \
             'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg'
-          curl --fail --location --silent --show-error -A 'Mozilla/5.0 CatalogoTop-Research/1.0' \
-            --connect-timeout 15 --max-time 45 \
-            --output research-artifact/soft-extra-source.bin \
+          curl --fail --location --silent --show-error -A "$UA" --connect-timeout 15 --max-time 45 --output research-artifact/soft-extra-source.bin \
             'https://trentoferramentas.cdn.magazord.com.br/img/2024/11/produto/1035/corredica-14-soft-closing.png?ims=fit-in%2F1210x'
-          curl --fail --location --silent --show-error -A 'Mozilla/5.0 CatalogoTop-Research/1.0' \
-            --connect-timeout 15 --max-time 45 \
-            --output research-artifact/soft-close-source.bin \
+          curl --fail --location --silent --show-error -A "$UA" --connect-timeout 15 --max-time 45 --output research-artifact/soft-close-source.bin \
             'https://gmad.fbitsstatic.net/img/p/corredica-telescopica-com-amortecedor-300mm-renna-152536/343303-2.jpg?h=420&v=202604291612&w=420'
-          test -s research-artifact/h45-source.bin
-          test -s research-artifact/soft-extra-source.bin
-          test -s research-artifact/soft-close-source.bin
+          curl --fail --location --silent --show-error -A "$UA" --connect-timeout 15 --max-time 45 --output research-artifact/caster-source.bin \
+            'https://product-hub-prd.madeiramadeira.com.br/292834998/images/7b563fa0-5fc2-4c71-82ec-1d09e4b730253298REN36503297REN36503296.jpg?bg-color=FFF&canvas=1%3A1&width=128'
+          curl --fail --location --silent --show-error -A "$UA" -H 'Accept: image/png,image/jpeg,image/webp,*/*;q=0.8' --connect-timeout 15 --max-time 45 --output research-artifact/round-leg-source.bin \
+            'https://www.markferragens.com.br/_next/image?q=75&url=https%3A%2F%2Fimg.markferragens.com.br%2Fimagens%2F2623%2F1-pe-redondo-cromado-para-armarios-e-moveis-planejados-o3-x-10-cm.png%3Fw%3D800%26h%3D800%26r%3D10&w=1920'
+          for f in research-artifact/*-source.bin; do test -s "$f"; done
 
       - name: Record passive byte evidence
         shell: python
@@ -49,18 +46,11 @@ jobs:
           import hashlib, json, struct
 
           SOURCES = {
-              'h45': {
-                  'file': 'h45-source.bin',
-                  'url': 'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg'
-              },
-              'soft-extra': {
-                  'file': 'soft-extra-source.bin',
-                  'url': 'https://trentoferramentas.cdn.magazord.com.br/img/2024/11/produto/1035/corredica-14-soft-closing.png?ims=fit-in%2F1210x'
-              },
-              'soft-close': {
-                  'file': 'soft-close-source.bin',
-                  'url': 'https://gmad.fbitsstatic.net/img/p/corredica-telescopica-com-amortecedor-300mm-renna-152536/343303-2.jpg?h=420&v=202604291612&w=420'
-              }
+              'h45': ('h45-source.bin', 'https://cdn.awsli.com.br/600x450/2716/2716952/produto/258186768/crre-2-he2q0be6kv.jpg'),
+              'soft-extra': ('soft-extra-source.bin', 'https://trentoferramentas.cdn.magazord.com.br/img/2024/11/produto/1035/corredica-14-soft-closing.png?ims=fit-in%2F1210x'),
+              'soft-close': ('soft-close-source.bin', 'https://gmad.fbitsstatic.net/img/p/corredica-telescopica-com-amortecedor-300mm-renna-152536/343303-2.jpg?h=420&v=202604291612&w=420'),
+              'caster': ('caster-source.bin', 'https://product-hub-prd.madeiramadeira.com.br/292834998/images/7b563fa0-5fc2-4c71-82ec-1d09e4b730253298REN36503297REN36503296.jpg?bg-color=FFF&canvas=1%3A1&width=128'),
+              'round-leg': ('round-leg-source.bin', 'https://www.markferragens.com.br/_next/image?q=75&url=https%3A%2F%2Fimg.markferragens.com.br%2Fimagens%2F2623%2F1-pe-redondo-cromado-para-armarios-e-moveis-planejados-o3-x-10-cm.png%3Fw%3D800%26h%3D800%26r%3D10&w=1920')
           }
 
           def jpeg_size(blob):
@@ -75,36 +65,39 @@ jobs:
                   i += 1
                   if marker in (0xD8, 0xD9):
                       continue
-                  if i + 2 > len(blob):
-                      break
+                  if i + 2 > len(blob): break
                   seglen = struct.unpack('>H', blob[i:i+2])[0]
                   if marker in {0xC0,0xC1,0xC2,0xC3,0xC5,0xC6,0xC7,0xC9,0xCA,0xCB,0xCD,0xCE,0xCF}:
-                      if i + 7 > len(blob):
-                          break
                       return struct.unpack('>H', blob[i+5:i+7])[0], struct.unpack('>H', blob[i+3:i+5])[0]
                   i += seglen
               raise ValueError('JPEG dimensions not found')
 
+          def webp_size(blob):
+              kind = blob[12:16]
+              if kind == b'VP8X' and len(blob) >= 30:
+                  w = 1 + int.from_bytes(blob[24:27], 'little')
+                  h = 1 + int.from_bytes(blob[27:30], 'little')
+                  return w, h
+              return None, None
+
           def sniff(blob):
               if blob.startswith(b'\x89PNG\r\n\x1a\n'):
-                  if len(blob) < 24:
-                      raise ValueError('truncated PNG')
                   return 'image/png', struct.unpack('>I', blob[16:20])[0], struct.unpack('>I', blob[20:24])[0]
               if blob.startswith(b'\xff\xd8\xff'):
                   width, height = jpeg_size(blob)
                   return 'image/jpeg', width, height
-              if len(blob) >= 30 and blob[:4] == b'RIFF' and blob[8:12] == b'WEBP':
-                  return 'image/webp', None, None
-              raise ValueError('unsupported image magic')
+              if len(blob) >= 16 and blob[:4] == b'RIFF' and blob[8:12] == b'WEBP':
+                  width, height = webp_size(blob)
+                  return 'image/webp', width, height
+              return 'application/octet-stream', None, None
 
           records = []
-          for source_id, spec in SOURCES.items():
-              path = Path('research-artifact') / spec['file']
-              data = path.read_bytes()
+          for source_id, (filename, url) in SOURCES.items():
+              data = (Path('research-artifact') / filename).read_bytes()
               mime, width, height = sniff(data)
               record = {
                   'sourceId': source_id,
-                  'sourceUrl': spec['url'],
+                  'sourceUrl': url,
                   'mimeType': mime,
                   'byteLength': len(data),
                   'sha256': hashlib.sha256(data).hexdigest(),
@@ -115,17 +108,16 @@ jobs:
               records.append(record)
               print(json.dumps(record, indent=2))
 
-          evidence = {
+          Path('research-artifact/sources.json').write_text(json.dumps({
               'kind': 'catalogotop.research-source-readback-set',
               'version': 1,
               'sources': records
-          }
-          Path('research-artifact/sources.json').write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
+          }, indent=2) + '\n', encoding='utf-8')
 
       - name: Upload source readback artifact
         uses: actions/upload-artifact@v4
         with:
-          name: elongated-source-readback
+          name: benchmark-source-readback
           path: research-artifact/
           if-no-files-found: error
           retention-days: 7
