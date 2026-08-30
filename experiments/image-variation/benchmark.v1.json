@@ -73,7 +73,13 @@
       "trustNotes": [
         "factual-source candidate",
         "pixel dimensions require fresh materialization/readback"
-      ]
+      ],
+      "currentReadback": {
+        "checkedAt": "2026-08-30",
+        "pageUrl": "https://www.trentoferramentas.com.br/corredica-trilho-oculta-invisivel-zincada-com-amortecimento-35kg-hd-ferragens-250mm",
+        "result": "current matching family page confirms invisible soft-closing HD Ferragens, 35 kg, with 250–550 mm sizes; exact historical image bytes not yet materialized",
+        "sourceAuthority": "family-match-pending-exact-pixel-readback"
+      }
     },
     "h45": {
       "label": "Corrediça telescópica H45",
@@ -82,9 +88,15 @@
       "provenance": "Recovered from prior Top Mobili authoring evidence; listing identified as Renna 500 mm / 35 kg.",
       "sourceCanvas": null,
       "trustNotes": [
-        "factual-source candidate",
-        "pixel dimensions require fresh materialization/readback"
-      ]
+        "current product-page readback confirms the Renna 500 mm / 35 kg product and same historical image locator",
+        "pixel dimensions and byte hash still require fresh materialization/readback"
+      ],
+      "currentReadback": {
+        "checkedAt": "2026-08-30",
+        "pageUrl": "https://www.ipeferragens.com.br/corredica-telescopica-renna-45mm-35kg-500mm",
+        "result": "current product page confirms Renna 500 mm / 35 kg and exposes the same historical source image URL",
+        "sourceAuthority": "stronger-product-match"
+      }
     },
     "soft-close": {
       "label": "Corrediça telescópica Soft Close",
@@ -93,9 +105,17 @@
       "provenance": "Recovered from prior Top Mobili authoring evidence; original was kept in contain framing.",
       "sourceCanvas": null,
       "trustNotes": [
-        "factual-source candidate",
-        "served pixel dimensions require fresh readback"
-      ]
+        "current page exposes the same historical image locator",
+        "current product page explicitly marks images as merely illustrative",
+        "pixel fidelity to this source does not by itself prove product fidelity",
+        "served pixel dimensions and byte hash require fresh readback"
+      ],
+      "currentReadback": {
+        "checkedAt": "2026-08-30",
+        "pageUrl": "https://www.gmad.com.br/produto/corredica-telescopica-com-amortecedor-300mm-renna-152536",
+        "result": "current page exposes the same 343303-2 image locator but explicitly says product images are merely illustrative",
+        "sourceAuthority": "illustrative-product-image"
+      }
     },
     "hinge": {
       "label": "Dobradiça Renna reta, curva e supercurva",
@@ -132,7 +152,13 @@
       "trustNotes": [
         "low-resolution stress case",
         "do not reconstruct product detail merely to hide insufficient source quality"
-      ]
+      ],
+      "currentReadback": {
+        "checkedAt": "2026-08-30",
+        "pageUrl": "https://www.madeiramadeira.com.br/rodizio-em-gel-com-freio-35mm-renna-292834998.html",
+        "result": "current page confirms Renna 35 mm caster with brake and factory code 36503296",
+        "sourceAuthority": "product-match"
+      }
     },
     "round-leg": {
       "label": "Pé redondo cromado Renna 100 mm",
