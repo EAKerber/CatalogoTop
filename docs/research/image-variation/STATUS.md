@@ -4,31 +4,24 @@ Date: 2026-08-30
 Branch: `research/semantic-image-variation-v2`  
 Stable baseline: `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v1.0.0`
 
-## Current state
+## State
 
-The kickstart biopsy is complete enough to run R-IMG-1 without changing product runtime code.
+The kickstart biopsy is complete and R-IMG-1 is now producing factual-source evidence without changing product runtime code.
 
-Verified boundaries:
+Current boundaries remain:
 
-- `CatalogDocument` remains the structural/materialized-placement authority. Generation intent should wrap a materialized placement instead of being added to the renderer/domain document.
-- existing V1 `placementKey`, target measurement and `usageSignature` concepts remain useful transport/identity evidence;
-- `product.image` remains canonical factual fallback;
+- `CatalogDocument` owns structural/materialized placement, not generation intent;
+- `product.image` remains canonical fallback;
 - `product.imageGallery`, `presentation.imageVariants`, `presentation.imageSelections` and `presentation.imageFrames` remain distinct domains;
-- image selection and framing already have preview/print parity gates;
-- AssetStore/content-addressed source handling is useful plumbing, not evidence that the semantic generation problem is solved;
-- V1 retirement is still the product boundary: the external-variation feature must not be reactivated merely because transport works.
+- existing V1 `placementKey`, target measurement, source hash and deterministic fallback concepts remain useful transport evidence;
+- V1 external variation remains retired from the product line;
+- research is isolated from `main` and `v2`.
 
-No production runtime module, ProductStore/backend contract, `v2`, `main`, deploy or production data was changed by this checkpoint.
+No ProductStore/backend, main-editor runtime, deploy or production-data semantics were changed.
 
-## Benchmark v1
+## Benchmark
 
-Authoritative fixture:
-
-`experiments/image-variation/benchmark.v1.json`
-
-It predeclares 14 cases across 7 previously sourced Top Mobili hardware families **before** any new variant is generated.
-
-Coverage intentionally includes elongated slides/rails, a small Collection-member target, a multi-piece hinge source, illustrative-source cases, a known low-resolution caster, a vertical round-leg negative control and explicit `no-variant-preferred` outcomes.
+`experiments/image-variation/benchmark.v1.json` predeclares 14 cases across 7 hardware families before new outputs are evaluated.
 
 Expected decisions:
 
@@ -36,100 +29,91 @@ Expected decisions:
 - `conditional`: 6
 - `no-variant-preferred`: 5
 
-Acceptance ceilings:
+Automatic acceptance ceilings remain Class A/B only. Class C is comparison-only and requires human review.
 
-- Class A: 6 cases
-- Class B: 8 cases
-- Class C: 0 automatically acceptable cases
+## Deterministic factual-pixel prototype
 
-A source-grounded Class C approach remains comparison-only and always requires human review. It cannot silently become a fallback when Class A/B fails.
+`scripts/research/image-recomposition-core.mjs` remains the narrow Class A/B core:
 
-## Target profiles
+1. remove only light/neutral background connected to the image border;
+2. estimate foreground principal axis;
+3. compare preserve/horizontal/vertical placement within safe margins;
+4. copy factual foreground pixels into the target raster with nearest-neighbor scaling.
 
-The first benchmark uses three repeatable research profiles:
+The module deliberately does not decide whether a product is semantically allowed to rotate. Geometry is evidence, not product authority.
 
-- `card-standard`: `300 × 220 px`, copied from an existing V1 Variation Bundle fixture;
-- `collection-member`: `180 × 140 px`, copied from the same fixture family;
-- `card-wide`: `440 × 180 px`, a research stress profile motivated by the observed wide-horizontal slide-card failure.
+Synthetic self-test still passes.
 
-These are fixtures, not a new production layout contract.
+## First factual benchmark result — H45 wide
 
-## Current source-authority readback
+Result record:
 
-Fresh web readback on 2026-08-30 added an important distinction between **pixel-source fidelity** and **product truth**:
+`experiments/image-variation/results/h45-wide.v1.json`
 
-- H45: the current Ipê Ferragens page confirms the Renna 500 mm / 35 kg product and exposes the same historical image locator used by the prior authoring exercise. This is a stronger product/source match, although exact bytes/hash still need materialization.
-- Soft Close: the current GMAD page exposes the same historical `343303-2` image locator but explicitly states that product images are merely illustrative. Therefore preserving those pixels does **not** by itself prove factual product fidelity.
-- Soft Extra: a current matching HD Ferragens family page confirms invisible soft-closing, 35 kg and the size family, but exact historical image bytes still need readback.
-- Caster: the current MadeiraMadeira page confirms the Renna 35 mm caster with brake and factory code `36503296`; the historical source remains a low-resolution negative control.
+The current H45 public source was materialized through an isolated GitHub Actions research probe because the local runtime could not resolve the source CDN directly.
 
-These observations are recorded inside the benchmark source entries instead of being kept as chat-only context.
+Passive source evidence:
 
-## Baseline validator
+- source: Renna H45 / 500 mm / 35 kg listing image;
+- MIME: JPEG;
+- dimensions: `450 × 450 px`;
+- bytes: `16417`;
+- SHA-256: `e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7`;
+- materialization run: `33332270953`;
+- artifact: `9737982426`.
 
-Run:
+The source foreground under the current connected-light-neutral segmentation contains `21466` pixels with bbox `379 × 277 px`. Its principal axis is approximately `30.54°`.
 
-```bash
-node scripts/research/image-variation-baseline.mjs
+For the research `card-wide` target (`440 × 180`, safe margin 7%):
+
+- Original full-canvas contain bbox utilization: `0.156859` (~15.7%);
+- segmented foreground, orientation preserved: `0.413977` (~41.4%);
+- whole factual group aligned horizontally: `0.739028` (~74.0%);
+- horizontal gain vs Original contain: `4.7114×`;
+- horizontal gain vs segmented/preserve: `1.7852×`.
+
+This is strong evidence that a large fraction of the placement benefit can come from **removing irrelevant source canvas + whole-group factual recomposition**, without synthesizing product geometry.
+
+It is **not yet a fidelity pass**. Human review still needs to confirm visible piece count, characteristic rail geometry, holes/fittings and model identity. The metric proves material utility, not safe automatic approval.
+
+## Source-materialization lesson
+
+The V1-style platform fallback remains useful research plumbing:
+
+```text
+local runtime cannot fetch source
+        ↓
+platform/GitHub Actions materializes public bytes
+        ↓
+passive MIME/hash/dimension evidence
+        ↓
+research prototype operates on factual bytes
 ```
 
-It validates closed source/target references, unique case IDs, predeclared outcomes, fidelity invariants, unacceptable changes and Class A/B automatic acceptance ceilings.
+The isolated probe lives on `research/source-readback-h45` / draft PR #46 and is not intended for product merge.
 
-It computes `containAreaRatio` only when source-canvas dimensions have evidence. This is deliberately weak: it measures full source-canvas occupancy, **not** product-object utilization.
+The same isolated path is now being used to read back Soft Extra and Soft Close so the elongated-hardware comparison can use exact bytes rather than previews.
 
-Current source-pixel status:
+## Source-authority caveat
 
-- measured from prior explicit evidence: `caster` = `128 × 128 px`;
-- pending exact materialization/readback: `soft-extra`, `h45`, `soft-close`, `hinge`, `piston`, `round-leg`.
+Pixel fidelity and product-truth authority are separate.
 
-The benchmark validator passes locally with all 14 cases.
+- H45 currently has a comparatively strong page/product/source match.
+- Soft Close remains an authority-stress case because the current GMAD page states that images are merely illustrative.
+- A faithful transform of an illustrative image is not automatically factual product evidence.
 
-## Deterministic factual-pixel recomposition prototype
+This distinction should influence future evidence metadata, but field names remain intentionally unfrozen.
 
-Research core:
+## Current interpretation
 
-`scripts/research/image-recomposition-core.mjs`
-
-The prototype is intentionally narrow and removable. It targets elongated hardware photographed on a light neutral background and does four things:
-
-1. removes only light/neutral background pixels connected to the image border via flood fill;
-2. estimates the foreground principal axis from factual source pixels;
-3. compares preserved, horizontal-axis and vertical-axis placement under a declared safe margin;
-4. renders a target raster by copying source foreground colors with nearest-neighbor scaling onto a neutral canvas.
-
-The module does **not** decide whether a product is semantically allowed to rotate. That permission remains an external benchmark/product-class constraint.
-
-Run the self-test:
-
-```bash
-node scripts/research/image-recomposition-core.mjs
-```
-
-Synthetic self-test result:
-
-- status: `pass`;
-- vertical elongated object in a wide holder chose `align-horizontal`;
-- foreground bounding-box utilization changed from `0.0433` to `0.2587`;
-- the generated raster introduced no color absent from the source/background set;
-- an enclosed white detail was preserved, proving that the flood fill is border-connected rather than a global “delete white” operation.
-
-This is evidence of composition gain only. Nearest-neighbor scaling is deliberately **not** presented as quality upscale, and the prototype does not encode/persist production assets.
-
-Known limitations:
-
-- light product pixels connected to the border can still be misclassified;
-- principal-axis geometry is evidence, not semantic authority;
-- multi-piece products and illustrative sources need stronger review semantics;
-- no source decoder/materializer is bundled into this module yet.
-
-## Provisional architecture
+The working architecture is still:
 
 ```text
 CatalogDocument placement
         +
 rendered target geometry
         +
-canonical source identity/pixels
+canonical/factual source identity and pixels
         +
 research-only generation intent
         ↓
@@ -138,32 +122,29 @@ Class A/B/C candidate experiment
 utility evidence + fidelity evidence
 ```
 
-The missing authority is generation intent/evidence, not another placement model and not a richer ZIP format.
+The main open hypothesis is now narrower:
 
-Current subtractive hypothesis:
+> For elongated catalog hardware, how much reliable placement value can be obtained through source segmentation and whole-object/group recomposition before any generative reconstruction is justified?
 
-> A meaningful share of catalog value may come from segmentation + whole-object reorientation + deterministic recomposition + safe canvas/background work, without reconstructing product geometry.
-
-The benchmark must disprove or narrow that hypothesis before a production schema is proposed.
+H45 provides the first positive factual datapoint: geometric utility is large enough that a non-generative path deserves serious evaluation.
 
 ## Next step
 
-1. Materialize/read back the six pending source images and record exact bytes/hash, MIME and pixel dimensions.
-2. Run the factual-pixel core first on `h45-wide`; it currently has the strongest source/product readback among the elongated cases.
-3. Record Original source-canvas and foreground/silhouette measurements separately.
-4. Compare `preserve` vs axis-aligned recomposition on H45, then repeat on Soft Extra if its exact source can be materialized.
-5. Keep Soft Close as a **source-authority stress case**, not as unquestioned factual ground truth.
-6. Run negative controls (`round-leg-wide`, `caster-lowres`) to verify the system can reject geometrically tempting but semantically or informationally invalid improvements.
-7. Only after these results exist, compare a source-grounded generative edit on a small subset. Do not freeze `generationIntent` or result schema yet.
+1. Finish exact source readback for Soft Extra and Soft Close.
+2. Run the same Original → segmented/preserve → aligned-horizontal comparison.
+3. Compare whether the H45 gain generalizes or is source-specific.
+4. Run semantic negative controls, especially the round-leg wide case, where a geometrically attractive 90° rotation should be rejected.
+5. Add human fidelity review notes to H45 before calling it a benchmark pass.
+6. Only after the A/B evidence is clearer, compare a grounded Class C edit on a small subset.
+
+Do not freeze a production `generationIntent` or result schema yet.
 
 ## Escalation boundary
 
-Ask for product direction instead of generalizing if evidence suggests:
+Ask for product direction instead of generalizing if:
 
-- a product class needs incompatible fidelity semantics;
-- a visually better result requires uncertain product reconstruction;
-- semantic orientation cannot be decided from source + product class without business/product knowledge;
+- a product class requires incompatible fidelity semantics;
+- a better result requires uncertain product reconstruction;
+- orientation cannot be decided from source + product class without business knowledge;
 - V2 changes ownership/lifecycle of catalog-local derivatives;
 - integration would require ProductStore/backend or main-editor composition changes.
-
-Until one of those conditions occurs, R-IMG-1 can proceed independently on this research branch.
