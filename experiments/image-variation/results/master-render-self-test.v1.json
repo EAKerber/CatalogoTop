@@ -1,0 +1,33 @@
+{
+  "kind": "catalogotop.image-render-master-self-test",
+  "version": 1,
+  "status": "pass",
+  "placement": {
+    "width": 220,
+    "height": 90
+  },
+  "master": {
+    "width": 880,
+    "height": 360
+  },
+  "scaleFactor": 4,
+  "relativeGeometryPreserved": true,
+  "partialMasterCoveragePixels": 5962,
+  "normalizedCoverageDeltaRatio": 0.0000034939990568196605,
+  "guarantees": [
+    "master dimensions are a pure integer multiple of placement dimensions",
+    "master plan preserves placement-relative geometry and semantic orientation",
+    "bilinear sampling uses premultiplied factual coverage rather than inventing product geometry",
+    "placement preview is derived from the master by deterministic box downsample"
+  ],
+  "limitations": [
+    "higher raster dimensions do not increase factual source resolution",
+    "the renderer operates on decoded RGBA and does not encode/persist files",
+    "semantic permission and source authority remain external gates"
+  ],
+  "execution": {
+    "runtime": "node",
+    "script": "scripts/research/image-render-master.mjs",
+    "result": "pass"
+  }
+}
