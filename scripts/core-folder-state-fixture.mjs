@@ -36,7 +36,7 @@ context.window.CatalogoTop = {
   }
 };
 
-for (const file of ['folder-tree.js', 'product-folder-migration.js', 'product-snapshot.js', 'core.js']) {
+for (const file of ['folder-tree.js', 'product-folder-migration.js', 'product-domain.js', 'product-snapshot.js', 'core.js']) {
   vm.runInContext(fs.readFileSync(new URL(`../src/${file}`, import.meta.url), 'utf8'), context, { filename: `src/${file}` });
 }
 
