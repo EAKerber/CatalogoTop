@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           expected_main='cd70e3bf9998a1060d7b48360ab7767afbc54ce4'
-          expected_parent='141ec233ad940b1161e85f1c6e1a1b24278e3808'
+          expected_parent='c6f94c6e9e84f5664259d9b57fd95fc2484a0cba'
           branch='fix/v0.11.4.3-producer-source-materialization'
           test "$GITHUB_REF_NAME" = "$branch"
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$expected_main"
@@ -37,7 +37,7 @@ jobs:
           npm test
           git config user.name 'CatalogoTop Automation'
           git config user.email 'catalogotop-automation@users.noreply.github.com'
-          git rm scripts/_apply-v0.11.4.3.py scripts/_refine-v0.11.4.3.py scripts/_repair-apply-v0.11.4.3.py scripts/_repair-fixture-v0.11.4.3.py .github/workflows/apply-v0.11.4.3-producer-materialization.yml
+          git rm -f scripts/_apply-v0.11.4.3.py scripts/_refine-v0.11.4.3.py scripts/_repair-apply-v0.11.4.3.py scripts/_repair-fixture-v0.11.4.3.py .github/workflows/apply-v0.11.4.3-producer-materialization.yml
           rm -rf scripts/__pycache__
           git add AGENTS.md package.json src/asset-client.js src/variation-bundle.js src/variation-bundle-controls.js netlify/functions/assets.mts netlify/lib/remote-product-source.mts scripts/variation-bundle-request-fixture.mjs scripts/variation-bundle-static-fixture.mjs scripts/storage-contract-fixture.mjs scripts/remote-product-source-fixture.mjs docs/v0.11.4.3-producer-source-materialization.md
           git commit -m 'fix: embed authoritative remote product sources producer-side'
