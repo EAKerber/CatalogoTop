@@ -1,0 +1,84 @@
+{
+  "kind": "catalogotop.image-variation-class-c-comparison-plan",
+  "version": 1,
+  "status": "predeclared-research-only",
+  "caseId": "h45-wide",
+  "purpose": "Measure whether one source-grounded Class C edit adds material presentation utility over the already reviewed deterministic A/B candidate without increasing product-identity risk enough to negate the gain.",
+  "source": {
+    "sourceId": "h45",
+    "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+    "mimeType": "image/jpeg",
+    "widthPx": 450,
+    "heightPx": 450,
+    "authority": "stronger-product-match"
+  },
+  "target": {
+    "profile": "card-wide",
+    "widthPx": 440,
+    "heightPx": 180,
+    "safeMarginRatio": 0.07
+  },
+  "reviewedReference": {
+    "result": "experiments/image-variation/results/h45-wide.v1.json",
+    "review": "experiments/image-variation/reviews/elongated-wide-review.v1.json",
+    "outcome": "PASS FOR BENCHMARK COMPARISON",
+    "deterministicCandidate": "whole factual two-piece group aligned horizontally after connected-light-neutral background isolation",
+    "measuredBBoxUtilization": 0.739028
+  },
+  "classCObjective": {
+    "allowed": [
+      "cleaner subject/background boundary than the nearest-neighbor deterministic research render",
+      "more natural antialiasing/resampling while preserving the same factual group",
+      "neutral white canvas completion that does not invent product pixels or scene context",
+      "minor presentation cleanup that is visible at the target placement size"
+    ],
+    "notAnObjective": [
+      "new viewpoint",
+      "higher-detail reconstruction of hardware",
+      "invented product texture or branding",
+      "changing the product to fill more area than the reviewed A/B geometry permits",
+      "creating a prettier but less source-faithful replacement"
+    ]
+  },
+  "fidelityInvariants": [
+    "exactly two primary slide pieces remain visible",
+    "preserve characteristic rail proportions and relative lengths",
+    "preserve visible holes, slots, fittings and terminal structures",
+    "no duplicated, removed or invented hardware",
+    "no new labels, logos or markings",
+    "no unsupported viewpoint/perspective change",
+    "semantic orientation remains horizontal for the wide placement",
+    "source identity/authority remains attached to the result"
+  ],
+  "evaluation": {
+    "humanReviewRequired": true,
+    "compareAgainst": [
+      "Original contain",
+      "reviewed deterministic A/B horizontal candidate"
+    ],
+    "dimensions": [
+      "visible placement utility at 440x180",
+      "edge/background presentation quality",
+      "piece-count and geometry fidelity",
+      "holes/fittings/local-detail fidelity",
+      "new-detail or reconstruction risk",
+      "source-authority honesty"
+    ],
+    "successRule": "Class C is justified only if it produces a clearly visible presentation-quality improvement over the reviewed A/B candidate while passing the same fidelity review with no new unresolved product-detail questions.",
+    "validFailureOutcome": "Class C not justified"
+  },
+  "stopConditions": [
+    "any visible piece-count change",
+    "any changed or invented hole/fitting/rail geometry",
+    "any unsupported product reconstruction required to make the result look cleaner",
+    "the gain is merely cosmetic at magnified inspection but not visible in the 440x180 placement",
+    "human review cannot confidently distinguish presentation cleanup from factual reconstruction"
+  ],
+  "integrationBoundary": {
+    "comparisonOnly": true,
+    "noProductionSchema": true,
+    "noGeneratorIntegration": true,
+    "noAutomaticPromotion": true,
+    "doNotUseSoftExtraSoftCloseOrPistonForFirstTrial": "Their source-authority caveats would confound the first generation-risk comparison."
+  }
+}
