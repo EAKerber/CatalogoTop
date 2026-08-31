@@ -1,0 +1,57 @@
+{
+  "kind": "catalogotop.r-img-1-5-context-policy",
+  "version": 1,
+  "status": "research-only",
+  "freshContextPreferred": true,
+  "fallbackMode": "best-effort-context-quarantine",
+  "producerEligibleContext": [
+    "current run factual SOURCE image attached directly",
+    "exact assigned P0 or P1 prompt",
+    "target aspect/raster already specified by the assigned prompt",
+    "explicitly authorized composition reference only in conditions that call for one"
+  ],
+  "quarantinedContext": [
+    "prior generated outputs",
+    "dashboards or infographics",
+    "prior PASS/FAIL verdicts",
+    "fantasy/generic examples",
+    "experiment-history narrative",
+    "meta-analysis or meta-evaluation language as producer content",
+    "ad-hoc prompt changes derived from previous runs"
+  ],
+  "preGenerationMetaGate": {
+    "required": true,
+    "checks": [
+      "correct run ID",
+      "correct factual SOURCE attached directly",
+      "assigned prompt used without ad-hoc additions",
+      "expected output count exactly 1",
+      "dashboard/report/text/multi-panel output forbidden",
+      "prior generated outputs not intentionally exposed as references",
+      "no request to explain/score/audit/visualize the experiment reaches the producer",
+      "target aspect/raster matches run matrix",
+      "context mode recorded before generation"
+    ],
+    "mustNotBeRenderedOrPrependedToProducerPrompt": true
+  },
+  "preconditionFailureCodes": [
+    "CONTEXT_ISOLATION_PRECONDITION_FAIL",
+    "SOURCE_BINDING_PRECONDITION_FAIL"
+  ],
+  "primaryRunDiscipline": {
+    "oneContextPerRun": true,
+    "oneGenerationPerRun": true,
+    "preserveOutputIntact": true,
+    "retryInsideSameRun": false,
+    "exposePreviousRunOutputToNextProducer": false
+  },
+  "runMetadata": {
+    "contextIsolation.mode": "fresh-context | best-effort-quarantine",
+    "contextIsolation.priorOutputsIntentionallyExposedToProducer": false,
+    "contextIsolation.priorEvaluationNarrativeIntentionallyExposedToProducer": false,
+    "contextIsolation.sourceAttachedDirectly": true,
+    "contextIsolation.preGenerationMetaGatePassed": true
+  },
+  "workingHypothesis": "Intent routing is a material variable. Pre-generation meta-evaluation plus context quarantine may reduce leakage from discourse about the experiment into the requested product image.",
+  "claimStatus": "hypothesis-to-measure-not-assumed-proven"
+}
