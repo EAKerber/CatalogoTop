@@ -140,7 +140,9 @@ try {
   await page.fill('#productFolderPath', 'Ferragens / Corrediças / Telescópicas / Premium');
   await page.fill('#code', 'NEW-1');
   await page.fill('#description', 'Corrediça premium');
-  await page.locator('#productForm').evaluate(form => form.requestSubmit());
+  await page.click('#btnNextFormStep');
+  await page.click('#btnNextFormStep');
+  await page.click('#btnSaveProduct');
   await page.waitForTimeout(100);
   const created = await page.evaluate(() => {
     const NS = window.CatalogoTop;
@@ -154,6 +156,7 @@ try {
     } : {
       exists: false,
       count: NS.Core.getState().products.length,
+      invalidFields: [...document.querySelectorAll('#productForm :invalid')].map(field => ({ id: field.id, message: field.validationMessage })),
       codeValidity: document.querySelector('#code').validationMessage,
       pathValidity: document.querySelector('#productFolderPath').validationMessage,
       category: document.querySelector('#category').value,
