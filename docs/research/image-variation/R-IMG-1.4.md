@@ -34,57 +34,71 @@ This is a producer-contract failure. Generated tables, metrics, PASS labels, sou
 
 Three additional repeatability attempts in this slice all failed the image-only contract. See `results/r-img-1-4-producer-repeatability.v1.json`.
 
-## Systematic prototype-substitution finding
+## Two distinct output regimes
 
-Human review across the repeated dashboard outputs identified a stronger pattern than independent random hallucination: the embedded generated candidates repeatedly converge on essentially the **same fantasy telescopic-slide prototype**.
+The current evidence should not be collapsed into a single statement that the producer is uniformly poor.
 
-That repeated object is not the factual H45 source. It has a plausible furniture-hardware appearance, but its rail topology, hole/slot organization, terminal structures and overall assembly semantics are materially different from the two-piece factual source.
+### High-adherence positive-control regime
 
-This changes the diagnosis from merely "the model sometimes hallucinates details" to a more specific producer failure mode:
+Attempt `aa89f137-0218-41db-b39f-be47943197cc` contains an embedded generated H45 candidate that is visually very close to the deterministic factual recomposition shown beside it. The overall longitudinal structure, terminal region, dark fitting/stop region, rail proportions and much of the visible hole/slot logic track the factual recomposition far better than the later fantasy outputs.
 
-> **source conditioning is being overridden by a stable learned/prototypical drawer-slide representation.**
+The earlier independent review incorrectly promoted raw pose/layout difference into a topology verdict. Because the H45 benchmark explicitly allows whole-group reorientation/recomposition, factual review must be **pose-invariant**. The prior `FAIL_FACTUAL_TOPOLOGY_MISMATCH` verdict is therefore superseded and the candidate is now retained as:
 
-The apparent repeatability of the output is therefore not positive fidelity repeatability. It is **repeatable substitution of the wrong product prototype**.
+`POSITIVE_CONTROL_PENDING_POSE_INVARIANT_LANDMARK_REVIEW`
 
-This pattern should be treated as a systematic failure because it can produce visually coherent, internally consistent outputs that nevertheless preserve the wrong identity.
+This does not yet mean faithful-variant approval. It means the producer has demonstrated a qualitatively much stronger source-adherence regime that is worth reproducing and characterizing.
 
-## Important human-review correction
+### Fantasy prototype-substitution regime
 
-One earlier attempt (`aa89f137-0218-41db-b39f-be47943197cc`) looked very convincing at ordinary viewing size and was correctly recorded first as a visual-pass candidate.
+Later dashboard outputs repeatedly converge on essentially the **same obviously invented telescopic-slide/roller prototype**.
 
-Independent comparison against the exact source bytes changes the factual verdict:
+This object is not merely an imperfect H45. It contains conspicuous fantasy mechanical structures and should not be described as commercially plausible or nearly faithful.
 
-- exact source: two separate telescopic-slide pieces;
-- generated candidate: materially different dominant assembled-rail topology;
-- visible hole/slot pattern and terminal structures do not correspond sufficiently;
-- result: `FAIL_FACTUAL_TOPOLOGY_MISMATCH`.
-
-The key lesson is not that the model looks bad. The opposite is more important: it can produce **very plausible incorrect hardware**. Therefore normal-view plausibility is an especially weak fidelity gate for this domain.
-
-See `reviews/r-img-1-4-independent-factual-review.v1.json`.
-
-## Current conclusion
-
-The capability remains visually promising, but this producer/channel is not reliable enough for faithful product-image masters in the current experiment.
-
-Current scoped result:
-
-`PRODUCER_NOT_RELIABLE_FOR_FAITHFUL_IMAGE_ONLY_MASTER`
-
-Additional producer-specific diagnosis:
+The repeated similarity across these outputs is therefore not positive repeatability. It is:
 
 `SYSTEMATIC_PROTOTYPE_SUBSTITUTION`
 
-This does **not** prove that source-grounded generation or viewpoint variation is generally unsuitable. It means the tested route cannot yet provide the clean image-only samples needed to measure factual pass rate or native-resolution advantage, and its repeated outputs currently collapse toward a plausible but incorrect slide prototype.
+The important producer-level finding is the enormous regime difference: the same broad experiment can produce either a near-reference reconstruction or a repeated fantasy archetype.
 
-## Stop condition
+## Correct factual-review method
 
-Do not consume more samples on the same producer/channel merely to obtain a successful-looking example. Resume this hypothesis only when the editing channel behavior materially changes or a producer can actually return source-anchored image-only outputs.
+Allowed pose/composition transforms must be neutralized before evaluating identity.
+
+The next factual gate for the positive control must compare, per factual piece:
+
+- piece count and correspondence;
+- sequence and relative spacing of circular holes and elongated slots;
+- terminal/end structures;
+- visible fittings/stops;
+- rail lengths/proportions;
+- relative overlap/relationship between pieces after alignment.
+
+Raw diagonal-vs-horizontal layout is not itself a topology difference.
+
+## Current conclusion
+
+The producer/channel remains unsuitable for promotion because:
+
+1. it fails the image-only contract repeatedly;
+2. it can collapse catastrophically into fantasy hardware;
+3. the conditions that separate the high-adherence regime from the fantasy regime are not yet understood.
+
+Current scoped producer result remains:
+
+`PRODUCER_NOT_RELIABLE_FOR_FAITHFUL_IMAGE_ONLY_MASTER`
+
+But the capability hypothesis is stronger than that result alone suggests:
+
+> **At least one observed output regime is visually close enough to the factual deterministic reconstruction that source-grounded generation remains worth investigating. The research problem is now reference-adherence reliability / regime switching, not a simple capability/no-capability question.**
+
+## Stop condition for blind repetition
+
+Do not consume more samples by repeating the same context/prompt blindly. Resume generation only through an experiment designed to isolate what changes reference adherence: clean context, reference binding, edit-vs-generation mode, prompt scope and output contract.
 
 ## Architecture consequence
 
-Keep Class C optional and downstream of deterministic composition/raster paths. Any future Class C gate must compare against exact source evidence and evaluate landmark topology before presentation quality.
+Keep Class C optional and downstream of deterministic composition/raster paths.
 
-A future generator benchmark should explicitly detect **cross-run prototype convergence**: several mutually similar outputs are not evidence of fidelity if they are all similarly wrong relative to the source.
+Future gates must use exact source evidence and pose-invariant landmarks. Cross-run convergence is positive evidence only if candidates also converge on the factual landmarks; convergence on the same fantasy archetype is an explicit failure signal.
 
 No production schema, runtime or ProductStore change is justified by this trial.
