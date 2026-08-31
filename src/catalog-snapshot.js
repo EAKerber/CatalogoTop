@@ -178,7 +178,8 @@
 
   function contentSignature(record) {
     const normalized = normalizeRecord(record, [], -1, { validateFolder: false });
-    return JSON.stringify({ selectedIds: normalized.selectedIds, catalog: normalized.catalog });
+    const { createdAt: _derivedCreatedAt, ...catalogContent } = normalized.catalog;
+    return JSON.stringify({ selectedIds: normalized.selectedIds, catalog: catalogContent });
   }
 
   NS.CatalogSnapshot = Object.freeze({

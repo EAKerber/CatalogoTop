@@ -87,6 +87,10 @@ assert.throws(() => CatalogSnapshot.forWrite({
 
 const moved = { ...record, folderId: null, updatedAt: '2026-09-01T00:00:00.000Z' };
 assert.equal(CatalogSnapshot.contentSignature(moved), CatalogSnapshot.contentSignature(record), 'metadata/folder de recurso não devem marcar conteúdo editorial como dirty');
+const rederivedDate = { ...record, catalog: { ...record.catalog, createdAt: '2026-09-01T14:00:00.000Z' } };
+assert.equal(CatalogSnapshot.contentSignature(rederivedDate), CatalogSnapshot.contentSignature(record), 'createdAt efetivo é derivado de dateOverride/Core e não deve marcar dirty');
+const changedOverride = { ...record, catalog: { ...record.catalog, dateOverride: '2026-09-01' } };
+assert.notEqual(CatalogSnapshot.contentSignature(changedOverride), CatalogSnapshot.contentSignature(record), 'dateOverride explícito deve marcar dirty');
 assert.throws(() => CatalogSnapshot.read({ schemaVersion: 2, folders: [], catalogs: [] }), error => error?.code === 'catalog_snapshot_version');
 
-console.log('PASS catalog snapshot fixture: separate identity, stale references, duplicate, folder guard and product-truth isolation');
+console.log('PASS catalog snapshot fixture: separate identity, stale references, duplicate, folder guard, derived date signature and product-truth isolation');
