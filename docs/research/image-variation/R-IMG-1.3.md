@@ -1,6 +1,6 @@
 # R-IMG-1.3 — Master output resolution by physical use
 
-Status: active research slice  
+Status: first physical-use contract gate passed  
 Branch: `research/semantic-image-variation-v2`
 
 ## Why this slice exists
@@ -134,6 +134,28 @@ A static “Collection image size” table would therefore recreate the same mis
 
 The preferred approach is to measure the actual `.catalog-collection-image` holder, as V1 Variation Bundle already does, and derive output pixels from its physical dimensions.
 
+## Exact committed utility self-test — PASS
+
+Evidence: `experiments/image-variation/results/output-resolution-self-test.v1.json`.
+
+The exact committed `scripts/research/image-output-resolution.mjs` was executed by the isolated research runner against head `41a35cf56b91fa72911d791915cb3e4f667153a5`.
+
+- workflow run: `33343924318` — **success**;
+- job: `99344389537` — **success**;
+- artifact: `9741379991`;
+- artifact digest: `sha256:465ddb2208278350c44d2fadd52254447fcb21e7d7803f61f767199afebbb413`.
+
+The exact runner output confirmed:
+
+- `440×180 CSS px` → `116.4167×47.625 mm`;
+- 240-DPI target → `1101×450`;
+- 300-DPI target → `1376×563`;
+- current `1760×720` wide master → `384 DPI` effective output raster;
+- 128×128 caster in an 11×11-mm contained Table use → `295.56 DPI`;
+- H45 source-sampling pressure at 300 DPI → ~`2.83×`.
+
+This closes the first deterministic gate for the physical-use model.
+
 ## V2 consequence
 
 The useful V2 model is placement-aware:
@@ -153,6 +175,30 @@ renderer or optional external capability
 ```
 
 This also reinforces the Table image-editing gap: Table should eventually have its own placement identity because its framing and required raster can legitimately differ from Card/Collection for the same product.
+
+## Request authority decision
+
+`experiments/image-variation/future-producer-resolution-contract.v1.json` records the current research direction.
+
+Canonical authority should be:
+
+```text
+measured physical holder (widthMm / heightMm)
+        +
+output-use profile / targetDpi
+        ↓
+derived targetWidthPx / targetHeightPx
+```
+
+Derived target pixels may be transported and included in a signature/hash, but they should not be a second independent authority capable of contradicting physical size + DPI.
+
+For H45 wide, a future producer request should therefore mean approximately:
+
+> Compose for the `22:9` wide placement; return a native output at or above the physical print-use requirement (`1376×563` at 300 DPI). Do not interpret `440×180` as the desired native file resolution.
+
+The existing `1760×720` master remains a reasonable research preference/headroom value, not a universal contract.
+
+The historical Class C H45 plan/result remains unchanged; this rule applies to **future** producer contracts only.
 
 ## New research utility
 
@@ -176,16 +222,17 @@ Actual measured `widthMm/heightMm` remains preferable to CSS-pixel conversion wh
 - `no variant` remains valid before any output raster is planned.
 - A future generative high-resolution asset must pass the same identity/fidelity gates; native output dimensions alone do not establish authority.
 
-## Current hypothesis
+## Current conclusion
 
 For placement-local catalog derivatives, output resolution should be **physical-use-driven**, with `300 DPI` as a high-quality research comparison target, rather than defined by a universal `4×` or `8×` multiplier.
 
 The 4× Mitchell result remains useful as an internal sampling-quality fixture, but `masterScaleFactor` should not become the long-lived product contract.
 
+The user's observed generator failure mode is therefore represented directly: **composition dimensions and native-output dimensions are separate instructions**.
+
 ## Next gate
 
-1. Execute the committed output-resolution self-test through the isolated research runner.
-2. Record its exact output/head as evidence.
-3. Extend the placement-measurement concept to the Table gap in the V2 design notes, without modifying V1.
-4. Decide whether a future request contract should send `targetPhysicalSize + targetDpi`, explicit target pixels, or both (with one canonical authority).
-5. Only after that decide how a source-grounded generative producer should be asked for a native high-resolution master.
+1. Apply the physical-use model to all currently resolved benchmark target profiles (`card-standard`, `collection-member`, `card-wide`) and record the 240/300-DPI target matrix.
+2. Keep unresolved semantic cases (round-leg/piston) out of automatic render decisions even though their physical raster requirement can still be calculated.
+3. Use that matrix to judge whether one catalog-local derivative can be reused across compatible placements or whether distinct placement-local derivatives remain preferable.
+4. Only then revisit a source-grounded generative producer with explicit native-output resolution and, separately, any future viewpoint-change experiment.
