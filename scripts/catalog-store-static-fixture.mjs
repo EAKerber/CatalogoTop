@@ -22,6 +22,7 @@ for (const file of names.filter(name => name.endsWith('.js'))) {
 }
 
 const html = files['index.html'];
+const store = files['src/catalog-store.js'];
 const checks = [
   ['CatalogSnapshot carrega após FolderTree e antes do Core', html.indexOf('src/folder-tree.js') < html.indexOf('src/catalog-snapshot.js') && html.indexOf('src/catalog-snapshot.js') < html.indexOf('src/core.js')],
   ['CatalogStore carrega após cache/ProductStore e antes do App', html.indexOf('src/indexed-cache.js') < html.indexOf('src/catalog-store.js') && html.indexOf('src/product-store.js') < html.indexOf('src/catalog-store.js') && html.indexOf('src/catalog-store.js') < html.indexOf('src/app.js')],
@@ -29,11 +30,15 @@ const checks = [
   ['Catálogo expõe save/status explícitos', html.includes('id="catalogSaveStatus"') && html.includes('id="btnSaveCatalog"')],
   ['provider Catálogos possui busca/lista próprias', html.includes('id="catalogLibrarySearch"') && html.includes('id="catalogLibraryList"')],
   ['cache IndexedDB separa produtos e catálogos', files['src/indexed-cache.js'].includes("PRODUCT_KEY = 'products-current'") && files['src/indexed-cache.js'].includes("CATALOG_KEY = 'catalogs-current'") && files['src/indexed-cache.js'].includes('getCatalogSnapshot') && files['src/indexed-cache.js'].includes('setCatalogSnapshot')],
-  ['CatalogStore usa endpoint/revisão próprios', files['src/catalog-store.js'].includes("fetch('/api/catalogs'") && files['src/catalog-store.js'].includes('expectedRevision: revision') && !files['src/catalog-store.js'].includes('ProductStore.getRevision')],
-  ['CatalogStore reutiliza sessão de escrita sem acoplar revision', files['src/catalog-store.js'].includes('ProductStore.isWritable') && files['src/catalog-store.js'].includes('ProductStore.unlock')],
-  ['CatalogStore oferece save/open/duplicate e identidade ativa local', files['src/catalog-store.js'].includes('saveCurrent') && files['src/catalog-store.js'].includes('openCatalog') && files['src/catalog-store.js'].includes('duplicateCatalog') && files['src/catalog-store.js'].includes("ACTIVE_KEY = 'catalogotop:active-catalog:v1'")],
-  ['Novo catálogo é interceptado pela authority salva', files['src/catalog-store.js'].includes("document.getElementById('btnNewCatalog')") && files['src/catalog-store.js'].includes('event.stopImmediatePropagation()') && files['src/catalog-store.js'].includes('newSession()')],
-  ['backup importado perde identidade salva antes de materializar sessão', files['src/catalog-store.js'].includes("document.getElementById('backupFile')") && files['src/catalog-store.js'].includes('clearActive')],
+  ['CatalogStore usa endpoint/revisão próprios', store.includes("fetch('/api/catalogs'") && store.includes('expectedRevision: revision') && !store.includes('ProductStore.getRevision')],
+  ['CatalogStore reutiliza sessão de escrita sem acoplar revision', store.includes('ProductStore.isWritable') && store.includes('ProductStore.unlock')],
+  ['CatalogStore oferece save/open/duplicate e identidade ativa local', store.includes('saveCurrent') && store.includes('openCatalog') && store.includes('duplicateCatalog') && store.includes("ACTIVE_KEY = 'catalogotop:active-catalog:v1'")],
+  ['CatalogStore oferece mutações administrativas provider-scoped', ['createFolder', 'renameFolder', 'moveFolder', 'deleteEmptyFolder', 'moveCatalogs', 'deleteCatalogs'].every(name => store.includes(name))],
+  ['administração de catálogos não publica ProductStore', !store.includes('ProductStore.publishCurrent') && !store.includes('ProductStore.publishSnapshot')],
+  ['mover catálogo preserva record e altera somente folderId', store.includes("? { ...record, folderId: destination } : record")],
+  ['excluir ativo limpa identidade sem resetar Core', store.includes("deletingActive ? { activateId: '' } : {}") && store.includes('deletedResource: true') && !/function deleteCatalogs[\s\S]*?Core\.resetCatalog\(\)/.test(store)],
+  ['Novo catálogo é interceptado pela authority salva', store.includes("document.getElementById('btnNewCatalog')") && store.includes('event.stopImmediatePropagation()') && store.includes('newSession()')],
+  ['backup importado perde identidade salva antes de materializar sessão', store.includes("document.getElementById('backupFile')") && store.includes('clearActive')],
   ['ProductStore não apaga selectedIds ao sincronizar product truth', !files['src/product-store.js'].includes('draft.selectedIds = draft.selectedIds.map(String).filter') && files['src/product-store.js'].includes('draft.products = normalized')],
   ['LibraryShell mantém provider como estado efêmero de UI', files['src/library-shell.js'].includes('activeProvider') && !files['src/library-shell.js'].includes('localStorage') && files['src/library-shell.js'].includes('catalogotop:library-provider-changed')],
   ['CatalogLibrary abre/duplica pela CatalogStore', files['src/catalog-library.js'].includes('CatalogStore.openCatalog') && files['src/catalog-library.js'].includes('CatalogStore.duplicateCatalog')],

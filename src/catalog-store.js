@@ -2,8 +2,8 @@
   'use strict';
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
-  const { Core, IndexedCache, CatalogSnapshot, ProductStore } = NS;
-  if (!Core || !IndexedCache || !CatalogSnapshot || !ProductStore) return;
+  const { Core, IndexedCache, CatalogSnapshot, ProductStore, FolderTree } = NS;
+  if (!Core || !IndexedCache || !CatalogSnapshot || !ProductStore || !FolderTree) return;
 
   const ACTIVE_KEY = 'catalogotop:active-catalog:v1';
   let revision = 0;
@@ -183,14 +183,14 @@
     return CatalogSnapshot.read(payload).snapshot;
   }
 
-  async function publishCandidate(candidate, { activateId = activeCatalogId } = {}) {
+  async function publishCandidate(candidate, { activateId } = {}) {
     if (publishing || conflict) {
       if (conflict) alert('Há um conflito de revisão na Biblioteca de catálogos. Recarregue antes de salvar novamente.');
       return false;
     }
     publishing = true;
     snapshot = candidate;
-    if (activateId) setActiveId(activateId);
+    if (activateId !== undefined) setActiveId(activateId);
     pendingWrite = true;
     await IndexedCache.setCatalogSnapshot?.({ ...candidate, pendingWrite: true });
     refreshStatus();
@@ -291,6 +291,80 @@
     return ok;
   }
 
+  function mutationIds(ids) {
+    const values = Array.isArray(ids) ? ids : [ids];
+    const normalized = Array.from(new Set(values.map(id => String(id || '').trim()).filter(Boolean)));
+    if (!normalized.length) {
+      const error = new Error('Selecione ao menos um catálogo.');
+      error.code = 'catalog_selection_empty';
+      throw error;
+    }
+    const existing = new Set(snapshot.catalogs.map(record => String(record.id)));
+    const missing = normalized.filter(id => !existing.has(id));
+    if (missing.length) {
+      const error = new Error(`Catálogo não encontrado: ${missing[0]}.`);
+      error.code = 'catalog_not_found';
+      error.catalogId = missing[0];
+      throw error;
+    }
+    return normalized;
+  }
+
+  function destinationFolderId(folderId) {
+    const id = folderId == null || String(folderId).trim() === '' ? null : String(folderId).trim();
+    if (id) FolderTree.pathOf(snapshot.folders, id);
+    return id;
+  }
+
+  async function createFolder({ name, parentId = null } = {}) {
+    const id = `catalog-folder-${Core.uuid()}`;
+    const folders = FolderTree.createFolder(snapshot.folders, { id, parentId: destinationFolderId(parentId), name });
+    const candidate = CatalogSnapshot.forWrite({ revision, folders, catalogs: snapshot.catalogs });
+    await publishCandidate(candidate);
+    return snapshot.folders.some(folder => folder.id === id) ? id : false;
+  }
+
+  async function renameFolder(id, name) {
+    const folders = FolderTree.renameFolder(snapshot.folders, id, name);
+    const candidate = CatalogSnapshot.forWrite({ revision, folders, catalogs: snapshot.catalogs });
+    return publishCandidate(candidate);
+  }
+
+  async function moveFolder(id, parentId = null) {
+    const folders = FolderTree.moveFolder(snapshot.folders, id, destinationFolderId(parentId));
+    const candidate = CatalogSnapshot.forWrite({ revision, folders, catalogs: snapshot.catalogs });
+    return publishCandidate(candidate);
+  }
+
+  async function deleteEmptyFolder(id) {
+    const occupiedFolderIds = snapshot.catalogs.map(record => record.folderId).filter(Boolean);
+    const folders = FolderTree.deleteEmptyFolder(snapshot.folders, id, { occupiedFolderIds });
+    const candidate = CatalogSnapshot.forWrite({ revision, folders, catalogs: snapshot.catalogs });
+    return publishCandidate(candidate);
+  }
+
+  async function moveCatalogs(ids, folderId = null) {
+    const catalogIds = new Set(mutationIds(ids));
+    const destination = destinationFolderId(folderId);
+    const catalogs = snapshot.catalogs.map(record => catalogIds.has(String(record.id)) ? { ...record, folderId: destination } : record);
+    const candidate = CatalogSnapshot.forWrite({ revision, folders: snapshot.folders, catalogs });
+    return publishCandidate(candidate);
+  }
+
+  async function deleteCatalogs(ids) {
+    const catalogIds = new Set(mutationIds(ids));
+    const deletingActive = Boolean(activeCatalogId && catalogIds.has(activeCatalogId));
+    const catalogs = snapshot.catalogs.filter(record => !catalogIds.has(String(record.id)));
+    const candidate = CatalogSnapshot.forWrite({ revision, folders: snapshot.folders, catalogs });
+    const ok = await publishCandidate(candidate, deletingActive ? { activateId: '' } : {});
+    if (deletingActive && !activeCatalogId) {
+      NS.ComposerSelection?.clear?.();
+      refreshStatus();
+      window.dispatchEvent(new CustomEvent('catalogotop:catalog-opened', { detail: { catalogId: null, deletedResource: true } }));
+    }
+    return ok;
+  }
+
   function newSession() {
     setActiveId('');
     pendingWrite = false;
@@ -349,6 +423,12 @@
     saveCurrent,
     openCatalog,
     duplicateCatalog,
+    createFolder,
+    renameFolder,
+    moveFolder,
+    deleteEmptyFolder,
+    moveCatalogs,
+    deleteCatalogs,
     newSession,
     clearActive,
     reloadRemote,
