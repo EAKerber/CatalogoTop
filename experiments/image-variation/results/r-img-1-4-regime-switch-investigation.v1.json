@@ -1,0 +1,112 @@
+{
+  "kind": "catalogotop.r-img-1-4-regime-switch-investigation",
+  "version": 1,
+  "status": "research-only",
+  "caseId": "h45-native-source-grounded-master",
+  "question": "Why did one generated dashboard contain a visually discreet H45-like rail while later attempts collapsed into the same obvious fantasy roller/slide prototype?",
+  "authoritativeEvidence": {
+    "exactSource": {
+      "sourceId": "h45",
+      "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+      "dimensionsPx": [450, 450],
+      "visualFact": "two separate telescopic-slide pieces"
+    },
+    "realDeterministicControl": {
+      "pipeline": "Mitchell 4x research renderer",
+      "visualFact": "preserves the two factual pieces while reorienting the factual group",
+      "authority": "actual research output, not producer-generated report imagery"
+    }
+  },
+  "criticalAuditFinding": {
+    "outcome": "GENERATED_DASHBOARD_CONTROL_IS_NOT_THE_REAL_DETERMINISTIC_CONTROL",
+    "observation": "In the visually stronger aa89f137 dashboard, the panel labeled as the deterministic A control does not match the actual Mitchell deterministic output. The dashboard regenerated/synthesized its own A image as part of the infographic.",
+    "consequence": "Similarity between dashboard A and dashboard B is internal self-consistency of a generated report, not evidence that B is source-grounded or faithful to the actual deterministic control.",
+    "positiveControlCorrection": "aa89f137 remains useful only as a VISUALLY_DISCREET_GENERATIVE_REGIME_CONTROL, not as a factual-positive-control candidate until an image-only source-bound output exists."
+  },
+  "observedRegimes": [
+    {
+      "id": "discreet-archetype-regime",
+      "generatorId": "aa89f137-0218-41db-b39f-be47943197cc",
+      "description": "Generated rail is visually close to ordinary telescopic-slide hardware and could plausibly pass unnoticed at normal catalog scale.",
+      "factualStatus": "unverified / cannot be established from the self-generated dashboard comparison",
+      "researchValue": "shows that producer appearance quality can vary dramatically"
+    },
+    {
+      "id": "fantasy-roller-prototype-regime",
+      "generatorIds": [
+        "2638cff6-aec2-4753-b809-3b968d1426cb",
+        "f3660d0d-5c32-44ba-9f5f-e6946f1bd039",
+        "835c43b7-87c9-456b-b19f-9b641c296eb1",
+        "feecda2c-e8f3-4fef-b91f-f1147b20d244"
+      ],
+      "description": "Repeated outputs converge on an obviously invented rail/roller mechanism with fantasy mechanical structures.",
+      "factualStatus": "clear fail",
+      "researchValue": "demonstrates stable prototype fallback rather than independent random detail errors"
+    }
+  ],
+  "causalHypotheses": [
+    {
+      "id": "H1-reference-binding-proximity",
+      "confidence": "moderate-high / unproven",
+      "evidence": "The visually discreet aa89f137 execution occurred immediately after the exact H45 source image was explicitly reintroduced as the active image target. Later repeatability attempts were issued after generated-dashboard context had accumulated and without re-establishing a fresh source target immediately before every run.",
+      "prediction": "A clean context with explicit source-image binding should reduce or eliminate prototype fallback."
+    },
+    {
+      "id": "H2-context-contamination-dashboard-mode",
+      "confidence": "high",
+      "evidence": "Every tested run returned a research dashboard/infographic despite the desired image-only product output. The producer is evidently conditioning strongly on the surrounding research-report conversation.",
+      "prediction": "A minimal context containing only source + edit contract should materially increase image-only compliance."
+    },
+    {
+      "id": "H3-semantic-archetype-fallback",
+      "confidence": "high",
+      "evidence": "When source adherence appears weak, several independent runs converge on essentially the same fantasy telescopic-slide/roller object instead of varying randomly.",
+      "prediction": "A no-reference control would likely resemble the fantasy archetype more than the exact H45 source."
+    },
+    {
+      "id": "H4-resolution-contract-causes-regression",
+      "confidence": "low / unsupported",
+      "evidence": "Both visually discreet and fantasy dashboards self-claim similar high-resolution masters, but no clean native output was obtained and those claims are non-authoritative.",
+      "prediction": "Changing requested raster alone should not explain the regime switch."
+    },
+    {
+      "id": "H5-random-seed-only",
+      "confidence": "low-moderate",
+      "evidence": "Repeated convergence on the same fantasy prototype argues against purely independent seed noise as the main cause.",
+      "prediction": "Under weak grounding, repeated runs should continue clustering around the archetype."
+    }
+  ],
+  "nextExperimentDesign": {
+    "name": "clean-context reference-binding A/B",
+    "reason": "The current conversation is itself contaminated by repeated dashboards and cannot cleanly isolate reference binding.",
+    "conditions": [
+      {
+        "id": "A-source-bound-minimal",
+        "inputs": ["exact H45 source image only", "short image-only edit instruction", "same approved composition target", "native output raster requirement"],
+        "forbiddenContext": ["dashboard", "benchmark report", "PASS labels", "generated prior candidates"],
+        "expectedIfH1H2True": "image-only output that tracks source landmarks substantially better"
+      },
+      {
+        "id": "B-source-bound-plus-composition-reference",
+        "inputs": ["exact H45 source", "actual deterministic Mitchell composition as non-factual layout reference", "same image-only contract"],
+        "rule": "the factual source remains identity authority; deterministic image supplies composition only",
+        "expectedIfH1H2True": "same source landmarks with target composition, not a regenerated generic slide"
+      },
+      {
+        "id": "C-no-source-negative-control",
+        "inputs": ["text-only H45/telescopic-slide description", "same aspect/output contract"],
+        "expected": "if H3 is correct, output should move toward the learned fantasy/generic slide archetype"
+      }
+    ],
+    "requiredGate": [
+      "image-only contract",
+      "piece correspondence after pose normalization",
+      "hole/slot landmark sequence",
+      "terminal structures",
+      "fittings/stops",
+      "rail proportions",
+      "cross-run clustering relative to source landmarks"
+    ]
+  },
+  "currentConclusion": "The apparent regression is best modeled as a regime switch between a discreet generic-hardware synthesis and an obvious fantasy-prototype fallback. There is still no verified source-grounded generative master. The strongest current causal suspects are reference-target binding and dashboard-context contamination."
+}
