@@ -36,8 +36,8 @@ assert.deepEqual(
 assert.equal(CatalogQuery.query({ catalogs, folders }).length, catalogs.length, 'sem folderId deve consultar todos os catálogos, inclusive raiz');
 assert.deepEqual(
   Array.from(CatalogQuery.query({ catalogs, folders, text: 'acme' }), record => record.id),
-  ['acme-main'],
-  'busca deve ser accent-insensitive no título'
+  ['acme-main', 'q3-price'],
+  'busca deve ser accent-insensitive e considerar título antes do path de descendentes'
 );
 assert.deepEqual(
   Array.from(CatalogQuery.query({ catalogs, folders, text: '2026 q3' }), record => record.id),
