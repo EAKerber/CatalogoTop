@@ -1,0 +1,30 @@
+{
+  "kind": "catalogotop.rimg15.smoke-matrix",
+  "version": 1,
+  "status": "research-only",
+  "freshContextPerRun": true,
+  "directSourceAttachmentRequired": true,
+  "runs": [
+    {"runId":"A-P0-R1","case":"A","prompt":"P0","repetition":1},
+    {"runId":"A-P0-R2","case":"A","prompt":"P0","repetition":2},
+    {"runId":"A-P0-R3","case":"A","prompt":"P0","repetition":3},
+    {"runId":"A-P1-R1","case":"A","prompt":"P1","repetition":1},
+    {"runId":"A-P1-R2","case":"A","prompt":"P1","repetition":2},
+    {"runId":"A-P1-R3","case":"A","prompt":"P1","repetition":3},
+    {"runId":"B-P0-R1","case":"B","prompt":"P0","repetition":1},
+    {"runId":"B-P0-R2","case":"B","prompt":"P0","repetition":2},
+    {"runId":"B-P0-R3","case":"B","prompt":"P0","repetition":3},
+    {"runId":"B-P1-R1","case":"B","prompt":"P1","repetition":1},
+    {"runId":"B-P1-R2","case":"B","prompt":"P1","repetition":2},
+    {"runId":"B-P1-R3","case":"B","prompt":"P1","repetition":3}
+  ],
+  "executionRules": [
+    "start each run in a fresh context",
+    "attach only the matching factual source image directly",
+    "paste only the matching prompt",
+    "generate once",
+    "preserve the complete output",
+    "do not expose prior run outputs to the producer",
+    "stop scoring at G0 if output form fails"
+  ]
+}
