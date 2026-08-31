@@ -1,4 +1,4 @@
-name: Temporary V2 Live Image Reference Audit
+name: Temporary V1 V2 Image Authority Audit
 
 on:
   push:
@@ -9,90 +9,141 @@ permissions:
   contents: read
 
 jobs:
-  audit-live-image-refs:
-    if: contains(github.event.head_commit.message, 'one-shot live V2 image reference audit')
+  compare-live-image-authorities:
+    if: contains(github.event.head_commit.message, 'compare V1 and V2 product image authorities')
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for cleanup deploy
-        run: sleep 75
-      - name: Audit V2 product image references
+      - name: Wait for Netlify deploy
+        run: sleep 60
+      - name: Compare V1 and V2 image authorities
         shell: bash
         run: |
           python - <<'PY'
           import json
           import re
+          import unicodedata
           import urllib.error
           import urllib.parse
           import urllib.request
 
-          BASE = 'https://catalogotop-v2-test.netlify.app'
-          with urllib.request.urlopen(BASE + '/api/products', timeout=30) as response:
-              snapshot = json.load(response)
+          V1 = 'https://topcatalogos.netlify.app'
+          V2 = 'https://catalogotop-v2-test.netlify.app'
 
-          products = snapshot.get('products') or []
-          rows = []
+          def fetch_json(url):
+              req = urllib.request.Request(url, headers={'Cache-Control': 'no-cache', 'User-Agent': 'CatalogoTop-image-authority-audit'})
+              with urllib.request.urlopen(req, timeout=45) as response:
+                  return json.load(response)
+
+          def norm(value):
+              text = unicodedata.normalize('NFKD', str(value or ''))
+              text = ''.join(ch for ch in text if not unicodedata.combining(ch)).casefold()
+              return ' '.join(re.findall(r'[a-z0-9]+', text))
 
           def classify(value):
               value = str(value or '').strip()
-              if not value:
-                  return 'empty'
-              if re.fullmatch(r'/api/assets/sha256/[a-f0-9]{64}', value, re.I):
-                  return 'managed'
-              if value.startswith('data:image/'):
-                  return 'data'
-              if value.startswith('https://'):
-                  return 'https'
-              if value.startswith('/'):
-                  return 'relative-root'
-              if value.startswith('blob:'):
-                  return 'blob'
+              if not value: return 'empty'
+              if re.fullmatch(r'/api/assets/sha256/[a-f0-9]{64}', value, re.I): return 'managed'
+              if value.startswith('data:image/'): return 'data'
+              if value.startswith('https://'): return 'https'
+              if value.startswith('/'): return 'relative-root'
+              if value.startswith('blob:'): return 'blob'
               return 'other'
 
-          def probe(value):
+          def probe(origin, value):
               value = str(value or '').strip()
               kind = classify(value)
               if kind in ('empty', 'data', 'blob', 'other'):
                   return {'kind': kind}
-              url = value if kind == 'https' else urllib.parse.urljoin(BASE, value)
+              url = value if kind == 'https' else urllib.parse.urljoin(origin, value)
               try:
-                  req = urllib.request.Request(url, headers={'Cache-Control': 'no-cache', 'User-Agent': 'CatalogoTop-live-image-audit'})
-                  with urllib.request.urlopen(req, timeout=30) as res:
-                      return {
-                          'kind': kind,
-                          'url': url,
-                          'status': res.status,
-                          'contentType': res.headers.get('content-type', '').split(';', 1)[0].strip().lower()
-                      }
+                  req = urllib.request.Request(url, headers={'Cache-Control': 'no-cache', 'User-Agent': 'CatalogoTop-image-authority-audit'})
+                  with urllib.request.urlopen(req, timeout=20) as res:
+                      ctype = res.headers.get('content-type', '').split(';', 1)[0].strip().lower()
+                      return {'kind': kind, 'status': res.status, 'contentType': ctype, 'image': ctype.startswith('image/')}
               except urllib.error.HTTPError as error:
-                  return {'kind': kind, 'url': url, 'status': error.code, 'contentType': error.headers.get('content-type', '')}
+                  return {'kind': kind, 'status': error.code, 'contentType': error.headers.get('content-type', ''), 'image': False}
               except Exception as error:
-                  return {'kind': kind, 'url': url, 'error': str(error)}
+                  return {'kind': kind, 'error': str(error), 'image': False}
 
-          for product in products:
-              refs = []
-              refs.append({'field': 'image', 'value': product.get('image') or ''})
-              for entry in product.get('imageGallery') or []:
-                  refs.append({'field': 'imageGallery', 'variantId': entry.get('id') or '', 'value': entry.get('image') or ''})
-              for entry in product.get('variants') or []:
-                  if entry.get('image'):
-                      refs.append({'field': 'variants', 'variantId': entry.get('id') or '', 'value': entry.get('image') or ''})
-              rows.append({
-                  'id': product.get('id'),
-                  'code': product.get('code'),
-                  'refs': [{**ref, 'probe': probe(ref['value'])} for ref in refs]
+          v1 = fetch_json(V1 + '/api/products')
+          v2 = fetch_json(V2 + '/api/products')
+          v1_products = v1.get('products') or []
+          v2_products = v2.get('products') or []
+
+          by_code = {}
+          def add(code, candidate):
+              key = str(code or '').strip().casefold()
+              if key:
+                  by_code.setdefault(key, []).append(candidate)
+
+          for product in v1_products:
+              parent = {
+                  'parentId': product.get('id'),
+                  'parentCode': str(product.get('code') or ''),
+                  'parentDescription': str(product.get('description') or ''),
+                  'parentImage': str(product.get('image') or ''),
+              }
+              add(product.get('code'), {**parent, 'sourceType': 'product', 'sourceCode': str(product.get('code') or ''), 'sourceDescription': str(product.get('description') or ''), 'sourceImage': str(product.get('image') or '')})
+              for variant in product.get('variants') or []:
+                  code = variant.get('code') or variant.get('sku') or variant.get('id')
+                  desc = variant.get('description') or variant.get('label') or variant.get('name') or ''
+                  add(code, {**parent, 'sourceType': 'variant', 'sourceCode': str(code or ''), 'sourceDescription': str(desc), 'sourceImage': str(variant.get('image') or product.get('image') or '')})
+              for row in product.get('tableRows') or []:
+                  code = row.get('code') or row.get('sku') or row.get('id')
+                  desc = row.get('description') or row.get('label') or row.get('name') or ''
+                  add(code, {**parent, 'sourceType': 'tableRow', 'sourceCode': str(code or ''), 'sourceDescription': str(desc), 'sourceImage': str(row.get('image') or product.get('image') or '')})
+
+          results = []
+          class_counts = {}
+          for product in v2_products:
+              code = str(product.get('code') or '').strip()
+              desc = str(product.get('description') or '')
+              image = str(product.get('image') or '')
+              candidates = by_code.get(code.casefold(), [])
+              enriched = []
+              for candidate in candidates:
+                  candidate_descs = [candidate['sourceDescription'], candidate['parentDescription']]
+                  exact_description = norm(desc) != '' and any(norm(desc) == norm(x) for x in candidate_descs if x)
+                  source_image = candidate['sourceImage']
+                  enriched.append({
+                      **candidate,
+                      'exactDescription': exact_description,
+                      'sourceImageKind': classify(source_image),
+                      'sourceImageProbe': probe(V1, source_image) if source_image else {'kind': 'empty'}
+                  })
+
+              unique_exact = [c for c in enriched if c['exactDescription']]
+              unique_exact_parents = {str(c['parentId']) for c in unique_exact}
+              if len(unique_exact) == 1 and len(unique_exact_parents) == 1:
+                  classification = 'exact_unique'
+              elif len(unique_exact) > 1 and len(unique_exact_parents) == 1:
+                  classification = 'exact_same_parent_multiple_sources'
+              elif len(unique_exact_parents) > 1:
+                  classification = 'exact_ambiguous_parents'
+              elif len(enriched) == 1:
+                  classification = 'code_unique_description_differs'
+              elif len(enriched) > 1:
+                  classification = 'code_ambiguous'
+              else:
+                  classification = 'no_code_match'
+              class_counts[classification] = class_counts.get(classification, 0) + 1
+
+              results.append({
+                  'v2Id': product.get('id'),
+                  'v2Code': code,
+                  'v2Description': desc,
+                  'v2Image': image,
+                  'v2ImageKind': classify(image),
+                  'classification': classification,
+                  'candidates': enriched
               })
 
-          summary = {}
-          for row in rows:
-              for ref in row['refs']:
-                  kind = ref['probe']['kind']
-                  summary[kind] = summary.get(kind, 0) + 1
-
-          print('V2_IMAGE_REF_AUDIT', json.dumps({
-              'schemaVersion': snapshot.get('schemaVersion'),
-              'revision': snapshot.get('revision'),
-              'productCount': len(products),
-              'summary': summary,
-              'products': rows,
+          print('V1_V2_IMAGE_AUTHORITY_AUDIT', json.dumps({
+              'v1Revision': v1.get('revision'),
+              'v1Products': len(v1_products),
+              'v2Revision': v2.get('revision'),
+              'v2Products': len(v2_products),
+              'classifications': class_counts,
+              'results': results
           }, ensure_ascii=False, indent=2))
           PY
