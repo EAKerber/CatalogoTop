@@ -1,0 +1,98 @@
+name: Temporary V2 Live Image Reference Audit
+
+on:
+  push:
+    branches:
+      - feat/v2-r4a-template-contract-binding
+
+permissions:
+  contents: read
+
+jobs:
+  audit-live-image-refs:
+    if: contains(github.event.head_commit.message, 'one-shot live V2 image reference audit')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for cleanup deploy
+        run: sleep 75
+      - name: Audit V2 product image references
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          BASE = 'https://catalogotop-v2-test.netlify.app'
+          with urllib.request.urlopen(BASE + '/api/products', timeout=30) as response:
+              snapshot = json.load(response)
+
+          products = snapshot.get('products') or []
+          rows = []
+
+          def classify(value):
+              value = str(value or '').strip()
+              if not value:
+                  return 'empty'
+              if re.fullmatch(r'/api/assets/sha256/[a-f0-9]{64}', value, re.I):
+                  return 'managed'
+              if value.startswith('data:image/'):
+                  return 'data'
+              if value.startswith('https://'):
+                  return 'https'
+              if value.startswith('/'):
+                  return 'relative-root'
+              if value.startswith('blob:'):
+                  return 'blob'
+              return 'other'
+
+          def probe(value):
+              value = str(value or '').strip()
+              kind = classify(value)
+              if kind in ('empty', 'data', 'blob', 'other'):
+                  return {'kind': kind}
+              url = value if kind == 'https' else urllib.parse.urljoin(BASE, value)
+              try:
+                  req = urllib.request.Request(url, headers={'Cache-Control': 'no-cache', 'User-Agent': 'CatalogoTop-live-image-audit'})
+                  with urllib.request.urlopen(req, timeout=30) as res:
+                      return {
+                          'kind': kind,
+                          'url': url,
+                          'status': res.status,
+                          'contentType': res.headers.get('content-type', '').split(';', 1)[0].strip().lower()
+                      }
+              except urllib.error.HTTPError as error:
+                  return {'kind': kind, 'url': url, 'status': error.code, 'contentType': error.headers.get('content-type', '')}
+              except Exception as error:
+                  return {'kind': kind, 'url': url, 'error': str(error)}
+
+          for product in products:
+              refs = []
+              refs.append({'field': 'image', 'value': product.get('image') or ''})
+              for entry in product.get('imageGallery') or []:
+                  refs.append({'field': 'imageGallery', 'variantId': entry.get('id') or '', 'value': entry.get('image') or ''})
+              for entry in product.get('variants') or []:
+                  if entry.get('image'):
+                      refs.append({'field': 'variants', 'variantId': entry.get('id') or '', 'value': entry.get('image') or ''})
+              rows.append({
+                  'id': product.get('id'),
+                  'code': product.get('code'),
+                  'refs': [{**ref, 'probe': probe(ref['value'])} for ref in refs]
+              })
+
+          summary = {}
+          for row in rows:
+              for ref in row['refs']:
+                  kind = ref['probe']['kind']
+                  summary[kind] = summary.get(kind, 0) + 1
+
+          print('V2_IMAGE_REF_AUDIT', json.dumps({
+              'schemaVersion': snapshot.get('schemaVersion'),
+              'revision': snapshot.get('revision'),
+              'productCount': len(products),
+              'summary': summary,
+              'products': rows,
+          }, ensure_ascii=False, indent=2))
+          PY
