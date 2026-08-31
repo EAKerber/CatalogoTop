@@ -37,10 +37,10 @@
     });
   }
 
-  function normalizeV2(raw) {
-    const folders = FolderTree.normalize(raw?.folders || []);
-    const folderIds = new Set(folders.map(folder => folder.id));
-    const products = productObjects(raw?.products || []).map((product, index) => {
+  function reprojectProducts(folders, products) {
+    const normalizedFolders = FolderTree.normalize(folders || []);
+    const folderIds = new Set(normalizedFolders.map(folder => folder.id));
+    const normalizedProducts = productObjects(products || []).map((product, index) => {
       const folderId = String(product.folderId || '').trim();
       if (!folderId || !folderIds.has(folderId)) {
         throw issue('product_folder_invalid', `Produto no índice ${index} referencia uma pasta inexistente.`, {
@@ -49,9 +49,15 @@
           folderId
         });
       }
-      return Migration.applyLegacyProjection({ ...product, folderId }, folders);
+      return Migration.applyLegacyProjection({ ...product, folderId }, normalizedFolders);
     });
-    ProductDomain.assertUniqueCodes(products);
+    ProductDomain.assertUniqueCodes(normalizedProducts);
+    return normalizedProducts;
+  }
+
+  function normalizeV2(raw) {
+    const folders = FolderTree.normalize(raw?.folders || []);
+    const products = reprojectProducts(folders, raw?.products || []);
     return {
       schemaVersion: SCHEMA_VERSION,
       ...metadata(raw),
@@ -150,6 +156,50 @@
     };
   }
 
+  function requireExistingFolder(folders, folderId) {
+    const normalizedFolders = FolderTree.normalize(folders || []);
+    const id = String(folderId || '').trim();
+    if (!id || !normalizedFolders.some(folder => folder.id === id)) {
+      throw issue('product_folder_invalid', `Pasta de destino inexistente: ${id || '—'}.`, { folderId: id });
+    }
+    return { folders: normalizedFolders, folderId: id };
+  }
+
+  function moveProducts(folders, products, productIds, folderId) {
+    const target = requireExistingFolder(folders, folderId);
+    const ids = new Set((Array.isArray(productIds) ? productIds : [productIds]).map(value => String(value || '').trim()).filter(Boolean));
+    if (!ids.size) throw issue('product_move_empty', 'Mover produtos exige pelo menos um produto.');
+
+    const currentProducts = productObjects(products || []);
+    const existingIds = new Set(currentProducts.map(product => String(product.id || '')));
+    for (const id of ids) {
+      if (!existingIds.has(id)) throw issue('product_not_found', `Produto não encontrado: ${id}.`, { productId: id });
+    }
+
+    const moved = currentProducts.map(product => ids.has(String(product.id)) ? { ...product, folderId: target.folderId } : product);
+    return {
+      folders: target.folders,
+      products: reprojectProducts(target.folders, moved),
+      movedIds: Array.from(ids)
+    };
+  }
+
+  function renameFolder(folders, products, folderId, name) {
+    const nextFolders = FolderTree.renameFolder(folders || [], folderId, name);
+    return { folders: nextFolders, products: reprojectProducts(nextFolders, products || []) };
+  }
+
+  function moveFolder(folders, products, folderId, parentId) {
+    const nextFolders = FolderTree.moveFolder(folders || [], folderId, parentId);
+    return { folders: nextFolders, products: reprojectProducts(nextFolders, products || []) };
+  }
+
+  function deleteEmptyFolder(folders, products, folderId) {
+    const occupiedFolderIds = productObjects(products || []).map(product => String(product.folderId || '').trim()).filter(Boolean);
+    const nextFolders = FolderTree.deleteEmptyFolder(folders || [], folderId, { occupiedFolderIds });
+    return { folders: nextFolders, products: reprojectProducts(nextFolders, products || []) };
+  }
+
   function forWrite({ revision = 0, updatedAt = '', writeId = '', folders = [], products = [] } = {}) {
     return normalizeV2({
       schemaVersion: SCHEMA_VERSION,
@@ -166,10 +216,15 @@
     MAX_PRODUCTS,
     read,
     normalizeV2,
+    reprojectProducts,
     resolvePath,
     resolveLegacyPath,
     assignPathProduct,
     assignLegacyProduct,
+    moveProducts,
+    renameFolder,
+    moveFolder,
+    deleteEmptyFolder,
     forWrite
   });
 })();
