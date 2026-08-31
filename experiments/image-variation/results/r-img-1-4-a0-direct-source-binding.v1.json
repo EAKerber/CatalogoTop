@@ -1,0 +1,43 @@
+{
+  "kind": "catalogotop.r-img-1-4-direct-source-binding",
+  "version": 1,
+  "status": "research-only",
+  "caseId": "h45-native-source-grounded-master",
+  "condition": "A0-direct-source-binding",
+  "source": {
+    "sourceId": "h45",
+    "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+    "dimensionsPx": [450, 450],
+    "authority": "exact-source-readback"
+  },
+  "output": {
+    "sha256": "0c4d7acaac1f3576689fca448f7eb4e62f0ad072a06ebfc06815682e1790194a",
+    "dimensionsPx": [1961, 802],
+    "aspectRatio": 2.445137,
+    "targetAspectRatio": "22:9",
+    "minimumUseRasterPx": [1376, 563],
+    "nativeRasterRequirementMet": true,
+    "imageOnlyContractMet": true
+  },
+  "humanReview": {
+    "bindingOutcome": "PASS_DIRECT_SOURCE_BINDING",
+    "presentationOutcome": "PROMISING",
+    "factualOutcome": "LANDMARK_PASS_WITH_VIEWPOINT_INFERENCE_REVIEW_REQUIRED",
+    "observations": [
+      "The output contains two distinct telescopic-slide pieces corresponding to the two factual source pieces rather than a generic/fantasy substitute.",
+      "Multiple salient landmarks remain recognizable, including the black stop/fitting, rectangular window, visible hole/slot sequences and stamped bracket-like structures on the second piece.",
+      "The output is in a near-orthographic horizontal presentation rather than the source's diagonal perspective, so some geometry and hidden surfaces were necessarily inferred rather than copied pixel-for-pixel.",
+      "The result is qualitatively different from the prior dashboard/fantasy regimes and is the first valid evidence that direct image attachment can establish the intended factual target."
+    ]
+  },
+  "decision": {
+    "result": "A0_PASS_BINDING_CONTINUE",
+    "productionPromotion": false,
+    "reason": "Direct source binding worked and the output meets the image-only/native-raster gates, but pose-invariant landmark review and repeatability are still required before treating the generation as a faithful reusable product variant."
+  },
+  "nextGate": [
+    "repeat A0 in a fresh context with the same factual source and minimal prompt to test binding repeatability",
+    "perform a pose-invariant landmark review across both pieces",
+    "only after repeatable A0 passes, test A1 with the real deterministic layout reference while keeping the source as factual authority"
+  ]
+}
