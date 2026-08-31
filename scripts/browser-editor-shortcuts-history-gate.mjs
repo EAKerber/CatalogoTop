@@ -191,7 +191,7 @@ try {
   if (!mobile.parentClass.includes('app-primary-tools') || mobile.historyHidden || Math.abs(mobile.historyTop - mobile.tabsTop) > 8 || mobile.tabsRight > mobile.historyLeft + 2) throw new Error(`undo/redo mobile não ocupa a segunda linha do header: ${JSON.stringify(mobile)}`);
 
   const mobileSnapshot = await page.evaluate(() => JSON.stringify(window.CatalogoTop.EditorHistory.snapshot()));
-  for (const tabId of ['products', 'templates']) {
+  for (const tabId of ['products', 'library']) {
     await page.click(`[data-tab="${tabId}"]`);
     await page.waitForSelector(`#${tabId}.panel.active`);
     await page.waitForTimeout(50);
@@ -233,7 +233,7 @@ try {
   }
 
   const lifecycle = await page.evaluate(() => window.__tabLifecycle.slice());
-  const expectedTail = ['products', 'catalog', 'products', 'catalog', 'templates', 'catalog'];
+  const expectedTail = ['products', 'catalog', 'products', 'catalog', 'library', 'catalog'];
   if (expectedTail.some((tabId, index) => lifecycle[lifecycle.length - expectedTail.length + index] !== tabId)) throw new Error(`lifecycle de abas incompleto: ${JSON.stringify(lifecycle)}`);
 
   console.log('PASS editor shortcut/history gate: ações compactas, rail, Ctrl+G/T, undo/redo, lifecycle mobile e densidade contextual');
