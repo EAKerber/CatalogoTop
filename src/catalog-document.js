@@ -5,8 +5,12 @@
 
   function getTemplate(state, override) {
     if (override) return override;
-    if (NS.Templates?.getTemplate) return NS.Templates.getTemplate(state?.catalog?.templateId);
-    return { id: 'technical', columns: 2, rows: 4, perPage: 8, className: 'template-technical' };
+    if (!NS.Templates?.resolveCatalog) {
+      const error = new Error('Registry de templates indisponível.');
+      error.code = 'template_registry_unavailable';
+      throw error;
+    }
+    return NS.Templates.resolveCatalog(state?.catalog);
   }
 
   function getRenderableProducts(state) {
@@ -263,6 +267,7 @@
       title: state?.catalog?.title || '',
       showPrices: state?.catalog?.showPrices !== false,
       template,
+      templateBinding: Object.freeze({ id: template.id, version: Number(template.version || state?.catalog?.templateVersion || 1) }),
       presentation,
       blocks: materializedBlocks,
       selectedCount: selected.length,

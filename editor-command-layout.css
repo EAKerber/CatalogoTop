@@ -87,4 +87,31 @@
     grid-column: 1 / -1;
     grid-row: 3;
   }
+
+  /* O toolbar do A4 não força metadados, ações e zoom na mesma linha. Em territórios
+   * estreitos do preview as ações ficam na primeira linha; contador + zoom na segunda. */
+  #catalog .preview-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    row-gap: 4px;
+  }
+  #catalog .preview-toolbar .heading-actions {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: end;
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #catalog .preview-toolbar-meta {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    overflow: hidden;
+  }
+  #catalog .preview-zoom-controls {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
 }

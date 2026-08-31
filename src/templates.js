@@ -134,9 +134,16 @@
   const latestById = new Map();
   BUILT_INS.forEach(template => { const current = latestById.get(template.id); if (!current || template.version > current.version) latestById.set(template.id, template); });
 
+  function compatibilityClass(template) {
+    const scale = template?.card?.scale;
+    const orientation = template?.card?.orientation;
+    if (scale === 'compact' && orientation === 'vertical') return 'template-compact';
+    if (scale === 'large') return 'template-showcase';
+    return 'template-technical';
+  }
   function runtimeView(template) {
     if (!template) return null;
-    return Object.freeze({ ...template, columns: template.layout.columns, rows: template.layout.rows, perPage: template.layout.columns * template.layout.rows, className: `template-${template.id}` });
+    return Object.freeze({ ...template, columns: template.layout.columns, rows: template.layout.rows, perPage: template.layout.columns * template.layout.rows, className: compatibilityClass(template) });
   }
   const templates = Object.freeze(BUILT_INS.map(runtimeView));
   function resolve(id, version = 1) {
@@ -147,11 +154,14 @@
     return runtimeView(template);
   }
   function latest(id) { const template = latestById.get(String(id || '').trim()); return template ? runtimeView(template) : null; }
+  function resolveCatalog(catalog) {
+    return resolve(catalog?.templateId, catalog?.templateVersion);
+  }
   function getTemplate(id, version) {
     const normalizedId = String(id || '').trim();
     if (version != null) return resolve(normalizedId, version);
     return latest(normalizedId) || templates[0];
   }
 
-  NS.Templates = Object.freeze({ templates, builtIns: BUILT_INS, resolve, latest, getTemplate, runtimeView });
+  NS.Templates = Object.freeze({ templates, builtIns: BUILT_INS, resolve, latest, resolveCatalog, getTemplate, runtimeView, compatibilityClass });
 })();
