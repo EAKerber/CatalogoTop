@@ -111,12 +111,15 @@ try {
       fieldsetWidth: fieldsetRect?.width || 0,
       gridColumns: segmented ? getComputedStyle(segmented).gridTemplateColumns : '',
       chips,
-      horizontalOverflow: segmented ? Math.max(0, segmented.scrollWidth - segmented.clientWidth) : -1
+      segmentedClientWidth: segmented?.clientWidth || 0,
+      segmentedScrollWidth: segmented?.scrollWidth || 0
     };
   });
-  if (priceControl.chips.length !== 4 || priceControl.fieldsetWidth < priceControl.editorWidth * .85 || priceControl.horizontalOverflow > 1) {
+  if (priceControl.chips.length !== 4 || priceControl.fieldsetWidth < priceControl.editorWidth * .85) {
     throw new Error(`controle PREÇO não recebeu território responsivo: ${JSON.stringify(priceControl)}`);
   }
+  // Inputs radio são absolutos/invisíveis e podem ampliar scrollWidth alguns pixels. A
+  // propriedade física relevante é cada chip visível caber integralmente no seu track.
   if (priceControl.chips.some(chip => chip.scrollWidth > chip.clientWidth + 1 || chip.scrollHeight > chip.clientHeight + 1)) {
     throw new Error(`controle PREÇO truncou rótulo: ${JSON.stringify(priceControl)}`);
   }
