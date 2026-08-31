@@ -43,11 +43,17 @@ function installFixture() {
   const NS = window.CatalogoTop;
   NS.ProductStore.publishCurrent = async () => true;
   NS.Core.setState({
-    schemaVersion: 7,
+    schemaVersion: 8,
+    folders: [
+      { id: 'f-ferragens', parentId: null, name: 'Ferragens' },
+      { id: 'f-corredicas', parentId: 'f-ferragens', name: 'Corrediças' },
+      { id: 'f-telescopicas', parentId: 'f-corredicas', name: 'Telescópicas' },
+      { id: 'f-dobradicas', parentId: 'f-ferragens', name: 'Dobradiças' }
+    ],
     products: [
-      { id: 'p1', code: 'ABC-100', description: 'Corrediça telescópica', category: 'Ferragens', subcategory: 'Corrediças / Telescópicas', price: 'R$ 10,00', status: 'Ativo', notes: '', image: '', specs: [{ label: 'Carga', value: '35 kg' }], variants: [], tableRows: [] },
-      { id: 'p2', code: 'ABC-200', description: 'Corrediça comum', category: 'Ferragens', subcategory: 'Corrediças', price: '', status: 'Ativo', notes: '', image: '', specs: [], variants: [], tableRows: [] },
-      { id: 'p3', code: 'DOB-1', description: 'Dobradiça', category: 'Ferragens', subcategory: 'Dobradiças', price: '', status: 'Ativo', notes: '', image: '', specs: [], variants: [], tableRows: [] }
+      { id: 'p1', folderId: 'f-telescopicas', code: 'ABC-100', description: 'Corrediça telescópica', category: 'Ferragens', subcategory: 'Corrediças / Telescópicas', price: 'R$ 10,00', status: 'Ativo', notes: '', image: '', specs: [{ label: 'Carga', value: '35 kg' }], variants: [], tableRows: [] },
+      { id: 'p2', folderId: 'f-corredicas', code: 'ABC-200', description: 'Corrediça comum', category: 'Ferragens', subcategory: 'Corrediças', price: '', status: 'Ativo', notes: '', image: '', specs: [], variants: [], tableRows: [] },
+      { id: 'p3', folderId: 'f-dobradicas', code: 'DOB-1', description: 'Dobradiça', category: 'Ferragens', subcategory: 'Dobradiças', price: '', status: 'Ativo', notes: '', image: '', specs: [], variants: [], tableRows: [] }
     ],
     selectedIds: [],
     catalog: {
