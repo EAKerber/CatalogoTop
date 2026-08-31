@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
-const runtimeFiles=['src/table-block.js','src/table-document.js','src/table-render.js','src/grouping-controls.js','src/table-controls.js','src/product-actions.js','src/product-delete-ui.js','src/block-overlap-guard.js','src/catalog-renderer.js'];
+const runtimeFiles=['src/table-block.js','src/table-document.js','src/table-render.js','src/grouping-controls.js','src/table-controls.js','src/product-actions.js','src/product-library.js','src/block-overlap-guard.js','src/catalog-renderer.js'];
 for(const file of runtimeFiles){const result=spawnSync(process.execPath,['--check',file],{encoding:'utf8'});if(result.status!==0){process.stderr.write(result.stderr||`Falha de sintaxe em ${file}\n`);process.exit(result.status||1);}}
-const names=['index.html','src/table-block.js','src/table-document.js','src/table-render.js','src/grouping-controls.js','src/table-controls.js','src/product-actions.js','src/product-delete-ui.js','src/block-overlap-guard.js','src/catalog-document.js','src/catalog-renderer.js','src/collection-controls.js','src/print.js','table-block.css','docs/table-block-v0.10.2.md'];
+const names=['index.html','src/table-block.js','src/table-document.js','src/table-render.js','src/grouping-controls.js','src/table-controls.js','src/product-actions.js','src/product-library.js','src/block-overlap-guard.js','src/catalog-document.js','src/catalog-renderer.js','src/collection-controls.js','src/print.js','table-block.css','docs/table-block-v0.10.2.md'];
 const files=Object.fromEntries(await Promise.all(names.map(async file=>[file,await readFile(file,'utf8')])));
 const checks=[
 ['runtime Table é carregado estaticamente antes do documento',files['index.html'].indexOf('src/table-block.js')<files['index.html'].indexOf('src/catalog-document.js')],
@@ -15,7 +15,7 @@ const checks=[
 ['GroupingControls deriva seleção efêmera e não muta domínio',files['src/grouping-controls.js'].includes('ComposerSelection?.ids')&&files['src/grouping-controls.js'].includes('candidateIds')&&!files['src/grouping-controls.js'].includes('BlockSelection')&&!files['src/grouping-controls.js'].includes('const markedIds = new Set()')&&!files['src/grouping-controls.js'].includes('Core.mutate')],
 ['Collection também não observa lista',!files['src/collection-controls.js'].includes('MutationObserver')],
 ['exclusão continua operação única',files['src/product-actions.js'].includes('cleanupDraftForDeletedProduct')&&files['src/product-actions.js'].includes('presentation.blocks')],
-['delete UI legado não observa DOM',!files['src/product-delete-ui.js'].includes('MutationObserver')],
+['Biblioteca delega exclusão sem observar DOM',files['src/product-library.js'].includes('ProductActions.deleteProducts')&&!files['src/product-library.js'].includes('MutationObserver')],
 ['overlap guard legado não observa DOM',!files['src/block-overlap-guard.js'].includes('MutationObserver')],
 ['print inclui stylesheet Table',files['src/print.js'].includes('table-block.css')],
 ['CSS Table permanece fixed/sem overflow',files['table-block.css'].includes('overflow: hidden')&&files['table-block.css'].includes('table-layout: fixed')],
