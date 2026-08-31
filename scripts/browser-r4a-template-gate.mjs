@@ -85,6 +85,11 @@ try {
   if (desktop.actionsRect.bottom > desktop.metaRect.top + 2 || desktop.actionsRect.bottom > desktop.zoomRect.top + 2) throw new Error(`toolbar R4a não quebrou em duas linhas: ${JSON.stringify(desktop)}`);
   if (desktop.binding.id !== 'technical' || desktop.binding.version !== '1') throw new Error(`binding físico não materializou technical@1: ${JSON.stringify(desktop.binding)}`);
 
+  // O inspector de Card só existe para um membro efetivo do catálogo. O estado vazio acima
+  // é deliberado para exercitar a toolbar; daqui em diante a fixture entra pelo fluxo real.
+  await page.check('#selectableProducts [data-select-product="broken-image"]');
+  await page.waitForFunction(() => window.CatalogoTop.Core.getState().selectedIds.includes('broken-image'));
+  await page.waitForSelector('#catalogPreview .catalog-card[data-product-id="broken-image"]');
   await page.evaluate(() => window.CatalogoTop.ContextualInspector.selectProductFromList('broken-image'));
   await page.waitForSelector('#contextualInspector [data-commercial-card-price-editor]');
   await page.waitForTimeout(40);
