@@ -58,6 +58,7 @@
   function normalizeV2(raw) {
     const folders = FolderTree.normalize(raw?.folders || []);
     const products = reprojectProducts(folders, raw?.products || []);
+    ProductDomain.assertUniqueCodes(products);
     return {
       schemaVersion: SCHEMA_VERSION,
       ...metadata(raw),
