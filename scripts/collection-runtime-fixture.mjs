@@ -6,7 +6,7 @@ const [html,core,composition,model,documentAdapter,renderer,grouping,controls,in
 'index.html','src/core.js','src/composition.js','src/collection.js','src/collection-document.js','src/collection-render.js','src/grouping-controls.js','src/collection-controls.js','src/contextual-inspector.js','src/catalog-selection-order.js','src/catalog-document.js','src/catalog-renderer.js','collection-block.css','docs/collection-block-v0.10.1.md'].map(readFileUtf8));
 function readFileUtf8(file){return readFile(file,'utf8');}
 const checks=[
-['estado local preserva blocks e ordem',core.includes('SCHEMA_VERSION = 8')&&core.includes('blocks: []')&&core.includes('order: []')],
+['estado local preserva blocks, ordem e binding versionado',core.includes('SCHEMA_VERSION = 9')&&core.includes('templateVersion: 1')&&core.includes('blocks: []')&&core.includes('order: []')],
 ['bootstrap de Collection é estático',html.includes('src/collection.js')&&html.indexOf('src/collection.js')<html.indexOf('src/catalog-document.js')&&!orderBootstrap.includes('loadScript(')],
 ['modelo não monkey-patcha Composition',model.includes('MAX_MEMBERS = 12')&&!model.includes('Composition.normalizePresentation =')],
 ['Composition preserva blocks nativamente',composition.includes('blocks: normalizeBlocks(source.blocks)')],
