@@ -73,14 +73,21 @@ try {
   await page.evaluate(installFixture);
   await page.waitForFunction(() => document.querySelectorAll('#cadastroProductRows tr').length === 3);
 
-  const shell = await page.evaluate(() => ({
-    categoryHidden: document.querySelector('#category')?.closest('label')?.hidden,
-    subcategoryHidden: document.querySelector('#subcategory')?.closest('label')?.hidden,
-    deleteHidden: document.querySelector('#btnDeleteProduct')?.hidden,
-    mobileLabel: document.querySelector('[data-mobile-workspace-target="library"]')?.textContent?.trim(),
-    legacyDeleteVisible: Boolean(document.querySelector('#productLibraryPanel [data-delete-product-direct]'))
-  }));
-  if (!shell.categoryHidden || !shell.subcategoryHidden || !shell.deleteHidden || shell.mobileLabel !== 'Existentes' || shell.legacyDeleteVisible) {
+  const shell = await page.evaluate(() => {
+    const panel = document.querySelector('#productLibraryPanel');
+    const legacyShim = panel?.querySelector('[data-r1d-legacy-product-list-compat]');
+    const destructive = [...(panel?.querySelectorAll('[data-delete-product-direct], [data-delete-category]') || [])];
+    return {
+      categoryHidden: document.querySelector('#category')?.closest('label')?.hidden,
+      subcategoryHidden: document.querySelector('#subcategory')?.closest('label')?.hidden,
+      deleteHidden: document.querySelector('#btnDeleteProduct')?.hidden,
+      mobileLabel: document.querySelector('[data-mobile-workspace-target="library"]')?.textContent?.trim(),
+      legacyShimHidden: Boolean(legacyShim?.hidden) && getComputedStyle(legacyShim).display === 'none' && legacyShim.getClientRects().length === 0,
+      destructiveOutsideCompat: destructive.some(node => !node.closest('[data-r1d-legacy-product-list-compat]')),
+      destructiveVisible: destructive.some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length > 0)
+    };
+  });
+  if (!shell.categoryHidden || !shell.subcategoryHidden || !shell.deleteHidden || shell.mobileLabel !== 'Existentes' || !shell.legacyShimHidden || shell.destructiveOutsideCompat || shell.destructiveVisible) {
     throw new Error(`Cadastro ainda expõe responsabilidades legadas/destrutivas: ${JSON.stringify(shell)}`);
   }
 
