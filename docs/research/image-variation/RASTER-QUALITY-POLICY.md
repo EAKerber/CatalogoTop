@@ -1,11 +1,11 @@
-# R-IMG-1.2 — Provisional transform-severity raster policy
+# R-IMG-1.2 — Raster quality policy after factor isolation
 
 Status: research-only / provisional  
 Branch: `research/semantic-image-variation-v2`
 
 ## Purpose
 
-R-IMG-1.2 shows that one master factor should not be used as a universal quality setting.
+R-IMG-1.2 originally considered an adaptive `4× vs 8×` policy driven by transform severity. Factor-isolation evidence no longer supports that complexity.
 
 The renderer must remain downstream of semantic composition:
 
@@ -18,117 +18,110 @@ semantic composition decision
       ↓
 placement plan
       ↓
-transform-severity assessment
+master output profile
       ↓
-raster quality profile
+higher-order factual rasterization
       ↓
-master → placement preview
+placement preview / print use
 ```
 
 Raster quality may improve how an already-approved transform is sampled. It may **not** decide which product, component, annotation or orientation is semantically correct.
 
-## Current evidence
+## Corrected evidence
 
-### H45
+The initial H45 exploration changed more than one variable at once: supersampling factor, reconstruction filter and downsample filter. It therefore could not establish that 8× itself was responsible for the visible gain.
 
-The approved composition contains a substantial off-axis whole-group rotation. Higher-order 4×→8× exploration still changes the final `440×180` placement materially; 8×→12× is near saturation.
+`experiments/image-variation/results/mitchell-supersampling-factor-probe.v1.json` repeats the comparison with reconstruction and downsample held constant.
 
-Research reading: **higher sampling effort is justified by transform severity**.
+### H45 — rotated whole factual group
 
-### Soft Close
+Same Mitchell reconstruction + same box reduction:
 
-The approved composition preserves orientation and mainly removes neutral canvas. Bilinear 4× vs higher-order 8× differs negligibly at placement scale.
+- `1× → 4×`: mean absolute channel difference ~`0.920`; P95 `7`; ~`3.31%` of placement pixels have any channel difference above 8;
+- `4× → 8×`: mean difference ~`0.041`; P95 `0`; no placement pixel differs above 4 levels;
+- normalized factual coverage is effectively unchanged.
 
-Research reading: **8× is safe but unnecessary**.
+Reading: rendering through a moderate denser master changes boundary sampling materially; doubling again to 8× does not.
 
-### Hinge
+### Soft Extra — rotated whole factual group
 
-The approved composition preserves orientation and semantic annotations while trimming external canvas. Bilinear 4× vs higher-order 8× again differs negligibly.
+Same Mitchell reconstruction + same box reduction:
 
-Research reading: **8× is safe but unnecessary; annotation preservation remains the stronger constraint**.
+- `1× → 4×`: mean difference ~`0.282`; P95 `2`; ~`0.22%` of pixels differ above 8;
+- `4× → 8×`: mean difference ~`0.016`; P95 `0`; no pixel differs above 4;
+- normalized factual coverage is effectively unchanged.
 
-### Caster
+Reading: the same saturation pattern holds on a second off-axis case.
 
-The source is only 128×128. Higher sampling effort can clean transform presentation slightly, but cannot recover wheel/fork/brake detail.
+### Soft Close and hinge — preserved orientation
 
-Research reading: **source resolution remains an independent ceiling; raster effort must not imply factual recovery**.
+Cross-source regression already showed negligible difference between the prior 4× baseline and the 8× higher-order reference, with no geometry, halo or annotation regression.
 
-## Candidate profiles
+Reading: nothing in these cases justifies an 8× default either.
 
-These are research roles, not production field names.
+### Caster — 128×128 source-limited negative control
 
-### `quality-mild`
+Higher raster effort cannot recover wheel/fork/brake detail. Source-resolution honesty remains independent from master dimensions and filtering.
 
-Candidate implementation:
+## Current policy candidate
 
-- premultiplied higher-order reconstruction;
-- 4× master fixture;
-- deterministic placement downsample;
-- no sharpening / super-resolution.
+### Higher-order 4× master fixture
 
-Intended role: preserve-orientation or near-axis transforms where additional 8× sampling has no material placement-scale benefit.
+For the current wide-placement research fixture:
 
-### `quality-transform-heavy`
+- logical placement remains `440×180`;
+- research master remains `1760×720` (`4×`);
+- reconstruction candidate is premultiplied Mitchell-Netravali (`B=C=1/3`);
+- placement preview derives from the master through deterministic reduction;
+- no sharpening, super-resolution or generated detail is introduced.
 
-Candidate implementation:
+This is now the simplest evidence-backed candidate.
 
-- same premultiplied higher-order reconstruction;
-- 8× experimental master ceiling;
-- deterministic placement downsample;
-- no sharpening / super-resolution.
+### 8× and 12×
 
-Intended role: meaningful off-axis rotation/recomposition or another transform that demonstrably benefits from denser sampling.
+- **8× is not justified as a default or transform-severity profile from current evidence.**
+- **12× remains diagnostic only and is even less justified.**
+- both may remain available to falsify the 4× ceiling in a future case, but neither should enter ordinary policy without new evidence.
 
-### `quality-diagnostic`
+## Master dimensions are still a separate product question
 
-- 12× only for saturation/diagnostic comparison;
-- never a default from current evidence.
+Rejecting 8× as an antialiasing requirement does **not** mean every deliverable master must forever be `1760×720`.
 
-## Severity signals to investigate
+Two questions remain distinct:
 
-Do not freeze thresholds yet. Useful signals include:
+1. what master raster dimensions are useful for catalog reuse/export/print;
+2. how much sampling effort is required to render that master faithfully.
 
-1. angular distance from an axis-aligned transform;
-2. fitted source scale required by the approved placement plan;
-3. whether transform boundaries cross source pixels substantially (rotation/shear-like resampling burden);
-4. master→placement reduction ratio;
-5. source-resolution ceiling and effective factual foreground size.
+A larger deliverable master may be useful operationally, but it must not be justified as recovered factual resolution. The exact source dimensions remain separately recorded.
 
-No single signal should become a quality score without cross-source evidence.
+This distinction is especially important for any future Class C producer: a generated/edit master may legitimately be requested at a larger native output size, but the deterministic path must not invent detail merely to fill those pixels.
 
-In particular:
+## Benchmark mapping
 
-- target dimensions alone are insufficient;
-- source dimensions alone are insufficient;
-- a product being elongated is irrelevant unless the semantic planner already chose a transform;
-- low source resolution may justify a warning/review state, not automatically more supersampling.
-
-## Benchmark mapping before threshold calibration
-
-| Source/case | Semantic state | Provisional raster role |
+| Source/case | Semantic state | Current raster reading |
 | --- | --- | --- |
-| H45 wide | approved off-axis whole-group reorientation | `quality-transform-heavy` candidate |
-| Soft Extra wide | off-axis reorientation gives modest composition gain; authority review remains | test `quality-transform-heavy`, do not auto-approve |
-| Soft Close wide | preserve orientation | `quality-mild` candidate |
-| Hinge standard | preserve group + annotations | `quality-mild` candidate |
-| Caster | preserve; 128×128 source-limited | standing negative control; no factual-resolution promotion |
-| Piston | isolation uncertain / illustrative | no automatic quality-profile promotion before isolation review |
-| Round leg | composite visual roles unresolved | no raster-profile decision before subject-role selection |
+| H45 wide | approved off-axis whole-group reorientation | Mitchell 4× master is sufficient from current evidence |
+| Soft Extra wide | approved experimental reorientation; authority review remains | Mitchell 4× sufficient; raster pass does not clear authority gate |
+| Soft Close wide | preserve orientation | 4× sufficient; source authority remains `REVIEW-REQUIRED` |
+| Hinge standard | preserve group + annotations | 4× sufficient; preserve labels |
+| Caster | preserve; 128×128 source-limited | standing negative control; larger raster never implies factual recovery |
+| Piston | isolation uncertain / illustrative | no raster-policy promotion before isolation review |
+| Round leg | composite visual roles unresolved | no raster decision before subject-role selection |
 
 ## Non-negotiable invariants
 
-- The raster profile never changes `placementPlan`.
-- The raster profile never changes source authority.
-- The raster profile never changes factual piece/group membership.
-- A higher factor never upgrades `sourceResolution` or equivalent evidence.
+- Rasterization never changes `placementPlan`.
+- Rasterization never changes source authority.
+- Rasterization never changes factual piece/group membership.
+- Higher output dimensions never upgrade factual source resolution.
 - `no variant` remains valid before rasterization.
-- A source-limited image remains source-limited after a larger master render.
-- Class C must be compared against the selected deterministic profile, not against a deliberately weaker baseline.
+- Source-limited imagery remains source-limited after a larger master render.
+- Class C must be compared against the strongest selected deterministic baseline, not a deliberately weak renderer.
 
-## Next calibration
+## Current next step
 
-1. Run Soft Extra through the mild/heavy comparison while keeping its existing semantic/authority caveats.
-2. Use round-leg as a guard that raster policy cannot run ahead of unresolved subject-role semantics.
-3. Keep caster in every future sampling/upscale regression.
-4. If the mapping holds, replace the fixed-factor question with a small explicit transform-severity policy in the research core.
-5. Only then decide whether the Mitchell sampler should be folded into `image-render-master.mjs` or remain a selectable downstream strategy.
+1. Treat Mitchell 4× as the leading deterministic raster candidate for the existing placement/master fixture.
+2. Run one regression over the remaining supported deterministic families; do not render unresolved round-leg/piston semantics merely to exercise the sampler.
+3. Keep caster as a standing negative control.
+4. Decide separately whether the long-lived master-output dimensions should remain fixed 4×, be print/use-profile driven, or be source-aware.
+5. Only after that boundary is clear decide whether to fold Mitchell into `image-render-master.mjs` and remove the weaker research path.
