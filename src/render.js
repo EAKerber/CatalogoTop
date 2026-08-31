@@ -32,10 +32,6 @@
     return result;
   }
 
-  function icon(type) {
-    return NS.Icons?.render(type) || '';
-  }
-
   function ensureCategoryStyles() {
     if (typeof document === 'undefined' || document.getElementById('catalog-category-page-styles')) return;
     const style = document.createElement('style');
@@ -58,9 +54,19 @@
   }
 
   function baseLimits(template, hasTable) {
-    if (template.id === 'compact') return { variants: 3, rows: 3, specs: hasTable ? 0 : 2 };
-    if (template.id === 'showcase') return { variants: 5, rows: 8, specs: hasTable ? 2 : 5 };
-    return { variants: 4, rows: 6, specs: hasTable ? 1 : 3 };
+    const fallback = { variants: 4, rows: 6, specs: 3, specsWithTable: 1 };
+    const budget = template?.card?.contentBudget || fallback;
+    const numeric = (value, fallbackValue) => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? Math.max(0, parsed) : fallbackValue;
+    };
+    return {
+      variants: numeric(budget.variants, fallback.variants),
+      rows: numeric(budget.rows, fallback.rows),
+      specs: hasTable
+        ? numeric(budget.specsWithTable, fallback.specsWithTable)
+        : numeric(budget.specs, fallback.specs)
+    };
   }
 
   function limitsFor(template, hasTable, contentPreset = 'visual', emphasis = 'normal', width = 'simple') {
@@ -229,41 +235,16 @@
     </article>`;
   }
 
-  function headerMarkup(category, productCount) {
-    return `<header class="catalog-page-header">
-      <img class="catalog-logo" src="assets/logo-top-mobili.svg" alt="Top Mobili" />
-      <div class="catalog-title-block">
-        <span>CATÁLOGO</span>
-        <h2>${esc(category || 'Sem categoria')}</h2>
-        <p>${productCount} ${productCount === 1 ? 'produto nesta categoria' : 'produtos nesta categoria'}</p>
-        <i aria-hidden="true"></i>
-      </div>
-      <div class="catalog-blueprint catalog-blueprint-dots" aria-hidden="true"></div>
-      <div class="catalog-blueprint catalog-blueprint-word" aria-hidden="true">TOP MOBILI</div>
-    </header>`;
+  function headerMarkup(category, productCount, template) {
+    const chromeName = template?.page?.header || 'top-mobili-v1';
+    if (!NS.DocumentChrome?.renderHeader) throw new Error('DocumentChrome indisponível para header.');
+    return NS.DocumentChrome.renderHeader(chromeName, { category, productCount });
   }
 
-  function footerItem(iconName, title, subtitle = '') {
-    return `<div class="footer-item">${icon(iconName)}<div><strong>${esc(title)}</strong>${subtitle ? `<span>${esc(subtitle)}</span>` : ''}</div></div>`;
-  }
-
-  function footerMarkup(pageIndex, pageTotal, createdAt) {
-    const config = NS.Core.APP_CONFIG;
-    return `<footer class="catalog-page-footer">
-      <div class="footer-line"></div>
-      <div class="footer-grid">
-        ${footerItem('location', 'TOP MOBILI FERRAGENS', config.location)}
-        ${footerItem('whatsapp', config.whatsapp, 'Atendimento via WhatsApp')}
-        ${footerItem('award', 'QUALIDADE')}
-        ${footerItem('stock', 'ESTOQUE')}
-        ${footerItem('truck', 'ENTREGA RÁPIDA')}
-        ${footerItem('headset', 'ATENDIMENTO')}
-        <div class="footer-meta">
-          <div><span>PÁGINA</span><strong>${String(pageIndex + 1).padStart(2, '0')}<small> / ${String(pageTotal).padStart(2, '0')}</small></strong></div>
-          <div class="footer-date">${icon('calendar')}<p><span>CRIADO EM</span><strong>${formatDate(createdAt)}</strong></p></div>
-        </div>
-      </div>
-    </footer>`;
+  function footerMarkup(pageIndex, pageTotal, createdAt, template) {
+    const chromeName = template?.page?.footer || 'top-mobili-v1';
+    if (!NS.DocumentChrome?.renderFooter) throw new Error('DocumentChrome indisponível para footer.');
+    return NS.DocumentChrome.renderFooter(chromeName, { pageIndex, pageTotal, createdAt });
   }
 
   function pageMarkup(page, pageIndex, pageTotal, state, template) {
@@ -278,14 +259,14 @@
       `type-${presentation.typography}`
     ].join(' ');
 
-    return `<article class="${pageClasses}" data-category="${esc(page.category)}" data-category-page="${page.categoryPageIndex + 1}" style="--catalog-cols:6;--catalog-rows:${rowCount};--catalog-planned-rows:${rowCount}">
-      ${headerMarkup(page.category, page.categoryProductCount)}
+    return `<article class="${pageClasses}" data-category="${esc(page.category)}" data-category-page="${page.categoryPageIndex + 1}" data-template-id="${esc(template.id || '')}" data-template-version="${Number(template.version || state.catalog?.templateVersion || 1)}" style="--catalog-cols:6;--catalog-rows:${rowCount};--catalog-planned-rows:${rowCount}">
+      ${headerMarkup(page.category, page.categoryProductCount, template)}
       <section class="catalog-page-body">
         <div class="catalog-decoration-circle" aria-hidden="true"></div>
         <div class="catalog-products editorial-grid">${page.products.map(product => cardMarkup(product, template, state.catalog.showPrices, byId.get(product.id))).join('')}</div>
         ${page.products.length ? '' : '<div class="catalog-empty"><strong>Nenhum produto selecionado.</strong><span>Marque produtos na coluna à esquerda.</span></div>'}
       </section>
-      ${footerMarkup(pageIndex, pageTotal, state.catalog.createdAt)}
+      ${footerMarkup(pageIndex, pageTotal, state.catalog.createdAt, template)}
     </article>`;
   }
 
@@ -374,7 +355,8 @@
 
   function renderCatalog(root, state) {
     ensureCategoryStyles();
-    const template = NS.Templates.getTemplate(state.catalog.templateId);
+    if (!NS.Templates?.resolveCatalog) throw new Error('Registry de templates indisponível.');
+    const template = NS.Templates.resolveCatalog(state.catalog);
     const { selected, groups, pages } = buildCategoryPages(state, template);
     root.innerHTML = pages.map((page, index) => `${page.categoryPageIndex === 0 && selected.length ? categoryDividerMarkup(page) : ''}${pageMarkup(page, index, pages.length, state, template)}`).join('');
     return {
