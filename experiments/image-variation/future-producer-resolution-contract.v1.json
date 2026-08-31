@@ -1,0 +1,42 @@
+{
+  "kind": "catalogotop.future-image-producer-resolution-contract",
+  "version": 1,
+  "status": "research-only-not-retroactive",
+  "purpose": "Prevent future deterministic or generative producers from confusing logical placement dimensions with native output raster dimensions.",
+  "canonicalAuthority": {
+    "placementIdentity": "stable placementKey / usageSignature",
+    "physicalHolder": {
+      "widthMm": "measured from materialized A4 placement",
+      "heightMm": "measured from materialized A4 placement"
+    },
+    "outputProfile": {
+      "targetDpi": "quality/use profile selected independently from composition"
+    }
+  },
+  "derivedEvidence": {
+    "targetWidthPx": "ceil(widthMm / 25.4 * targetDpi)",
+    "targetHeightPx": "ceil(heightMm / 25.4 * targetDpi)",
+    "targetAspectRatio": "widthMm / heightMm"
+  },
+  "rule": "Derived target pixels may be transported and hashed, but must not become an independent competing authority that can disagree with physical holder + output profile.",
+  "h45WideExample": {
+    "logicalPlacementCssPx": [440, 180],
+    "physicalHolderMm": [116.41666666666667, 47.625],
+    "printHighTargetDpi": 300,
+    "minimumUseRasterPx": [1376, 563],
+    "preferredResearchMasterPx": [1760, 720],
+    "preferredResearchMasterEffectiveDpi": 384,
+    "instructionShape": "Compose for the 22:9 wide placement, but return a native master at or above the print-use raster requirement; do not treat 440x180 as the requested native file size."
+  },
+  "fixedOutputProducerFallback": [
+    "select a producer output size large enough that the final safe crop meets both required pixel dimensions",
+    "preserve the target aspect using safe neutral canvas/crop rather than stretching product geometry",
+    "record the actual returned raster separately from the requested physical-use requirement",
+    "reject an apparently sharp large output if identity/factual review fails"
+  ],
+  "scopeNotes": [
+    "This does not modify the historical predeclared H45 Class C trial; that experiment remains immutable evidence of the tested producer-contract failure.",
+    "A future viewpoint-change experiment requires its own predeclared fidelity invariants and is not authorized merely by this resolution contract.",
+    "Table/Card/Collection can have different required raster dimensions for the same product because physical usage differs."
+  ]
+}
