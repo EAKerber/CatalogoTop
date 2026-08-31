@@ -54,7 +54,7 @@
     return blob || source;
   }
 
-  async function uploadBlob(blob) {
+  async function uploadBlobDetailed(blob) {
     const response = await fetch('/api/assets', {
       method: 'POST',
       credentials: 'same-origin',
@@ -68,7 +68,18 @@
     }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.message || payload.error || `Falha no upload (${response.status}).`);
-    return payload.url;
+    if (!isManagedAsset(payload.url)) throw new Error('asset_upload_invalid_response');
+    return {
+      assetId: String(payload.assetId || ''),
+      url: String(payload.url),
+      contentType: String(payload.contentType || blob.type || ''),
+      bytes: Number(payload.bytes || blob.size || 0),
+      deduplicated: Boolean(payload.deduplicated)
+    };
+  }
+
+  async function uploadBlob(blob) {
+    return (await uploadBlobDetailed(blob)).url;
   }
 
   async function materializeProductSource(productId, value) {
@@ -133,6 +144,7 @@
     MAX_EDGE,
     prepareImage,
     uploadBlob,
+    uploadBlobDetailed,
     materializeProducts,
     materializeProductSource,
     isManagedAsset,
