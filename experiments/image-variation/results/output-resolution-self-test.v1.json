@@ -1,0 +1,45 @@
+{
+  "kind": "catalogotop.image-output-resolution-self-test-result",
+  "version": 1,
+  "status": "pass",
+  "authority": {
+    "researchHead": "41a35cf56b91fa72911d791915cb3e4f667153a5",
+    "script": "scripts/research/image-output-resolution.mjs"
+  },
+  "execution": {
+    "workflowRunId": 33343924318,
+    "jobId": 99344389537,
+    "conclusion": "success",
+    "artifactId": 9741379991,
+    "artifactDigest": "sha256:465ddb2208278350c44d2fadd52254447fcb21e7d7803f61f767199afebbb413"
+  },
+  "widePlacement": {
+    "cssPx": [440, 180],
+    "physicalMm": [116.41666666666667, 47.625],
+    "print240RequiredPx": [1101, 450],
+    "print300RequiredPx": [1376, 563],
+    "current1760x720EffectiveDpi": 384
+  },
+  "tableCasterContain": {
+    "estimatedHolderContentMm": [12.6, 11],
+    "actualContainBoxMm": [11, 11],
+    "sourcePx": [128, 128],
+    "effectiveDpi": 295.56363636363636
+  },
+  "h45": {
+    "placementScaleFromSourceAt96Dpi": 0.9054865788784296,
+    "sourceSamplingScaleAt300Dpi": 2.8296455589950926,
+    "interpretation": "A 300-DPI wide output requires substantial interpolation of the factual 450x450 source even though the output raster itself is large enough. Output adequacy and source factual detail are separate."
+  },
+  "decisionEvidence": [
+    "A physical-use 300-DPI wide target requires fewer pixels than the existing 4x/384-DPI research master.",
+    "The weak H45 appearance therefore cannot be explained primarily by insufficient 1760x720 master dimensions.",
+    "A 128x128 raster can be approximately 300-DPI adequate when used as a small contained Table thumbnail, while remaining inadequate for a wide Card.",
+    "Source factual raster, placement adequacy and master output raster must be tracked as separate evidence axes."
+  ],
+  "limitations": [
+    "DPI does not detect blur, compression damage, focus quality or wrong product identity.",
+    "The Table holder calculation uses the current V1 CSS geometry as research evidence; V2 should measure the actual materialized holder.",
+    "240/300 DPI are research comparison targets, not frozen production defaults."
+  ]
+}
