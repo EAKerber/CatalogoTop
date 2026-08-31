@@ -5,26 +5,26 @@ Baseline estável V1: **`main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v
 
 ## Estado atual
 
-A linha V2 concluiu três marcos estruturais relevantes:
+A linha V2 concluiu três marcos estruturais:
 
 - **R1 — Product Library Foundation**: ProductSnapshot v2, árvore provider-scoped, Cadastro contextual e Biblioteca de produtos;
 - **R2 — Saved Catalog Documents**: CatalogSnapshot/CatalogStore independentes, save/open/duplicate, dirty-state e administração por pastas;
-- **R3a — Asset Inventory & Reuse Foundation**: AssetIndex independente, inventory derivado de usages autoritativos, provider `Imagens`, labels e reuso content-addressed no Cadastro.
+- **R3 — Asset Library**: AssetIndex independente, inventory/usage autoritativos, provider `Imagens`, labels, pastas, busca/filtros, upload standalone deduplicado e reuso no Cadastro.
 
-Authority de entrada do recorte atual:
+Authority atual após R3b:
 
-- `v2@a4a577c98bba5855dd578a730b3b345e7fba0be2`;
+- `v2@193c65b3d976983867484014118c84cd360f0c2c`;
 - `main` permanece linha V1 estável e não é destino rotineiro de desenvolvimento V2.
 
-O recorte ativo é **R3b — Asset Organization & Ingest**.
+**Não há recorte funcional ativo após este closeout.** O próximo ponto de planejamento direcional é R4 — Constrained Template System 2.0; ele não está autorizado apenas por aparecer no roadmap.
 
 ## Ordem de leitura
 
 1. `docs/v2/START-HERE.md` — bootstrap e fronteiras atuais;
 2. `docs/v2/ROADMAP.md` — dependências e sequência de produto;
-3. `docs/v2/R3A-ASSET-INVENTORY-REUSE-INTENT.md` — fundação já entregue de Asset Library;
-4. `docs/v2/R3B-ASSET-ORGANIZATION-INGEST-INTENT.md` — contrato do recorte ativo;
-5. `docs/v2/R2-CLOSEOUT.md` e intents anteriores quando precisar de decisões históricas específicas.
+3. `docs/v2/R3-CLOSEOUT.md` — estado fechado da Asset Library e decisões de lifecycle;
+4. `docs/v2/R2-CLOSEOUT.md` — estado fechado de Saved Catalog Documents;
+5. intents `R1-*`, `R2-*`, `R3A-*`, `R3B-*` quando precisar entender decisões históricas específicas.
 
 ## Authorities V2
 
@@ -46,11 +46,11 @@ Usage de imagem -> projeção de ProductSnapshot + CatalogSnapshot persistidos
 - Resource identity permanece estável através de move/rename organizacional.
 - Revisions são provider-scoped; não criar um conflito global de Biblioteca.
 - O Core é sessão materializada de edição, não banco autoritativo de recursos.
-- O pipeline A4 continua `state -> CatalogOrder -> CatalogDocument -> preview/print`; R3b não reabre renderer/paginação.
+- O pipeline A4 continua `state -> CatalogOrder -> CatalogDocument -> preview/print`.
 - Assets gerenciados são content-addressed e imutáveis. Metadata/organização não altera bytes nem hash.
 - Uso de assets deriva de ProductSnapshot/CatalogSnapshot persistidos, nunca do Core local.
 - `Sem uso` é informação de accounting, não autorização para exclusão física.
-- Nenhum garbage collection de blobs ocorre em R3b.
+- Não existe delete físico/garbage collection de blobs na implementação R3 fechada.
 - Upload standalone reutiliza `AssetClient.prepareImage` + `/api/assets`; não cria segundo armazenamento.
 - Se blob subir e indexação falhar, preservar o blob e o candidate local; não compensar com delete.
 - Deploy Preview/branch nunca grava no store global de produção.
@@ -62,17 +62,17 @@ O backup JSON continua sendo transporte compatível do estado monolítico legado
 
 O backup não é uma authority V2. Produto remoto pertence ao ProductStore; catálogo salvo ao CatalogStore; metadata de imagem ao AssetIndexStore; bytes ao AssetStore.
 
-## Recorte ativo — R3b
+## Próximo ponto de decisão — R4
 
-R3b torna `Biblioteca > Imagens` operacional para administração cotidiana sem introduzir lifecycle destrutivo:
+O roadmap aponta **R4 — Constrained Template System 2.0** como próximo marco direcional.
 
-- pastas provider-scoped;
-- busca/escopo recursivo e `Sem pasta`;
-- filtro `Todos | Em uso | Sem uso`;
-- multiseleção e move em batch;
-- adoção de assets descobertos por usage ao serem organizados;
-- upload standalone com deduplicação física existente;
-- projeção local de metadata pending;
-- mobile `Pastas | Imagens`, mantendo Imagens como view inicial/picker.
+Antes de implementar R4, revisar explicitamente:
 
-Fora deste recorte: delete físico, garbage collection, Asset IDs abstratos diferentes do hash, Template 2.0 e mudanças A4.
+- contrato atual de `templates.js` e sua relação com CatalogDocument/renderer;
+- quais aspectos institucionais pertencem ao template versus header/footer compartilhados;
+- migração dos templates V1 existentes;
+- fronteira entre tokens/layout permitido e edição livre proibida;
+- impacto em preview/print e necessidade de gates físicos próprios;
+- como Template resources entram na Biblioteca sem compartilhar revision authority com Produtos/Catálogos/Imagens.
+
+Nenhuma dessas direções autoriza free-form HTML/CSS/JS, XY layout arbitrário ou reabertura implícita do renderer.
