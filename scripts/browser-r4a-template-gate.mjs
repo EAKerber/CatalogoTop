@@ -27,7 +27,7 @@ const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => Boolean(window.CatalogoTop?.App && window.CatalogoTop?.Templates?.resolveCatalog && window.CatalogoTop?.CatalogDocument && window.CatalogoTop?.DocumentChrome));
+  await page.waitForFunction(() => Boolean(window.CatalogoTop?.App && window.CatalogoTop?.Templates?.resolveCatalog && window.CatalogoTop?.CatalogDocument && window.CatalogoTop?.DocumentChrome && window.CatalogoTop?.ContextualInspector));
 
   await page.evaluate(() => {
     const NS = window.CatalogoTop;
@@ -44,7 +44,7 @@ try {
     NS.App.renderAll();
   });
 
-  await page.waitForSelector('#selectableProducts [data-product-row="broken-image"] img');
+  await page.waitForSelector('#selectableProducts [data-product-row="broken-image"] img', { state: 'attached' });
   await page.waitForFunction(() => document.querySelector('#selectableProducts [data-product-row="broken-image"] img')?.dataset.catalogoFallbackApplied === 'true');
   const thumbnail = await page.evaluate(() => {
     const image = document.querySelector('#selectableProducts [data-product-row="broken-image"] img');
@@ -85,6 +85,37 @@ try {
   if (desktop.actionsRect.bottom > desktop.metaRect.top + 2 || desktop.actionsRect.bottom > desktop.zoomRect.top + 2) throw new Error(`toolbar R4a não quebrou em duas linhas: ${JSON.stringify(desktop)}`);
   if (desktop.binding.id !== 'technical' || desktop.binding.version !== '1') throw new Error(`binding físico não materializou technical@1: ${JSON.stringify(desktop.binding)}`);
 
+  await page.evaluate(() => window.CatalogoTop.ContextualInspector.selectProductFromList('broken-image'));
+  await page.waitForSelector('#contextualInspector [data-commercial-card-price-editor]');
+  await page.waitForTimeout(40);
+  const priceControl = await page.evaluate(() => {
+    const editor = document.querySelector('#contextualInspector [data-inspector-card]');
+    const fieldset = editor?.querySelector('[data-commercial-card-price-editor]');
+    const segmented = fieldset?.querySelector('.inspector-segmented');
+    const editorRect = editor?.getBoundingClientRect();
+    const fieldsetRect = fieldset?.getBoundingClientRect();
+    const chips = Array.from(segmented?.querySelectorAll('span') || []).map(node => ({
+      text: node.textContent.trim(),
+      clientWidth: node.clientWidth,
+      scrollWidth: node.scrollWidth,
+      clientHeight: node.clientHeight,
+      scrollHeight: node.scrollHeight
+    }));
+    return {
+      editorWidth: editorRect?.width || 0,
+      fieldsetWidth: fieldsetRect?.width || 0,
+      gridColumns: segmented ? getComputedStyle(segmented).gridTemplateColumns : '',
+      chips,
+      horizontalOverflow: segmented ? Math.max(0, segmented.scrollWidth - segmented.clientWidth) : -1
+    };
+  });
+  if (priceControl.chips.length !== 4 || priceControl.fieldsetWidth < priceControl.editorWidth * .85 || priceControl.horizontalOverflow > 1) {
+    throw new Error(`controle PREÇO não recebeu território responsivo: ${JSON.stringify(priceControl)}`);
+  }
+  if (priceControl.chips.some(chip => chip.scrollWidth > chip.clientWidth + 1 || chip.scrollHeight > chip.clientHeight + 1)) {
+    throw new Error(`controle PREÇO truncou rótulo: ${JSON.stringify(priceControl)}`);
+  }
+
   const strict = await page.evaluate(() => {
     const NS = window.CatalogoTop;
     const state = NS.Core.getState();
@@ -108,7 +139,31 @@ try {
   await page.selectOption('#catalogTemplate', 'compact');
   await page.waitForSelector('#catalogPreview .catalog-page[data-template-id="compact"][data-template-version="1"]');
 
-  console.log('PASS browser R4a gate: broken thumbnail fallback, toolbar sem colisão, exact id@version, contract budgets e app-owned chrome');
+  await page.click('[data-tab="products"]');
+  await page.waitForSelector('#products.panel.active #cadastroContextPanel');
+  const existingHeader = await page.evaluate(() => {
+    const card = document.querySelector('#cadastroContextPanel');
+    const head = card?.querySelector(':scope > .form-head');
+    const eyebrow = head?.querySelector('.eyebrow');
+    const count = head?.querySelector('.counter');
+    const search = card?.querySelector('.list-toolbar');
+    const rect = node => {
+      const value = node?.getBoundingClientRect();
+      return value ? { left: value.left, right: value.right, top: value.top, bottom: value.bottom, width: value.width, height: value.height } : null;
+    };
+    return { card: rect(card), head: rect(head), eyebrow: rect(eyebrow), count: rect(count), search: rect(search) };
+  });
+  if (!existingHeader.card || !existingHeader.head || !existingHeader.eyebrow || !existingHeader.count || !existingHeader.search) {
+    throw new Error(`cabeçalho Existentes incompleto: ${JSON.stringify(existingHeader)}`);
+  }
+  if (existingHeader.head.left < existingHeader.card.left + 10 || existingHeader.head.right > existingHeader.card.right - 10 || existingHeader.head.top < existingHeader.card.top + 10) {
+    throw new Error(`cabeçalho Existentes encostou no recorte do card: ${JSON.stringify(existingHeader)}`);
+  }
+  if (existingHeader.eyebrow.left < existingHeader.card.left + 10 || existingHeader.count.right > existingHeader.card.right - 10 || existingHeader.search.top < existingHeader.head.bottom - 1) {
+    throw new Error(`conteúdo de Existentes ficou cortado/colidido: ${JSON.stringify(existingHeader)}`);
+  }
+
+  console.log('PASS browser R4a gate: image fallback, toolbar sem colisão, preço sem clipping, Existentes com inset, exact id@version, contract budgets e app-owned chrome');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
