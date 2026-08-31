@@ -1,0 +1,41 @@
+{
+  "runId": "",
+  "case": "A|B",
+  "prompt": "P0|P1",
+  "repetition": 0,
+  "input": {
+    "freshContext": true,
+    "sourceAttachedDirectly": true
+  },
+  "G0_outputForm": {
+    "imageCount": null,
+    "imageOnly": null,
+    "dimensionsPx": null,
+    "aspectRatio": null,
+    "pass": null,
+    "failureReason": null
+  },
+  "G1_sourceBinding": {
+    "clearlySameProduct": null,
+    "genericSubstitution": null,
+    "fantasySubstitution": null,
+    "pass": null,
+    "notes": []
+  },
+  "G2_landmarks": {
+    "pass": null,
+    "notes": []
+  },
+  "G3_inference": {
+    "class": "NO_INFERENCE_VISIBLE|LIGHT_INFERENCE_WARNING|MATERIAL_INFERENCE_REVIEW_REQUIRED",
+    "notes": []
+  },
+  "G4_presentation": {
+    "backgroundClean": null,
+    "edgeQuality": "poor|acceptable|good|excellent",
+    "nativeRasterAdequate": null,
+    "notes": []
+  },
+  "finalResult": "",
+  "reviewerNotes": []
+}
