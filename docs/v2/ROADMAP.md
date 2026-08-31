@@ -19,7 +19,7 @@ The primary change in V2 is that the app stops treating the current browser sess
 - **R2 — Saved Catalog Documents: complete** after R2a + R2b. See `R2-CLOSEOUT.md`.
 - **R3 — Asset Library / reusable media index: complete** after R3a + R3b. See `R3-CLOSEOUT.md`.
 - **R4 — Constrained Template System 2.0: active as staged recuts**.
-  - **R4a — Template Contract & Versioned Binding: implementation complete / closing promotion**. See `R4A-TEMPLATE-CONTRACT-INTENT.md` and `R4A-CLOSEOUT.md`.
+  - **R4a — Template Contract & Versioned Binding: complete, promoted in `v2@dc36f31029a7deb2b6bbb3003a8227717c2c1e77`**. See `R4A-TEMPLATE-CONTRACT-INTENT.md` and `R4A-CLOSEOUT.md`.
   - **R4b — Template Library & Immutable Versions: next directional recut, not automatically authorized**.
 - R5+ remain directional and are not authorized merely by appearing in this roadmap.
 
@@ -140,7 +140,7 @@ The post-R3b closure audit found no concrete functional gap requiring a destruct
 
 Purpose: make templates reusable visual systems rather than hard-coded style choices, without reopening arbitrary HTML/CSS/JS authoring.
 
-#### R4a — Template Contract & Versioned Binding — IMPLEMENTATION COMPLETE
+#### R4a — Template Contract & Versioned Binding — COMPLETE
 
 Delivered responsibilities:
 
