@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="collection-block.css" />
   <link rel="stylesheet" href="table-block.css" />
   <link rel="stylesheet" href="product-actions.css" />
+  <link rel="stylesheet" href="product-library.css" />
   <link rel="stylesheet" href="contextual-inspector.css" />
   <link rel="stylesheet" href="image-variants.css" />
   <link rel="stylesheet" href="grouping-controls.css" />
@@ -36,6 +37,7 @@
       <nav class="app-tabs" aria-label="Seções do aplicativo">
         <button class="tab active" data-tab="products">Produtos</button>
         <button class="tab" data-tab="catalog">Catálogo</button>
+        <button class="tab" data-tab="library">Biblioteca</button>
         <button class="tab" data-tab="templates">Templates</button>
       </nav>
     </div>
@@ -157,6 +159,43 @@
       </div>
     </section>
 
+    <section class="panel" id="library">
+      <div class="section-heading"><div><p class="eyebrow">BIBLIOTECA · PRODUTOS</p><h2>Organize a base compartilhada.</h2><p class="muted">Pastas estáveis, busca recursiva, seleção múltipla e administração explícita.</p></div></div>
+      <div class="library-mobile-switch" role="tablist" aria-label="Biblioteca de produtos">
+        <button class="active" type="button" role="tab" aria-selected="true" data-library-mobile-view="folders">Pastas</button>
+        <button type="button" role="tab" aria-selected="false" data-library-mobile-view="products" tabindex="-1">Produtos</button>
+      </div>
+      <div class="product-library-admin" id="productLibraryAdmin" data-mobile-view="folders">
+        <aside class="card library-tree-pane">
+          <div class="library-pane-head"><h3>Pastas</h3><button class="button secondary compact" id="libraryCreateFolder" type="button">+ Pasta</button></div>
+          <div class="library-folder-tree" id="libraryFolderTree"></div>
+          <div class="library-folder-actions">
+            <select id="libraryFolderParent" aria-label="Nova pasta pai"></select>
+            <div class="library-folder-actions-row">
+              <button class="button secondary compact" id="libraryRenameFolder" type="button">Renomear</button>
+              <button class="button secondary compact" id="libraryMoveFolder" type="button">Mover pasta</button>
+              <button class="button secondary compact library-danger" id="libraryDeleteFolder" type="button">Excluir vazia</button>
+            </div>
+          </div>
+        </aside>
+        <section class="card library-products-pane">
+          <div class="library-toolbar"><input id="libraryProductSearch" type="search" placeholder="Buscar código, descrição ou pasta" /><span class="counter" id="libraryVisibleCount">0 produtos</span></div>
+          <div class="library-scope">Escopo: <strong id="libraryFolderPath">Todos os produtos</strong> · inclui subpastas</div>
+          <div class="library-selection-toolbar">
+            <span class="counter" id="librarySelectionCount">0 selecionados</span>
+            <button class="button secondary compact" id="librarySelectVisible" type="button">Selecionar visíveis</button>
+            <button class="button secondary compact" id="libraryClearSelection" type="button">Limpar</button>
+            <select id="libraryMoveDestination" aria-label="Pasta de destino"><option value="">Mover para…</option></select>
+            <button class="button secondary compact" id="libraryMoveProducts" type="button">Mover selecionados</button>
+            <button class="button secondary compact" id="libraryOpenCadastro" type="button">Editar no Cadastro</button>
+            <button class="button secondary compact library-danger" id="libraryDeleteProducts" type="button">Excluir selecionados</button>
+          </div>
+          <div class="library-product-list" id="libraryProductList"></div>
+          <div class="empty-state hidden" id="libraryProductsEmpty"><strong>Nenhum produto neste escopo.</strong><span>Ajuste a pasta ou a busca.</span></div>
+        </section>
+      </div>
+    </section>
+
     <section class="panel" id="templates">
       <div class="section-heading"><div><p class="eyebrow">TEMPLATES</p><h2>Varia o card e a densidade. A identidade da página permanece estável.</h2><p class="muted">O contrato do template é pequeno: quantidade de cards por página, grade e tratamento visual.</p></div></div>
       <div id="templateCards" class="template-gallery"></div>
@@ -219,5 +258,6 @@
   <script defer src="src/block-overlap-guard.js"></script>
   <script defer src="src/product-details.js"></script>
   <script defer src="src/category-browser.js"></script>
+  <script defer src="src/product-library.js"></script>
 </body>
 </html>
