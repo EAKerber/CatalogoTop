@@ -59,12 +59,22 @@ try {
     const preview = catalog.querySelector('#catalogPreviewViewport');
     const toolbar = catalog.querySelector('.preview-toolbar');
     const headingActions = toolbar.querySelector('.heading-actions');
+    const meta = toolbar.querySelector('.preview-toolbar-meta');
     const zoom = toolbar.querySelector('.preview-zoom-controls');
     const actions = catalog.querySelector('.desktop-editor-actions');
     const list = catalog.querySelector('#selectableProducts');
     const firstRow = list.querySelector('.select-product');
     const actionNodes = [document.querySelector('#btnSelectVisible'), document.querySelector('#btnCreateCollection'), document.querySelector('#btnCreateTableBlock'), actions.querySelector('.desktop-action-overflow > summary')];
     const actionTops = actionNodes.map(node => node?.getBoundingClientRect().top ?? -1000);
+    const rect = node => {
+      const value = node?.getBoundingClientRect();
+      return value ? { left: value.left, right: value.right, top: value.top, bottom: value.bottom, width: value.width, height: value.height } : null;
+    };
+    const overlaps = (a, b) => Boolean(a && b && a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1);
+    const toolbarRect = rect(toolbar);
+    const actionsRect = rect(headingActions);
+    const metaRect = rect(meta);
+    const zoomRect = rect(zoom);
     return {
       bodyOverflow: getComputedStyle(document.body).overflow,
       catalogOverflow: getComputedStyle(catalog).overflow,
@@ -77,10 +87,15 @@ try {
       previewOverflowX: getComputedStyle(preview).overflowX,
       previewRangeY: Math.max(0, preview.scrollHeight - preview.clientHeight),
       previewRangeX: Math.max(0, preview.scrollWidth - preview.clientWidth),
-      toolbarHeight: toolbar.getBoundingClientRect().height,
+      toolbarHeight: toolbarRect.height,
+      toolbarRect,
+      actionsRect,
+      metaRect,
+      zoomRect,
       actionsInToolbar: Boolean(headingActions && headingActions.parentElement === toolbar),
-      actionsTop: headingActions?.getBoundingClientRect().top || 0,
-      zoomTop: zoom?.getBoundingClientRect().top || 0,
+      actionsMetaOverlap: overlaps(actionsRect, metaRect),
+      actionsZoomOverlap: overlaps(actionsRect, zoomRect),
+      metaZoomOverlap: overlaps(metaRect, zoomRect),
       actionSpread: Math.max(...actionTops) - Math.min(...actionTops),
       listHeight: list.clientHeight,
       rowHeight: firstRow?.getBoundingClientRect().height || 1,
@@ -98,7 +113,9 @@ try {
   if (emptyDesktop.leftWidth < 470 || emptyDesktop.leftWidth > 600 || emptyDesktop.previewWidth < 760) throw new Error(`largura autoral não aproveita o novo teto do preview: ${JSON.stringify(emptyDesktop)}`);
   if (emptyDesktop.previewHeight < 760 || emptyDesktop.previewOverflowY !== 'auto' || emptyDesktop.previewRangeY < 160) throw new Error(`A4 não recebeu território vertical suficiente: ${JSON.stringify(emptyDesktop)}`);
   if (emptyDesktop.previewOverflowX !== 'hidden' || emptyDesktop.previewRangeX > 3) throw new Error(`novo 100% não deveria exigir scroll horizontal: ${JSON.stringify(emptyDesktop)}`);
-  if (!emptyDesktop.actionsInToolbar || Math.abs(emptyDesktop.actionsTop - emptyDesktop.zoomTop) > 10 || emptyDesktop.toolbarHeight > 48) throw new Error(`ações principais não cabem na toolbar do preview: ${JSON.stringify(emptyDesktop)}`);
+  if (!emptyDesktop.actionsInToolbar || emptyDesktop.actionsMetaOverlap || emptyDesktop.actionsZoomOverlap || emptyDesktop.metaZoomOverlap) throw new Error(`toolbar do preview possui colisão entre ações, metadados ou zoom: ${JSON.stringify(emptyDesktop)}`);
+  if (!emptyDesktop.actionsRect || !emptyDesktop.metaRect || !emptyDesktop.zoomRect || emptyDesktop.actionsRect.bottom > emptyDesktop.metaRect.top + 2 || emptyDesktop.actionsRect.bottom > emptyDesktop.zoomRect.top + 2) throw new Error(`toolbar desktop não materializou o reflow em duas linhas: ${JSON.stringify(emptyDesktop)}`);
+  if (emptyDesktop.actionsRect.left < emptyDesktop.toolbarRect.left - 2 || emptyDesktop.actionsRect.right > emptyDesktop.toolbarRect.right + 2 || emptyDesktop.zoomRect.right > emptyDesktop.toolbarRect.right + 2 || emptyDesktop.toolbarHeight > 120) throw new Error(`toolbar desktop extrapolou seu território: ${JSON.stringify(emptyDesktop)}`);
   if (emptyDesktop.actionSpread > 4) throw new Error(`toolbar contextual voltou a empilhar ações: ${JSON.stringify(emptyDesktop)}`);
   if (emptyDesktop.listOverflow !== 'auto' || emptyDesktop.listHeight < emptyDesktop.rowHeight * 4) throw new Error(`lista deve manter ao menos quatro itens visíveis: ${JSON.stringify(emptyDesktop)}`);
   if (emptyDesktop.drawerDisplay !== 'none') throw new Error(`drawer desktop não deve reaparecer: ${JSON.stringify(emptyDesktop)}`);
@@ -194,7 +211,7 @@ try {
   }));
   if (mobileAnchor.filterTop <= mobileAnchor.inspectorTop || !mobileAnchor.returning) throw new Error(`⚙ mobile deve ancorar na configuração, antes do filtro: ${JSON.stringify(mobileAnchor)}`);
 
-  console.log('PASS desktop panel ergonomics gate: metadata contextual, actions compactas, Cadastro R1 final sem shim, 100%=0.8 e lista útil');
+  console.log('PASS desktop panel ergonomics gate: metadata contextual, toolbar sem colisão, Cadastro R1 final sem shim, 100%=0.8 e lista útil');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
