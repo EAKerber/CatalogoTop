@@ -34,6 +34,20 @@ This is a producer-contract failure. Generated tables, metrics, PASS labels, sou
 
 Three additional repeatability attempts in this slice all failed the image-only contract. See `results/r-img-1-4-producer-repeatability.v1.json`.
 
+## Systematic prototype-substitution finding
+
+Human review across the repeated dashboard outputs identified a stronger pattern than independent random hallucination: the embedded generated candidates repeatedly converge on essentially the **same fantasy telescopic-slide prototype**.
+
+That repeated object is not the factual H45 source. It has a plausible furniture-hardware appearance, but its rail topology, hole/slot organization, terminal structures and overall assembly semantics are materially different from the two-piece factual source.
+
+This changes the diagnosis from merely "the model sometimes hallucinates details" to a more specific producer failure mode:
+
+> **source conditioning is being overridden by a stable learned/prototypical drawer-slide representation.**
+
+The apparent repeatability of the output is therefore not positive fidelity repeatability. It is **repeatable substitution of the wrong product prototype**.
+
+This pattern should be treated as a systematic failure because it can produce visually coherent, internally consistent outputs that nevertheless preserve the wrong identity.
+
 ## Important human-review correction
 
 One earlier attempt (`aa89f137-0218-41db-b39f-be47943197cc`) looked very convincing at ordinary viewing size and was correctly recorded first as a visual-pass candidate.
@@ -57,7 +71,11 @@ Current scoped result:
 
 `PRODUCER_NOT_RELIABLE_FOR_FAITHFUL_IMAGE_ONLY_MASTER`
 
-This does **not** prove that source-grounded generation or viewpoint variation is generally unsuitable. It means the tested route cannot yet provide the clean image-only samples needed to measure factual pass rate or native-resolution advantage.
+Additional producer-specific diagnosis:
+
+`SYSTEMATIC_PROTOTYPE_SUBSTITUTION`
+
+This does **not** prove that source-grounded generation or viewpoint variation is generally unsuitable. It means the tested route cannot yet provide the clean image-only samples needed to measure factual pass rate or native-resolution advantage, and its repeated outputs currently collapse toward a plausible but incorrect slide prototype.
 
 ## Stop condition
 
@@ -66,5 +84,7 @@ Do not consume more samples on the same producer/channel merely to obtain a succ
 ## Architecture consequence
 
 Keep Class C optional and downstream of deterministic composition/raster paths. Any future Class C gate must compare against exact source evidence and evaluate landmark topology before presentation quality.
+
+A future generator benchmark should explicitly detect **cross-run prototype convergence**: several mutually similar outputs are not evidence of fidelity if they are all similarly wrong relative to the source.
 
 No production schema, runtime or ProductStore change is justified by this trial.
