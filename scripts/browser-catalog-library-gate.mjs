@@ -85,7 +85,7 @@ function seedProductTruth() {
   NS.App.renderAll();
 }
 
-function materializeCatalog(title, selectedIds) {
+function materializeCatalog({ title, selectedIds }) {
   const NS = window.CatalogoTop;
   const current = NS.Core.getState();
   NS.Core.setState({
@@ -114,13 +114,13 @@ try {
   await page.waitForFunction(() => document.getElementById('catalogSaveStatus')?.textContent !== 'Conectando…');
   await page.evaluate(seedProductTruth);
 
-  await page.evaluate(materializeCatalog, 'Proposta Alpha', ['p1']);
+  await page.evaluate(materializeCatalog, { title: 'Proposta Alpha', selectedIds: ['p1'] });
   if (!await page.evaluate(() => window.CatalogoTop.CatalogStore.saveCurrent())) throw new Error('não salvou Alpha');
   const alphaId = await page.evaluate(() => window.CatalogoTop.CatalogStore.getActiveCatalogId());
   if (!alphaId) throw new Error('Alpha sem identidade');
 
   await page.evaluate(() => window.CatalogoTop.CatalogStore.newSession());
-  await page.evaluate(materializeCatalog, 'Proposta Beta', ['p2']);
+  await page.evaluate(materializeCatalog, { title: 'Proposta Beta', selectedIds: ['p2'] });
   if (!await page.evaluate(() => window.CatalogoTop.CatalogStore.saveCurrent())) throw new Error('não salvou Beta');
   const betaId = await page.evaluate(() => window.CatalogoTop.CatalogStore.getActiveCatalogId());
   if (!betaId || betaId === alphaId) throw new Error('Beta sem identidade independente');
