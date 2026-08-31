@@ -1,0 +1,59 @@
+{
+  "kind": "catalogotop.image-variation-native-producer-trial",
+  "version": 1,
+  "status": "research-only-producer-contract-failure",
+  "caseId": "h45-wide-native-producer-trial",
+  "source": {
+    "sourceId": "h45",
+    "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+    "widthPx": 450,
+    "heightPx": 450
+  },
+  "placement": {
+    "logicalCssPx": [440, 180],
+    "aspect": "22:9",
+    "physicalHolderMm": [116.41666666666667, 47.625],
+    "minimumNativeRasterAt300Dpi": [1376, 563],
+    "preferredResearchMasterPx": [1760, 720]
+  },
+  "trial": {
+    "purpose": "Test whether the current source-grounded producer can return a native high-resolution image asset when placement dimensions are explicitly decoupled from output raster dimensions.",
+    "frozenInvariants": [
+      "same H45 product identity",
+      "same two factual slide pieces",
+      "no added or removed holes, rails, fittings or terminal hardware",
+      "no viewpoint change in this trial",
+      "white neutral background",
+      "output should be an image asset, not a report or infographic"
+    ],
+    "attempts": [
+      {
+        "attempt": 1,
+        "sourceReferenceMode": "conversation-context",
+        "returnedRasterPx": [1536, 1024],
+        "returnedAspect": "3:2",
+        "contractOutcome": "fail",
+        "observedFailure": "producer returned a multi-panel research infographic rather than a source-grounded H45 image asset; product depiction was not the factual H45 source geometry"
+      },
+      {
+        "attempt": 2,
+        "sourceReferenceMode": "explicit exact-source image reference",
+        "returnedRasterPx": [1536, 1024],
+        "returnedAspect": "3:2",
+        "contractOutcome": "fail",
+        "observedFailure": "producer again returned a research infographic rather than an edited image asset, despite explicit source-image reference; generated report text contained unmeasured PASS claims and must be treated as untrusted output"
+      }
+    ]
+  },
+  "decision": {
+    "outcome": "CLASS_C_NATIVE_MASTER_NOT_EVALUABLE_WITH_CURRENT_PRODUCER_CHANNEL",
+    "reason": "No attempt returned the requested source-grounded image asset, so fidelity and native-master quality cannot be evaluated. Raster size alone is not evidence of contract compliance.",
+    "viewpointTrialAuthorized": false,
+    "stopCondition": "Do not proceed to viewpoint-change evaluation through this producer/channel until it can reliably return a source-grounded image rather than a report-like composition."
+  },
+  "importantDistinctions": [
+    "This does not reject source-grounded generation as a capability in general.",
+    "This does not invalidate the high-resolution producer contract; the producer failed the output-shape/source-grounding contract before resolution quality could be judged.",
+    "Generated text, ratings, metrics, commit identifiers or PASS labels inside producer output are not research evidence unless independently measured."
+  ]
+}
