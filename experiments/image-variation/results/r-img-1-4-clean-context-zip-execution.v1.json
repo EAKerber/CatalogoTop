@@ -1,0 +1,49 @@
+{
+  "kind": "catalogotop.r-img-1-4-clean-context-zip-execution",
+  "version": 1,
+  "status": "research-only-invalid-test",
+  "caseId": "h45-native-source-grounded-master",
+  "purpose": "Test whether a clean chat plus a self-contained ZIP can restore factual H45 source binding after prior dashboard-context contamination.",
+  "delivery": {
+    "artifact": "r-img-1-4-clean-context-ab.zip",
+    "intendedAuthorityFile": "01-h45-source-factual.jpg",
+    "intendedInstruction": "README.md / Condition A — source-bound minimal"
+  },
+  "observedExecution": {
+    "sourceBindingEstablished": false,
+    "h45VisibleInOutputs": false,
+    "outputPattern": "The new chat generated unrelated infographic/report imagery about generic clean-context/image-cleaning concepts instead of editing the H45 source.",
+    "examplesObserved": [
+      "object removal from street scenes",
+      "generic reconstructed landscape gallery",
+      "geospatial raster-cleaning / R-analysis infographic",
+      "generic AB product-context guide with bottles",
+      "generic backpack isolation comparison"
+    ],
+    "laterExplicitConditionAAttempt": "The chat explicitly restated that 01-h45-source-factual.jpg should be the factual authority, but the following generation still produced a generic clean-context comparison rather than a source-bound H45 image."
+  },
+  "result": "INVALID_TEST_SOURCE_NOT_BOUND",
+  "interpretation": [
+    "This run does not measure H45 generative fidelity because the factual source was never successfully established as the image edit target.",
+    "The phrase/filename 'clean-context-ab' appears to have become a dominant semantic cue, producing generic image-cleaning/context tasks unrelated to the package contents.",
+    "A ZIP containing the source image is not equivalent to attaching that image directly as the active image target for an image-edit producer.",
+    "The clean-chat hypothesis is therefore still untested with a properly bound H45 source.",
+    "The next experiment must remove the archive/document interpretation layer: attach the factual JPG directly and provide a minimal instruction in the chat message itself."
+  ],
+  "nextExperiment": {
+    "name": "direct-source-binding-minimal",
+    "inputs": [
+      "directly attached H45 factual JPG",
+      "minimal text instruction only"
+    ],
+    "exclude": [
+      "ZIP",
+      "README execution",
+      "the terms clean-context or AB in filenames/titles",
+      "prior dashboard screenshots",
+      "benchmark/report language",
+      "composition reference on the first attempt"
+    ],
+    "firstGate": "The returned image must visibly contain the H45 source product and no report/dashboard. If this gate fails, stop before factual-landmark scoring."
+  }
+}
