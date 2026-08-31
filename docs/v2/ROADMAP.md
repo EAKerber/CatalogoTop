@@ -17,7 +17,7 @@ The primary change in V2 is that the app stops treating the current browser sess
 
 - **R1 — Product Library Foundation: complete**.
 - **R2 — Saved Catalog Documents: complete** after R2a + R2b. See `R2-CLOSEOUT.md`.
-- **R3 — Asset Library / reusable media index: active**. First cut: `R3A-ASSET-INVENTORY-REUSE-INTENT.md`.
+- **R3 — Asset Library / reusable media index: active**. R3a is complete; R3b is the active operationalization cut.
 - R4+ remain directional and are not authorized merely by appearing in this roadmap.
 
 ## Architectural direction — one Library UI, multiple authorities
@@ -98,9 +98,9 @@ Expected responsibilities:
 
 This recut reuses AssetStore rather than replacing it.
 
-#### R3a — Asset Inventory & Reuse Foundation
+#### R3a — Asset Inventory & Reuse Foundation — COMPLETE
 
-First vertical:
+Delivered first vertical:
 
 - separate `AssetIndexSnapshot` / `AssetIndexStore` authority;
 - inventory = indexed assets union managed hashes referenced by persisted ProductSnapshot/CatalogSnapshot;
@@ -108,9 +108,30 @@ First vertical:
 - `Imagens` provider inside Biblioteca;
 - human label editing;
 - reuse of an existing managed asset from Cadastro without re-upload/copy;
-- no blob deletion/GC and no full folder administration yet.
+- no blob deletion/GC.
 
 Detailed contract: `R3A-ASSET-INVENTORY-REUSE-INTENT.md`.
+
+#### R3b — Asset Organization & Ingest — ACTIVE
+
+Purpose: operationalize the R3a resource foundation without introducing destructive blob lifecycle.
+
+Planned/delivered responsibilities in this cut:
+
+- provider-scoped folder tree using the `folders[]`/`folderId` already reserved in AssetIndexSnapshot v1;
+- recursive folder scope plus virtual `Sem pasta`;
+- `Todos | Em uso | Sem uso` accounting filter derived from authoritative usages;
+- multiselect and batch move;
+- adoption into the index of assets previously discovered only by Product/Catalog usage;
+- standalone image upload through the existing `AssetClient.prepareImage` + `/api/assets` path;
+- physical hash deduplication with metadata registration kept separate;
+- local pending metadata projection without inventing local usage;
+- mobile `Pastas | Imagens`, preserving `Imagens` as the initial/picker view;
+- no physical delete and no garbage collection.
+
+Detailed contract: `R3B-ASSET-ORGANIZATION-INGEST-INTENT.md`.
+
+After R3b, perform a short closure audit. If add/discover/name/search/organize/reuse and authoritative usage accounting are stable, R3 closes without manufacturing a GC recut. A destructive R3c requires a concrete retention/cleanup need.
 
 ### V2-R4 — Constrained Template System 2.0
 
@@ -185,6 +206,7 @@ Transport success alone is not sufficient.
 10. Browser-local session state is not a substitute for saved-resource persistence.
 11. Content-addressed asset bytes remain immutable; metadata/index lifecycle must not rewrite or silently garbage-collect blobs.
 12. Usage/accounting must derive from authoritative resource snapshots rather than transient Core/session projections.
+13. `Sem uso` is an accounting state, not proof that a blob is safe to delete.
 
 ## Sequence rationale
 
