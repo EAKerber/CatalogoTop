@@ -7,111 +7,246 @@ V2 starts from the stable V1 release:
 - `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9`
 - tag `v1.0.0`
 - active product-development line: `v2`
+- image-generation research remains isolated in `research/semantic-image-variation-v2`
 
-CatalogoTop remains a constrained catalog-authoring system. V2 makes products, catalogs, reusable assets and templates explicit resources without collapsing their authorities into one monolithic state object.
+The V2 goal is not to turn CatalogoTop into a free-form page editor. The product remains a constrained catalog-authoring system whose main value is reliable product data, repeatable editorial structures, fast composition, predictable A4 output and low operational friction.
+
+The primary change in V2 is that the app stops treating the current browser session as the center of the product. Products, catalogs, reusable assets and templates become explicit resources that can be found, organized and reopened without collapsing their authorities into one monolithic state object.
 
 ## Current milestone status
 
 - **R1 — Product Library Foundation: complete**.
-- **R2 — Saved Catalog Documents: complete**. See `R2-CLOSEOUT.md`.
-- **R3 — Asset Library: complete**. See `R3-CLOSEOUT.md`.
-- **R4 — Constrained Template System 2.0: split into staged recuts**.
+- **R2 — Saved Catalog Documents: complete** after R2a + R2b. See `R2-CLOSEOUT.md`.
+- **R3 — Asset Library / reusable media index: complete** after R3a + R3b. See `R3-CLOSEOUT.md`.
+- **R4 — Constrained Template System 2.0: active as staged recuts**.
   - **R4a — Template Contract & Versioned Binding: implementation complete / closing promotion**. See `R4A-TEMPLATE-CONTRACT-INTENT.md` and `R4A-CLOSEOUT.md`.
   - **R4b — Template Library & Immutable Versions: next directional recut, not automatically authorized**.
-- R5+ remain directional.
+- R5+ remain directional and are not authorized merely by appearing in this roadmap.
 
-## One Library UI, multiple authorities
+## Architectural direction — one Library UI, multiple authorities
+
+The visible `Biblioteca` is a single navigation surface, while persistence grows by resource provider rather than through one universal `LibraryStore`.
 
 ```text
 Biblioteca UI
   ├─ Product provider    -> ProductStore / ProductSnapshot
   ├─ Catalog provider    -> CatalogStore / CatalogSnapshot
-  ├─ Asset provider      -> AssetIndexStore / AssetIndexSnapshot + AssetStore
+  ├─ Asset provider      -> AssetIndexStore / AssetIndexSnapshot + immutable AssetStore
   └─ Template provider   -> future R4b TemplateStore / TemplateSnapshot
 
 Built-in template language -> TemplateRegistry / TemplateContract
 ```
 
-`FolderTree` may be reused as pure vocabulary, but namespaces and revisions remain provider-scoped.
+A shared pure `FolderTree` vocabulary may be reused by providers, but folder namespaces and revision authorities remain provider-scoped unless a later real use case proves a global tree is superior.
 
-Primary navigation remains `Cadastro | Catálogo | Biblioteca`. Templates are not a permanent fourth primary tab; selection stays in `Catálogo`, and future reusable-template administration may live in `Biblioteca`.
+Reason: saving a catalog should not conflict merely because another client renamed a product folder. Likewise asset metadata should not share the ProductStore or CatalogStore revision.
 
-## Completed recuts
+## Product navigation target
 
-### R1 — Product Library Foundation — COMPLETE
+Primary application navigation is:
 
-Delivered ProductSnapshot v2, deterministic legacy folder migration, provider-scoped FolderTree, contextual Cadastro lookup and Product Library administration.
+`Cadastro | Catálogo | Biblioteca`
 
-### R2 — Saved Catalog Documents — COMPLETE
+- `Cadastro` owns creation/editing/duplication of one product at a time and lightweight contextual lookup.
+- `Catálogo` owns composition of the current catalog document.
+- `Biblioteca` owns finding, organizing, moving, bulk-selecting and destructive resource management.
+- `Templates` is not a permanent top-level application tab. Template selection remains available inside `Catálogo`; reusable template management can later appear as a Library provider.
 
-Delivered independent CatalogSnapshot/CatalogStore, create/open/save/duplicate, dirty state, catalog folders and compatible session/backup migration while preserving the existing A4 materialization pipeline.
+## Dependency roadmap
 
-### R3 — Asset Library — COMPLETE
+### V2-R1 — Product Library Foundation — COMPLETE
 
-Delivered independent AssetIndex authority, authoritative usage projection, image Library provider, folders/search/accounting, standalone upload, SHA deduplication and reuse. No blob GC was introduced merely because an asset is `Sem uso`.
+Purpose: establish stable hierarchical organization for products and split product authoring from product administration without changing the A4 renderer.
 
-## R4 — Constrained Template System 2.0
+Core deliverables:
 
-### R4a — Template Contract & Versioned Binding — IMPLEMENTATION COMPLETE
+- provider-scoped `FolderTree` domain;
+- `ProductSnapshot v2` with `folders[]` + `products[].folderId`;
+- deterministic migration from legacy `category/subcategory`;
+- shared recursive `ProductQuery`;
+- explicit `cloneAsNewProduct` / `Usar como base`;
+- `Cadastro | Catálogo | Biblioteca` shell;
+- Product Library UI with move/bulk/destructive operations;
+- V1 renderer compatibility through derived legacy mirrors.
 
-Delivered:
+The detailed intent contract lives in `R1-PRODUCT-LIBRARY-INTENT.md`.
 
-- `TemplateContract v1`, strict bounded data contract;
+### V2-R2 — Saved Catalog Documents — COMPLETE
+
+Purpose: make a catalog an explicit reopenable resource instead of only a transient local session/backup.
+
+Delivered through R2a + R2b:
+
+- stable catalog ID/metadata;
+- create/open/save/duplicate catalog;
+- independent optimistic revision/readback/cache/conflict semantics;
+- catalog folders in the Library;
+- catalog-local composition state separate from product truth;
+- explicit dirty/saved state;
+- compatible migration/import from current session/backup shape;
+- current A4 materialization remains `state/catalog record -> CatalogOrder -> CatalogDocument -> preview/print`.
+
+See `R2-SAVED-CATALOGS-INTENT.md`, `R2B-CATALOG-LIBRARY-ADMIN-INTENT.md` and `R2-CLOSEOUT.md`.
+
+### V2-R3 — Asset Library / reusable media index — COMPLETE
+
+Purpose: turn the existing content-addressed blob store into a usable resource system without losing immutability/deduplication.
+
+Delivered responsibilities:
+
+- metadata/index separate from immutable blob bytes;
+- reusable managed image references;
+- provider-scoped foldering/search/usage information;
+- authoritative current-reference accounting without conflating `Sem uso` with deletion safety;
+- product images and catalog-local variants can reference the same immutable content;
+- no automatic deletion of a hash merely because one product/resource stopped referencing it.
+
+This recut reuses AssetStore rather than replacing it.
+
+#### R3a — Asset Inventory & Reuse Foundation — COMPLETE
+
+Delivered first vertical:
+
+- separate `AssetIndexSnapshot` / `AssetIndexStore` authority;
+- inventory = indexed assets union managed hashes referenced by persisted ProductSnapshot/CatalogSnapshot;
+- derived usage projection rather than persisted usage counters;
+- `Imagens` provider inside Biblioteca;
+- human label editing;
+- reuse of an existing managed asset from Cadastro without re-upload/copy;
+- no blob deletion/GC.
+
+Detailed contract: `R3A-ASSET-INVENTORY-REUSE-INTENT.md`.
+
+#### R3b — Asset Organization & Ingest — COMPLETE
+
+Delivered operationalization:
+
+- provider-scoped folder tree using the `folders[]`/`folderId` already reserved in AssetIndexSnapshot v1;
+- recursive folder scope plus virtual `Sem pasta`;
+- `Todos | Em uso | Sem uso` accounting filter derived from authoritative usages;
+- multiselect and batch move;
+- adoption into the index of assets previously discovered only by Product/Catalog usage;
+- standalone image upload through the existing `AssetClient.prepareImage` + `/api/assets` path;
+- physical hash deduplication with metadata registration kept separate;
+- local pending metadata projection without inventing local usage;
+- mobile `Pastas | Imagens`, preserving `Imagens` as the initial/picker view;
+- no physical delete and no garbage collection.
+
+Detailed contract: `R3B-ASSET-ORGANIZATION-INGEST-INTENT.md`.
+
+The post-R3b closure audit found no concrete functional gap requiring a destructive R3c. Garbage collection remains a future retention/cleanup decision, not an unfinished R3 requirement. See `R3-CLOSEOUT.md`.
+
+### V2-R4 — Constrained Template System 2.0 — ACTIVE IN STAGED RECUTS
+
+Purpose: make templates reusable visual systems rather than hard-coded style choices, without reopening arbitrary HTML/CSS/JS authoring.
+
+#### R4a — Template Contract & Versioned Binding — IMPLEMENTATION COMPLETE
+
+Delivered responsibilities:
+
+- `TemplateContract v1`, strict bounded data-only contract;
 - immutable built-ins `technical@1`, `compact@1`, `showcase@1`;
 - `perPage` derived from rows × columns;
-- persisted `templateId + templateVersion`;
-- Core schema 9 and CatalogSnapshot v2 migration;
-- exact resolution with fail-closed unavailable ID/version;
-- renderer budgets/layout driven by contract tokens rather than template-ID behavior branches;
-- application-owned `DocumentChrome` with `top-mobili-v1`;
-- preview and print using the same resolved template contract;
-- physical A4 behavior preserved;
-- no TemplateStore/API/Library provider in this recut.
+- persisted exact `templateId + templateVersion` binding;
+- Core schema 9 and CatalogSnapshot v2 deterministic migration;
+- unknown ID/version combinations fail closed rather than silently changing visual system;
+- content budgets/layout behavior driven by contract properties/tokens rather than template-ID runtime branches;
+- shared institutional chrome extracted behind application-owned `DocumentChrome`, initial primitive `top-mobili-v1`;
+- preview and print driven by the same resolved template contract;
+- existing physical A4 behavior preserved;
+- no TemplateStore/backend template API/Library provider yet.
 
 Detailed contract: `R4A-TEMPLATE-CONTRACT-INTENT.md`. Closure: `R4A-CLOSEOUT.md`.
 
-### R4b — Template Library & Immutable Versions — NEXT DIRECTIONAL RECUT
+#### R4b — Template Library & Immutable Versions — NEXT DIRECTIONAL RECUT
 
-Subject to explicit planning/authorization, expected responsibilities are:
+Subject to explicit planning/authorization, expected responsibilities:
 
 - independent `TemplateSnapshot` / `TemplateStore` revision authority;
-- `Biblioteca > Templates` without a new primary application tab;
+- `Biblioteca > Templates`, without a new primary application tab;
 - built-ins exposed as immutable sources/presets;
-- duplicate built-in/existing template to create an editable resource;
-- publishing/editing creates a new immutable version rather than rewriting a referenced version;
-- catalog upgrades between versions are explicit and mark the catalog dirty;
-- server/browser validation reuses `TemplateContract` as the only template language.
+- duplicate a built-in or existing resource to create an editable template resource;
+- publishing/editing creates a new immutable version rather than overwriting a version already referenced by catalogs;
+- catalog upgrade from one template version to another is explicit and marks the catalog dirty;
+- search/foldering only where real operational use justifies them;
+- stored resources remain bounded data validated by the existing `TemplateContract`.
 
-Still out of scope unless separately decided: stored HTML/CSS/JS, arbitrary selectors/stylesheets, arbitrary XY layout or generic webpage-builder behavior.
+Explicitly out of scope unless separately decided: arbitrary executable templates, arbitrary XY layout, free CSS injection or a generic webpage builder.
 
-## R5 — Editorial Vocabulary 2.0
+### V2-R5 — Editorial Vocabulary 2.0
 
-Directional work after template resources stabilize: Collection/Table refinements and possibly a constrained Callout only where Card/Collection/Table cannot model a real case cleanly. No generic nesting system by default.
+Purpose: expand expressive power only after the template contract can represent it coherently.
 
-## R6 — Preflight / publication quality gate
+Likely work:
 
-Directional checks include required facts, missing assets, stale references, invalid blocks, overflow/collision, logical vs physical page count, template compatibility and preview/print parity. Preflight validates; it does not mutate commercial truth to pass.
+- Collection 2.0 informed by real reference catalogs;
+- `Callout` as a fourth primitive only for cases that cannot be modeled cleanly by Card/Collection/Table;
+- Table refinements where real cases justify them;
+- reusable editorial presets that remain catalog-local or template-defined, never product facts.
 
-## Cross-cutting invariants
+No generic container/nesting system by default.
 
-1. `main` remains stable V1 until an explicit V2 release decision.
+### V2-R6 — Preflight / publication quality gate
+
+Purpose: make “ready to export/publish” an explicit state rather than a visual guess.
+
+Expected checks:
+
+- required product facts and unresolved placeholders;
+- missing/unavailable assets;
+- invalid editorial blocks or stale references;
+- overflow/collision/layout anomalies;
+- logical page count vs physical print pages;
+- template/resource compatibility;
+- preview/print parity;
+- clear distinction between blocking errors, warnings and editorial suggestions.
+
+The gate should validate the materialized document; it must not mutate commercial data to make validation pass.
+
+## Optional research reintegration — semantic image variation
+
+The image-variation research branch is deliberately not on the critical path above.
+
+A future capability may re-enter V2 only when research provides:
+
+- a placement-aware intent contract;
+- fidelity invariants;
+- a useful quality benchmark, including “do not generate” cases;
+- explicit approval semantics;
+- a compatibility seam into `presentation.imageVariants` / `product.imageGallery` without overwriting `product.image`.
+
+Transport success alone is not sufficient.
+
+## Cross-cutting invariants for all V2 recuts
+
+1. `main` remains the stable V1 production line until an explicit V2 release decision.
 2. Product truth and presentation truth stay separate.
-3. Resource identity survives organizational move/rename.
-4. Revisions are scoped to their authority.
+3. Resource identity is stable; move/rename operations change metadata/path, not identity.
+4. Revisions are scoped to their resource authority; avoid one global write-conflict domain.
 5. Shared UI does not imply shared persistence.
-6. V1 migration is deterministic and testable.
-7. Subtractive/unifying solutions are valid.
-8. A4 changes require physical browser gates.
-9. No free-form editor or executable template system without a new product decision.
-10. Browser session state is not a substitute for saved-resource persistence.
-11. Content-addressed asset bytes remain immutable.
-12. Usage derives from authoritative snapshots.
-13. `Sem uso` is accounting, not deletion safety.
-14. Saved catalogs bind to an exact template ID/version and never silently fall back to another visual system.
-15. Future persisted templates remain bounded data validated by the app-owned TemplateContract.
+6. Migration from V1 must be deterministic and testable.
+7. Subtractive/unifying solutions are valid; do not preserve obsolete V1 UI merely because code exists.
+8. A4 renderer/pagination changes require their own explicit recut and physical browser gates.
+9. No free-form editor, generic nesting or arbitrary executable template system without a new product decision.
+10. Browser-local session state is not a substitute for saved-resource persistence.
+11. Content-addressed asset bytes remain immutable; metadata/index lifecycle must not rewrite or silently garbage-collect blobs.
+12. Usage/accounting must derive from authoritative resource snapshots rather than transient Core/session projections.
+13. `Sem uso` is an accounting state, not proof that a blob is safe to delete.
+14. Saved catalogs bind to an exact template ID/version and must not silently fall back to another visual system.
+15. Persisted template resources, when introduced, remain bounded data validated by the application-owned TemplateContract.
 
 ## Sequence rationale
 
-R1 established Library/folder vocabulary; R2 established reopenable catalog identity; R3 established reusable assets; R4a established a safe versioned template language. R4b can now add template-resource persistence without inventing a second language. R5 can expand editorial vocabulary against explicit capabilities, and R6 can validate the stabilized authoritative structures.
+R1 came first because every later resource-management workflow benefits from a stable Library/folder vocabulary.
 
-This order is directional, not a promise to implement every item unchanged.
+R2 came before major template/editor work because reopenable catalog identity is a prerequisite for meaningful template migration, version compatibility and preflight history.
+
+R3 precedes richer templates because reusable assets should have stable references before templates begin to depend on them.
+
+R4a precedes template-resource persistence because the language and version binding must be trustworthy before a TemplateStore can save it. R4b may now add reusable template resources without inventing a second template model.
+
+R4 precedes major new editorial primitives because layout capabilities should be constrained by an explicit template contract rather than accumulated as one-off renderer exceptions.
+
+R6 follows the stabilization of those contracts so preflight can validate authoritative structures rather than temporary V1 compatibility shims.
+
+This order is directional, not a promise to implement every item unchanged. A recut may be split when uncertainty is high; large adjacent concerns should not be silently pulled forward merely because implementation touches the same files.
