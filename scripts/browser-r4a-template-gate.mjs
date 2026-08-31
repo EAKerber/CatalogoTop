@@ -144,6 +144,8 @@ try {
   if (strict.compactBudget.variants !== 3 || strict.compactBudget.rows !== 3 || strict.compactBudget.specs !== 2) throw new Error(`budget compact@1 não veio do contrato: ${JSON.stringify(strict)}`);
   if (!strict.chrome) throw new Error('chrome institucional top-mobili-v1 não está registrado como primitive app-owned');
 
+  await page.click('#contextualInspector [data-inspector-clear]');
+  await page.waitForSelector('#catalogTemplate', { state: 'visible' });
   await page.selectOption('#catalogTemplate', 'compact');
   await page.waitForSelector('#catalogPreview .catalog-page[data-template-id="compact"][data-template-version="1"]');
 
