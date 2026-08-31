@@ -12,31 +12,36 @@
   },
   "reviewedGeneratorId": "aa89f137-0218-41db-b39f-be47943197cc",
   "priorHumanSignal": "VISUAL_PASS_CANDIDATE",
-  "supersededOutcome": "FAIL_FACTUAL_TOPOLOGY_MISMATCH",
-  "currentOutcome": "INCONCLUSIVE_PENDING_POSE_INVARIANT_LANDMARK_REVIEW",
-  "correctionReason": "The earlier review over-weighted source pose/layout (two diagonal pieces) versus the approved horizontal recomposition and therefore risked treating legitimate reorientation/overlap as topology change. The attached A/B evidence shows the generated candidate tracks the deterministic factual recomposition far more closely than the later fantasy-hardware regime.",
-  "scope": "Independent factual review must compare exact source landmarks after neutralizing allowed pose/composition transforms. Text, metrics, self-declared PASS labels and regenerated source depictions inside producer reports remain non-authoritative.",
+  "supersededOutcomes": [
+    "FAIL_FACTUAL_TOPOLOGY_MISMATCH",
+    "POSITIVE_CONTROL_PENDING_POSE_INVARIANT_LANDMARK_REVIEW"
+  ],
+  "currentOutcome": "VISUALLY_DISCREET_GENERATIVE_REGIME_CONTROL_ONLY",
+  "correctionReason": "A later audit compared the dashboard against the actual deterministic Mitchell output. The panel labeled 'A deterministic' inside the generated dashboard is itself a synthesized/regenerated rail and does not match the real deterministic control, which preserves the two factual H45 pieces. Therefore closeness between dashboard A and B cannot establish source adherence. The prior raw-pose topology fail was too harsh, but treating the same dashboard as a factual-positive-control was also too strong.",
+  "scope": "The exact source and actual deterministic research render are authoritative evidence. Text, metrics, PASS labels, regenerated source depictions and regenerated control images inside producer reports are non-authoritative.",
   "currentObservations": [
-    "The reviewed candidate is visually much closer to the deterministic factual H45 recomposition than the later fantasy-hardware outputs.",
-    "The previous raw-source-layout comparison is insufficient to prove a topology mismatch because horizontal reorientation and factual-group overlap are allowed transformations in this case.",
-    "The candidate should be retained as a positive-control candidate for the producer's high-adherence regime, not promoted as a faithful variant yet.",
-    "A new review must compare pose-invariant landmarks: piece count, per-piece hole/slot sequence, terminal structures, fittings/stops, rail proportions and relative overlap after alignment."
+    "The aa89f137 embedded candidate is visually much more discreet and realistic than the later fantasy roller/rail prototype.",
+    "The dashboard's own A/B comparison is not a valid fidelity comparison because A is not the actual deterministic research output.",
+    "The candidate may be close enough to ordinary real slide hardware to pass unnoticed at normal catalog scale, but factual H45 identity remains unverified.",
+    "The real deterministic control visibly preserves the two source pieces; any future factual gate must compare candidates to exact source landmarks after pose normalization."
   ],
   "decision": {
-    "presentationQuality": "promising-positive-control",
-    "factualFidelity": "not-yet-established",
-    "admissibleAsFaithfulVariant": "pending-landmark-review",
+    "presentationQuality": "promising-discreet-regime",
+    "factualFidelity": "not-established",
+    "admissibleAsFaithfulVariant": false,
+    "researchUse": "visual regime control only",
     "productionPromotion": false,
     "schemaImplication": "none"
   },
   "negativeControlContrast": {
-    "description": "Later outputs repeatedly collapse to an obviously invented roller/rail archetype with fantasy mechanical features. Those remain clear factual failures and should not be grouped with this candidate.",
-    "researchUse": "Use the good candidate and fantasy archetype as positive/negative controls when characterizing producer mode switching and reference adherence."
+    "description": "Later outputs repeatedly collapse to an obviously invented roller/rail archetype with fantasy mechanical features.",
+    "researchUse": "Compare the discreet aa89f137 regime against the fantasy archetype to investigate reference binding and context-driven mode switching; neither is currently a verified faithful master."
   },
   "researchConsequence": [
-    "Normal-size visual plausibility remains insufficient, but neither may pose/layout difference be used as a topology proxy.",
-    "Factual gates for allowed reorientation must be landmark-based and pose-invariant.",
-    "The producer appears capable of at least two qualitatively different regimes: high reference adherence and fantasy prototype substitution.",
-    "The next question is what controls or predicts the regime switch, not whether the capability is uniformly poor."
-  ]
+    "A producer-generated dashboard must never be allowed to regenerate its own control/reference and then use internal A/B similarity as fidelity evidence.",
+    "Normal-size plausibility remains insufficient for factual product imagery.",
+    "Pose-invariant landmark review remains necessary, but only against exact source evidence or a deterministic derivative whose provenance is external to the producer.",
+    "The next question is what causes the large switch between discreet generic-hardware synthesis and fantasy prototype substitution."
+  ],
+  "followup": "See results/r-img-1-4-regime-switch-investigation.v1.json for the clean-context reference-binding A/B design."
 }
