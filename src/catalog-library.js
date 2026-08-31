@@ -17,7 +17,7 @@
 
   let selectedFolderId = null;
   let selectedCatalogIds = new Set();
-  let mobileView = 'folders';
+  let mobileView = 'catalogs';
 
   function snapshot() { return CatalogStore.getSnapshot(); }
 
