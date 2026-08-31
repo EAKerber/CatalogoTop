@@ -1,0 +1,47 @@
+{
+  "kind": "catalogotop.image-raster-quality-cross-source-regression",
+  "version": 1,
+  "status": "research-only-pass-no-regression",
+  "caseId": "hinge-standard-raster-quality",
+  "source": {
+    "sourceId": "hinge",
+    "sha256": "19fcad2cf4ebc070b970ad0229df2f4984b4289cf050351231eec9c52423793a",
+    "widthPx": 450,
+    "heightPx": 450,
+    "authority": "multi-variant-factual-group"
+  },
+  "frozenComposition": {
+    "semanticOperation": "trim external neutral canvas while preserving all three hinge representations and RETA/CURVA/SUPER CURVA annotations",
+    "orientationStrategy": "preserve",
+    "foregroundBBoxPx": [31, 65, 438, 416],
+    "placement": { "widthPx": 300, "heightPx": 220, "safeMarginRatio": 0.08 },
+    "placementObjectSizePx": [214, 185],
+    "placementScale": 0.5264957264957264
+  },
+  "comparison": {
+    "baseline": "bilinear-4x-box",
+    "candidate": "mitchell-8x-box",
+    "meanAbsoluteChannelDifference": 0.0735909090909091,
+    "p95AbsoluteChannelDifference": 1,
+    "pixelRatioWithAnyChannelDifferenceAbove8": 0,
+    "baselineNonWhiteOccupancy": 0.11924242424242425,
+    "candidateNonWhiteOccupancy": 0.11878787878787879,
+    "baselineGradientMean": 3.5382518768310547,
+    "candidateGradientMean": 3.5972061157226562
+  },
+  "review": {
+    "outcome": "PASS CROSS-SOURCE RASTER REGRESSION",
+    "materialPresentationGain": false,
+    "visibleGeometryRegression": false,
+    "visibleHaloRegression": false,
+    "semanticAnnotationsPreserved": true,
+    "productionApproval": false
+  },
+  "interpretation": [
+    "The 8x cubic path preserves the three-piece visual group and its semantic annotations without visible ringing or label loss.",
+    "The placement-scale difference from the 4x baseline is negligible in this preserve-orientation case.",
+    "This reinforces the distinction between renderer safety and renderer necessity: a profile may be safe but still not justify its extra cost.",
+    "Annotation preservation remains an independent semantic requirement and must not be traded for a marginal raster-quality gain."
+  ],
+  "decision": "Keep the higher-order sampler available for transformed cases, but do not require 8x for this mild preserve-orientation table/card-like presentation."
+}
