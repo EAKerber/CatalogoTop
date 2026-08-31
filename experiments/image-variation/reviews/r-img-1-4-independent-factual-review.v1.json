@@ -1,0 +1,36 @@
+{
+  "kind": "catalogotop.r-img-1-4-independent-factual-review",
+  "version": 1,
+  "status": "research-only",
+  "caseId": "h45-native-source-grounded-master",
+  "source": {
+    "sourceId": "h45",
+    "sha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+    "widthPx": 450,
+    "heightPx": 450,
+    "authority": "exact-source-readback"
+  },
+  "reviewedGeneratorId": "aa89f137-0218-41db-b39f-be47943197cc",
+  "priorHumanSignal": "VISUAL_PASS_CANDIDATE",
+  "independentOutcome": "FAIL_FACTUAL_TOPOLOGY_MISMATCH",
+  "scope": "Independent visual comparison against the exact factual H45 source. Text, metrics, self-declared PASS labels and the producer's own embedded reference are non-authoritative.",
+  "observations": [
+    "The exact source visibly contains two separate telescopic-slide pieces arranged diagonally.",
+    "The generated candidate depicts a materially different dominant assembled-rail topology rather than preserving the two factual source pieces.",
+    "Visible hole/slot patterns and terminal structures do not correspond closely enough to the exact source to pass the factual-identity gate.",
+    "The generated object is visually plausible as furniture hardware, which explains the strong normal-view visual impression, but plausibility is not source fidelity."
+  ],
+  "decision": {
+    "presentationQuality": "promising",
+    "factualFidelity": "fail",
+    "admissibleAsFaithfulVariant": false,
+    "productionPromotion": false,
+    "schemaImplication": "none"
+  },
+  "researchConsequence": [
+    "Normal-size human plausibility review is insufficient for factual product-image generation.",
+    "Independent comparison must use the exact source bytes, not a source depiction regenerated inside the producer output.",
+    "Piece topology and landmark patterns must be gated before presentation quality can matter.",
+    "A visually excellent failure remains useful evidence about capability but cannot be promoted as a faithful product variant."
+  ]
+}
