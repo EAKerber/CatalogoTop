@@ -7,7 +7,6 @@
   <meta name="description" content="Gerador simplificado de catálogos A4 da Top Mobili." />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="cards.css" />
-  <link rel="stylesheet" href="category-browser.css" />
   <link rel="stylesheet" href="shell-responsive.css" />
   <link rel="stylesheet" href="mobile-header.css" />
   <link rel="stylesheet" href="header-data-menu.css" />
@@ -35,10 +34,9 @@
     </div>
     <div class="app-primary-tools">
       <nav class="app-tabs" aria-label="Seções do aplicativo">
-        <button class="tab active" data-tab="products">Produtos</button>
+        <button class="tab active" data-tab="products">Cadastro</button>
         <button class="tab" data-tab="catalog">Catálogo</button>
         <button class="tab" data-tab="library">Biblioteca</button>
-        <button class="tab" data-tab="templates">Templates</button>
       </nav>
     </div>
     <div class="app-header-actions" aria-label="Sincronização e dados">
@@ -51,7 +49,7 @@
             <label class="header-data-action file-button" title="Importar produtos por CSV ou Excel">Importar produtos…
               <input id="importProductsFile" type="file" accept=".csv,.xlsx,.xls,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" />
             </label>
-            <label class="header-data-field"><span>Modo de importação</span><select id="importMode" aria-label="Modo de importação"><option value="merge">Mesclar por código</option><option value="replace">Substituir base</option></select></label>
+            <label class="header-data-field"><span>Modo de importação</span><select id="importMode" aria-label="Modo de importação"><option value="merge">Mesclar por código</option><option value="replace">Substituir produtos</option></select></label>
             <a class="header-data-action" data-header-menu-close href="examples/produtos-modelo.csv" download>Baixar CSV modelo</a>
           </section>
           <div class="header-data-divider" aria-hidden="true"></div>
@@ -77,11 +75,11 @@
 
   <main class="app-main">
     <section class="panel active" id="products">
-      <div class="section-heading product-section-heading"><div><p class="eyebrow">BASE DE PRODUTOS</p><h2>Biblioteca de produtos</h2><p class="muted">Categorias como pastas · cadastro em três etapas · CSV/Excel disponível no topo.</p></div></div>
+      <div class="section-heading product-section-heading"><div><p class="eyebrow">CADASTRO</p><h2>Crie ou edite um produto.</h2><p class="muted">Pasta explícita, cadastro em três etapas e consulta contextual sem misturar administração da base.</p></div></div>
       <div id="importReport" class="import-report shell-import-report hidden" aria-live="polite"></div>
-      <div class="mobile-workspace-switch" role="tablist" aria-label="Área de produtos">
+      <div class="mobile-workspace-switch" role="tablist" aria-label="Área de cadastro">
         <button class="active" type="button" role="tab" aria-selected="true" aria-controls="productForm" data-mobile-workspace-target="form">Cadastro</button>
-        <button type="button" role="tab" aria-selected="false" aria-controls="productLibraryPanel" data-mobile-workspace-target="library" tabindex="-1">Produtos</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="cadastroContextPanel" data-mobile-workspace-target="context" tabindex="-1">Existentes</button>
       </div>
       <div class="product-workspace">
         <form class="card product-form mobile-workspace-active" id="productForm" data-mobile-workspace-panel="form" role="tabpanel">
@@ -92,11 +90,12 @@
             <button type="button" data-form-step-target="3">3 · Variações</button>
           </div>
           <input type="hidden" id="productId" />
+          <input type="hidden" id="category" />
+          <input type="hidden" id="subcategory" />
           <section class="product-form-step active" data-form-step="1" aria-label="Identificação do produto">
             <div class="field-grid two"><label>Código *<input id="code" required autocomplete="off" placeholder="Ex.: 1268" /></label><label>Status<select id="status"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></label></div>
             <label>Descrição *<textarea id="description" rows="3" required placeholder="Nome comercial do produto"></textarea></label>
-            <label class="product-category-field">Categoria *<input id="category" list="categoryOptions" required autocomplete="off" placeholder="Escolha ou crie uma categoria" /><datalist id="categoryOptions"></datalist><small>Selecione uma pasta existente ou digite um nome novo para criá-la ao salvar.</small></label>
-            <label>Subcategoria<input id="subcategory" placeholder="Ex.: Telescópicas" /></label>
+            <label class="product-folder-path-field">Pasta *<input id="productFolderPath" list="productFolderPathOptions" required autocomplete="off" placeholder="Ex.: Ferragens / Corrediças / Telescópicas" /><datalist id="productFolderPathOptions"></datalist><small>Escolha um caminho existente ou digite um novo. Pastas novas são criadas ao salvar.</small></label>
           </section>
           <section class="product-form-step" data-form-step="2" aria-label="Apresentação do produto">
             <div class="field-grid two"><label>Preço<input id="price" placeholder="Ex.: R$ 17,64" /></label><label>Imagem por URL<input id="imageUrl" inputmode="url" placeholder="https://..." /></label></div>
@@ -113,16 +112,14 @@
             <button class="button secondary hidden" id="btnPrevFormStep" type="button">Voltar</button>
             <button class="button primary step-grow" id="btnNextFormStep" type="button">Continuar</button>
             <button class="button primary step-grow hidden" id="btnSaveProduct" type="submit">Salvar produto</button>
-            <button class="button secondary" id="btnDeleteProduct" type="button" disabled>Excluir</button>
           </div>
         </form>
 
-        <div class="card product-list-card" id="productLibraryPanel" data-mobile-workspace-panel="library" role="tabpanel">
-          <div class="list-toolbar"><input id="searchProducts" type="search" placeholder="Buscar código, descrição, categoria..." /><select id="filterCategory"><option value="">Todas as categorias</option></select><span id="productCount" class="counter">0 produtos</span></div>
-          <div class="product-library">
-            <aside class="category-browser" aria-label="Pastas de categorias"><div class="category-browser-head"><span>Pastas</span><span>Categorias</span></div><div class="category-folders" id="categoryFolders"></div></aside>
-            <div class="product-table-pane"><div class="table-wrap"><table class="product-table"><thead><tr><th>Imagem</th><th>Código</th><th>Produto</th><th>Categoria</th><th>Preço</th><th></th></tr></thead><tbody id="productRows"></tbody></table></div><div id="productsEmpty" class="empty-state hidden"><strong>Nenhum produto cadastrado.</strong><span>Comece manualmente ou importe uma planilha.</span></div></div>
-          </div>
+        <div class="card product-list-card" id="cadastroContextPanel" data-mobile-workspace-panel="context" role="tabpanel">
+          <div class="form-head"><div><p class="eyebrow">EXISTENTES</p><h3>Produtos nesta pasta e subpastas</h3></div><span id="cadastroScopedCount" class="counter">0 produtos</span></div>
+          <div class="list-toolbar"><input id="cadastroProductSearch" type="search" placeholder="Buscar código ou descrição" /></div>
+          <div class="table-wrap"><table class="product-table cadastro-product-table"><thead><tr><th>Código</th><th>Produto</th><th>Pasta</th><th></th></tr></thead><tbody id="cadastroProductRows"></tbody></table></div>
+          <div id="cadastroProductsEmpty" class="empty-state hidden"><strong>Nenhum produto neste escopo.</strong><span>Escolha outra pasta ou limpe a busca.</span></div>
         </div>
       </div>
     </section>
@@ -141,15 +138,8 @@
         <aside class="card selection-panel">
           <div class="selection-toolbar"><input id="searchSelection" type="search" placeholder="Filtrar produtos" /><select id="selectionCategory"><option value="">Todas as categorias</option></select></div>
           <div id="contextualInspector" class="contextual-inspector is-collapsed" aria-live="polite"><div class="inspector-compact-hint"><strong>Ajustes</strong><span>Selecione um item no A4 ou na lista</span></div></div>
-          <div class="selection-actions" id="selectionBrowseActions">
-            <button class="button secondary compact" id="btnSelectVisible">Incluir visíveis no catálogo</button>
-            <button class="button secondary compact" id="btnClearSelection">Esvaziar catálogo</button>
-          </div>
-          <div class="selection-actions" id="groupingActions" hidden>
-            <span class="grouping-status" id="blockSelectionStatus">Selecione um trecho contíguo</span>
-            <button class="button secondary compact" id="btnCreateCollection" type="button" disabled>Criar coleção</button>
-            <button class="button secondary compact" id="btnCreateTableBlock" type="button" disabled>Criar tabela</button>
-          </div>
+          <div class="selection-actions" id="selectionBrowseActions"><button class="button secondary compact" id="btnSelectVisible">Incluir visíveis no catálogo</button><button class="button secondary compact" id="btnClearSelection">Esvaziar catálogo</button></div>
+          <div class="selection-actions" id="groupingActions" hidden><span class="grouping-status" id="blockSelectionStatus">Selecione um trecho contíguo</span><button class="button secondary compact" id="btnCreateCollection" type="button" disabled>Criar coleção</button><button class="button secondary compact" id="btnCreateTableBlock" type="button" disabled>Criar tabela</button></div>
           <div id="selectableProducts" class="selectable-products"></div>
         </aside>
         <section class="preview-column">
@@ -161,45 +151,21 @@
 
     <section class="panel" id="library">
       <div class="section-heading"><div><p class="eyebrow">BIBLIOTECA · PRODUTOS</p><h2>Organize a base compartilhada.</h2><p class="muted">Pastas estáveis, busca recursiva, seleção múltipla e administração explícita.</p></div></div>
-      <div class="library-mobile-switch" role="tablist" aria-label="Biblioteca de produtos">
-        <button class="active" type="button" role="tab" aria-selected="true" data-library-mobile-view="folders">Pastas</button>
-        <button type="button" role="tab" aria-selected="false" data-library-mobile-view="products" tabindex="-1">Produtos</button>
-      </div>
+      <div class="library-mobile-switch" role="tablist" aria-label="Biblioteca de produtos"><button class="active" type="button" role="tab" aria-selected="true" data-library-mobile-view="folders">Pastas</button><button type="button" role="tab" aria-selected="false" data-library-mobile-view="products" tabindex="-1">Produtos</button></div>
       <div class="product-library-admin" id="productLibraryAdmin" data-mobile-view="folders">
         <aside class="card library-tree-pane">
           <div class="library-pane-head"><h3>Pastas</h3><button class="button secondary compact" id="libraryCreateFolder" type="button">+ Pasta</button></div>
           <div class="library-folder-tree" id="libraryFolderTree"></div>
-          <div class="library-folder-actions">
-            <select id="libraryFolderParent" aria-label="Nova pasta pai"></select>
-            <div class="library-folder-actions-row">
-              <button class="button secondary compact" id="libraryRenameFolder" type="button">Renomear</button>
-              <button class="button secondary compact" id="libraryMoveFolder" type="button">Mover pasta</button>
-              <button class="button secondary compact library-danger" id="libraryDeleteFolder" type="button">Excluir vazia</button>
-            </div>
-          </div>
+          <div class="library-folder-actions"><select id="libraryFolderParent" aria-label="Nova pasta pai"></select><div class="library-folder-actions-row"><button class="button secondary compact" id="libraryRenameFolder" type="button">Renomear</button><button class="button secondary compact" id="libraryMoveFolder" type="button">Mover pasta</button><button class="button secondary compact library-danger" id="libraryDeleteFolder" type="button">Excluir vazia</button></div></div>
         </aside>
         <section class="card library-products-pane">
           <div class="library-toolbar"><input id="libraryProductSearch" type="search" placeholder="Buscar código, descrição ou pasta" /><span class="counter" id="libraryVisibleCount">0 produtos</span></div>
           <div class="library-scope">Escopo: <strong id="libraryFolderPath">Todos os produtos</strong> · inclui subpastas</div>
-          <div class="library-selection-toolbar">
-            <span class="counter" id="librarySelectionCount">0 selecionados</span>
-            <button class="button secondary compact" id="librarySelectVisible" type="button">Selecionar visíveis</button>
-            <button class="button secondary compact" id="libraryClearSelection" type="button">Limpar</button>
-            <select id="libraryMoveDestination" aria-label="Pasta de destino"><option value="">Mover para…</option></select>
-            <button class="button secondary compact" id="libraryMoveProducts" type="button">Mover selecionados</button>
-            <button class="button secondary compact" id="libraryOpenCadastro" type="button">Editar no Cadastro</button>
-            <button class="button secondary compact library-danger" id="libraryDeleteProducts" type="button">Excluir selecionados</button>
-          </div>
+          <div class="library-selection-toolbar"><span class="counter" id="librarySelectionCount">0 selecionados</span><button class="button secondary compact" id="librarySelectVisible" type="button">Selecionar visíveis</button><button class="button secondary compact" id="libraryClearSelection" type="button">Limpar</button><select id="libraryMoveDestination" aria-label="Pasta de destino"><option value="">Mover para…</option></select><button class="button secondary compact" id="libraryMoveProducts" type="button">Mover selecionados</button><button class="button secondary compact" id="libraryOpenCadastro" type="button">Editar no Cadastro</button><button class="button secondary compact library-danger" id="libraryDeleteProducts" type="button">Excluir selecionados</button></div>
           <div class="library-product-list" id="libraryProductList"></div>
           <div class="empty-state hidden" id="libraryProductsEmpty"><strong>Nenhum produto neste escopo.</strong><span>Ajuste a pasta ou a busca.</span></div>
         </section>
       </div>
-    </section>
-
-    <section class="panel" id="templates">
-      <div class="section-heading"><div><p class="eyebrow">TEMPLATES</p><h2>Varia o card e a densidade. A identidade da página permanece estável.</h2><p class="muted">O contrato do template é pequeno: quantidade de cards por página, grade e tratamento visual.</p></div></div>
-      <div id="templateCards" class="template-gallery"></div>
-      <div class="card template-contract"><h3>Contrato visual comum</h3><p>Logo, título da categoria, linha técnica, rodapé institucional, número de página e data de criação são componentes compartilhados. Um novo template não deve duplicar esses blocos.</p></div>
     </section>
   </main>
 
@@ -254,10 +220,9 @@
   <script defer src="src/contextual-inspector.js"></script>
   <script defer src="src/image-variant-controls.js"></script>
   <script defer src="src/commercial-controls.js"></script>
-  <script defer src="src/product-delete-ui.js"></script>
   <script defer src="src/block-overlap-guard.js"></script>
   <script defer src="src/product-details.js"></script>
-  <script defer src="src/category-browser.js"></script>
   <script defer src="src/product-library.js"></script>
+  <script defer src="src/cadastro-surface.js"></script>
 </body>
 </html>
