@@ -174,11 +174,21 @@
         </div>
       </div>
       <div data-library-provider-panel="catalogs" hidden>
-        <section class="card catalog-library-admin" id="catalogLibraryAdmin">
-          <div class="catalog-library-toolbar"><input id="catalogLibrarySearch" type="search" placeholder="Buscar catálogo" /><span class="counter" id="catalogLibraryCount">0 catálogos</span></div>
-          <div class="catalog-library-list" id="catalogLibraryList"></div>
-          <div class="empty-state hidden" id="catalogLibraryEmpty"><strong>Nenhum catálogo salvo.</strong><span>Abra a aba Catálogo e use Salvar para criar o primeiro recurso.</span></div>
-        </section>
+        <div class="library-mobile-switch" role="tablist" aria-label="Biblioteca de catálogos"><button class="active" type="button" role="tab" aria-selected="true" data-catalog-library-mobile-view="folders">Pastas</button><button type="button" role="tab" aria-selected="false" data-catalog-library-mobile-view="catalogs" tabindex="-1">Catálogos</button></div>
+        <div class="catalog-library-admin" id="catalogLibraryAdmin" data-mobile-view="folders">
+          <aside class="card library-tree-pane catalog-library-tree-pane">
+            <div class="library-pane-head"><h3>Pastas</h3><button class="button secondary compact" id="catalogLibraryCreateFolder" type="button">+ Pasta</button></div>
+            <div class="library-folder-tree" id="catalogLibraryFolderTree"></div>
+            <div class="library-folder-actions"><select id="catalogLibraryFolderParent" aria-label="Nova pasta pai de catálogo"></select><div class="library-folder-actions-row"><button class="button secondary compact" id="catalogLibraryRenameFolder" type="button">Renomear</button><button class="button secondary compact" id="catalogLibraryMoveFolder" type="button">Mover pasta</button><button class="button secondary compact library-danger" id="catalogLibraryDeleteFolder" type="button">Excluir vazia</button></div></div>
+          </aside>
+          <section class="card catalog-library-resources-pane">
+            <div class="library-toolbar"><input id="catalogLibrarySearch" type="search" placeholder="Buscar título, pasta ou produto referenciado" /><span class="counter" id="catalogLibraryCount">0 catálogos</span></div>
+            <div class="library-scope">Escopo: <strong id="catalogLibraryFolderPath">Todos os catálogos</strong> · inclui subpastas</div>
+            <div class="library-selection-toolbar"><span class="counter" id="catalogLibrarySelectionCount">0 selecionados</span><button class="button secondary compact" id="catalogLibrarySelectVisible" type="button">Selecionar visíveis</button><button class="button secondary compact" id="catalogLibraryClearSelection" type="button">Limpar</button><select id="catalogLibraryMoveDestination" aria-label="Pasta de destino"><option value="__choose__">Mover para…</option></select><button class="button secondary compact" id="catalogLibraryMoveCatalogs" type="button">Mover selecionados</button><button class="button secondary compact library-danger" id="catalogLibraryDeleteCatalogs" type="button">Excluir selecionados</button></div>
+            <div class="catalog-library-list" id="catalogLibraryList"></div>
+            <div class="empty-state hidden" id="catalogLibraryEmpty"><strong>Nenhum catálogo neste escopo.</strong><span>Ajuste a pasta ou a busca. Para criar um recurso, abra Catálogo e use Salvar.</span></div>
+          </section>
+        </div>
       </div>
     </section>
   </main>
@@ -193,6 +203,7 @@
   <script defer src="src/product-domain.js"></script>
   <script defer src="src/product-snapshot.js"></script>
   <script defer src="src/product-query.js"></script>
+  <script defer src="src/catalog-query.js"></script>
   <script defer src="src/core.js"></script>
   <script defer src="src/catalog-order.js"></script>
   <script defer src="src/indexed-cache.js"></script>
