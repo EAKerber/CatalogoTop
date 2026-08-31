@@ -157,19 +157,23 @@ try {
     const eyebrow = head?.querySelector('.eyebrow');
     const count = head?.querySelector('.counter');
     const search = card?.querySelector('.list-toolbar');
+    const style = head ? getComputedStyle(head) : null;
     const rect = node => {
       const value = node?.getBoundingClientRect();
       return value ? { left: value.left, right: value.right, top: value.top, bottom: value.bottom, width: value.width, height: value.height } : null;
     };
-    return { card: rect(card), head: rect(head), eyebrow: rect(eyebrow), count: rect(count), search: rect(search) };
+    return {
+      card: rect(card), head: rect(head), eyebrow: rect(eyebrow), count: rect(count), search: rect(search),
+      padding: style ? { left: parseFloat(style.paddingLeft) || 0, right: parseFloat(style.paddingRight) || 0, top: parseFloat(style.paddingTop) || 0 } : null
+    };
   });
-  if (!existingHeader.card || !existingHeader.head || !existingHeader.eyebrow || !existingHeader.count || !existingHeader.search) {
+  if (!existingHeader.card || !existingHeader.head || !existingHeader.eyebrow || !existingHeader.count || !existingHeader.search || !existingHeader.padding) {
     throw new Error(`cabeçalho Existentes incompleto: ${JSON.stringify(existingHeader)}`);
   }
-  if (existingHeader.head.left < existingHeader.card.left + 10 || existingHeader.head.right > existingHeader.card.right - 10 || existingHeader.head.top < existingHeader.card.top + 10) {
-    throw new Error(`cabeçalho Existentes encostou no recorte do card: ${JSON.stringify(existingHeader)}`);
+  if (existingHeader.padding.left < 10 || existingHeader.padding.right < 10 || existingHeader.padding.top < 10) {
+    throw new Error(`cabeçalho Existentes perdeu inset próprio: ${JSON.stringify(existingHeader)}`);
   }
-  if (existingHeader.eyebrow.left < existingHeader.card.left + 10 || existingHeader.count.right > existingHeader.card.right - 10 || existingHeader.search.top < existingHeader.head.bottom - 1) {
+  if (existingHeader.eyebrow.left < existingHeader.card.left + 10 || existingHeader.eyebrow.top < existingHeader.card.top + 10 || existingHeader.count.right > existingHeader.card.right - 10 || existingHeader.search.top < existingHeader.head.bottom - 1) {
     throw new Error(`conteúdo de Existentes ficou cortado/colidido: ${JSON.stringify(existingHeader)}`);
   }
 
