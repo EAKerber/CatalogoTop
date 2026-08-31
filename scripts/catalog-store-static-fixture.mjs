@@ -25,6 +25,10 @@ for (const file of names.filter(name => name.endsWith('.js'))) {
 const html = files['index.html'];
 const store = files['src/catalog-store.js'];
 const library = files['src/catalog-library.js'];
+const deleteCatalogsBody = store.slice(
+  store.indexOf('async function deleteCatalogs'),
+  store.indexOf('function newSession')
+);
 const checks = [
   ['CatalogSnapshot carrega após FolderTree e antes do Core', html.indexOf('src/folder-tree.js') < html.indexOf('src/catalog-snapshot.js') && html.indexOf('src/catalog-snapshot.js') < html.indexOf('src/core.js')],
   ['CatalogQuery carrega após FolderTree e antes da Library', html.indexOf('src/folder-tree.js') < html.indexOf('src/catalog-query.js') && html.indexOf('src/catalog-query.js') < html.indexOf('src/catalog-library.js')],
@@ -40,7 +44,7 @@ const checks = [
   ['CatalogStore oferece mutações administrativas provider-scoped', ['createFolder', 'renameFolder', 'moveFolder', 'deleteEmptyFolder', 'moveCatalogs', 'deleteCatalogs'].every(name => store.includes(name))],
   ['administração de catálogos não publica ProductStore', !store.includes('ProductStore.publishCurrent') && !store.includes('ProductStore.publishSnapshot')],
   ['mover catálogo preserva record e altera somente folderId', store.includes("? { ...record, folderId: destination } : record")],
-  ['excluir ativo limpa identidade sem resetar Core', store.includes("deletingActive ? { activateId: '' } : {}") && store.includes('deletedResource: true') && !/function deleteCatalogs[\s\S]*?Core\.resetCatalog\(\)/.test(store)],
+  ['excluir ativo limpa identidade sem resetar Core', store.includes("deletingActive ? { activateId: '' } : {}") && store.includes('deletedResource: true') && !deleteCatalogsBody.includes('Core.resetCatalog()')],
   ['CatalogLibrary consulta provider pelo CatalogQuery', library.includes('CatalogQuery.query') && !library.includes("fetch('/api/catalogs'")],
   ['CatalogLibrary administra somente via CatalogStore', ['CatalogStore.createFolder', 'CatalogStore.renameFolder', 'CatalogStore.moveFolder', 'CatalogStore.deleteEmptyFolder', 'CatalogStore.moveCatalogs', 'CatalogStore.deleteCatalogs'].every(call => library.includes(call))],
   ['Novo catálogo é interceptado pela authority salva', store.includes("document.getElementById('btnNewCatalog')") && store.includes('event.stopImmediatePropagation()') && store.includes('newSession()')],
