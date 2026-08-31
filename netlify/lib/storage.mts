@@ -1,5 +1,6 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { getDeployStore, getStore } from '@netlify/blobs';
+import { CATALOG_SNAPSHOT_VERSION, validateCatalogSnapshot } from './catalog-snapshot.mts';
 import { validateProductFolders } from './product-folders.mts';
 import { validateUniqueProductCodes } from './product-codes.mts';
 
@@ -9,9 +10,11 @@ declare const Netlify: {
 
 export const SESSION_COOKIE = 'catalogotop_write';
 export const PRODUCT_STORE = 'catalogotop-products';
+export const CATALOG_STORE = 'catalogotop-catalogs';
 export const ASSET_STORE = 'catalogotop-assets';
 export const SESSION_STORE = 'catalogotop-sessions';
 export const MAX_PRODUCTS_BYTES = 3_000_000;
+export const MAX_CATALOGS_BYTES = 3_000_000;
 export const MAX_ASSET_BYTES = 6_000_000;
 
 // Verificador público da frase compartilhada. A frase em si nunca entra no código.
@@ -26,6 +29,15 @@ export type ProductSnapshot = {
   writeId: string;
   folders?: unknown[];
   products: unknown[];
+};
+
+export type CatalogStoreSnapshot = {
+  schemaVersion: number;
+  revision: number;
+  updatedAt: string;
+  writeId: string;
+  folders?: unknown[];
+  catalogs: unknown[];
 };
 
 type WriteSession = {
@@ -45,6 +57,12 @@ export function productsStore() {
   return isProduction()
     ? getStore(PRODUCT_STORE, { consistency: 'strong' })
     : deployStore(PRODUCT_STORE);
+}
+
+export function catalogsStore() {
+  return isProduction()
+    ? getStore(CATALOG_STORE, { consistency: 'strong' })
+    : deployStore(CATALOG_STORE);
 }
 
 export function assetsStore() {
@@ -168,6 +186,10 @@ export function validateProductSnapshot(folders: unknown, products: unknown) {
   return validateProductFolders(folders, products);
 }
 
+export function validateCatalogStoreSnapshot(folders: unknown, catalogs: unknown) {
+  return validateCatalogSnapshot(folders, catalogs);
+}
+
 export async function currentSnapshot(): Promise<ProductSnapshot> {
   const store = productsStore();
   const current = await store.get('current', { type: 'json' });
@@ -175,4 +197,13 @@ export async function currentSnapshot(): Promise<ProductSnapshot> {
     return { schemaVersion: 1, revision: 0, updatedAt: '', writeId: '', products: [] };
   }
   return current as ProductSnapshot;
+}
+
+export async function currentCatalogSnapshot(): Promise<CatalogStoreSnapshot> {
+  const store = catalogsStore();
+  const current = await store.get('current', { type: 'json' });
+  if (!current) {
+    return { schemaVersion: CATALOG_SNAPSHOT_VERSION, revision: 0, updatedAt: '', writeId: '', folders: [], catalogs: [] };
+  }
+  return current as CatalogStoreSnapshot;
 }
