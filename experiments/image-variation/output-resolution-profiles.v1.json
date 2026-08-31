@@ -1,0 +1,45 @@
+{
+  "kind": "catalogotop.image-output-resolution-profiles",
+  "version": 1,
+  "status": "research-only",
+  "authority": "physical placement dimensions, not generic scale multipliers",
+  "formula": {
+    "requiredPixelsPerDimension": "ceil(holderMm / 25.4 * targetDpi)",
+    "cssPixelFallback": "holderMm = holderCssPx * 25.4 / 96",
+    "preferredInput": "measured holder widthMm/heightMm from the materialized A4 placement"
+  },
+  "profiles": [
+    {
+      "id": "print-balanced",
+      "targetDpi": 240,
+      "role": "comparison target; not a production default"
+    },
+    {
+      "id": "print-high",
+      "targetDpi": 300,
+      "role": "high-quality research target; not a production default"
+    }
+  ],
+  "evidenceAxes": [
+    {
+      "id": "source-factual-raster",
+      "meaning": "intrinsic source bytes/pixel dimensions and factual evidence"
+    },
+    {
+      "id": "placement-adequacy",
+      "meaning": "effective pixels per physical inch for the actual rendered use"
+    },
+    {
+      "id": "master-output-raster",
+      "meaning": "dimensions of the deterministic/generated derivative delivered for that use"
+    }
+  ],
+  "invariants": [
+    "higher master-output raster does not upgrade source factual raster",
+    "placement adequacy must be evaluated against physical holder dimensions",
+    "actual measured holder dimensions outrank template-name assumptions",
+    "contain/cover geometry must be considered before judging source adequacy",
+    "DPI adequacy does not prove optical sharpness, compression quality or product identity",
+    "Table, Card and Collection may legitimately need different output raster dimensions for the same product"
+  ]
+}
