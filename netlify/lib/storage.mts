@@ -1,5 +1,6 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { getDeployStore, getStore } from '@netlify/blobs';
+import { ASSET_INDEX_SNAPSHOT_VERSION, validateAssetIndexSnapshot } from './asset-index-snapshot.mts';
 import { CATALOG_SNAPSHOT_VERSION, validateCatalogSnapshot } from './catalog-snapshot.mts';
 import { validateProductFolders } from './product-folders.mts';
 import { validateUniqueProductCodes } from './product-codes.mts';
@@ -12,14 +13,13 @@ export const SESSION_COOKIE = 'catalogotop_write';
 export const PRODUCT_STORE = 'catalogotop-products';
 export const CATALOG_STORE = 'catalogotop-catalogs';
 export const ASSET_STORE = 'catalogotop-assets';
+export const ASSET_INDEX_STORE = 'catalogotop-asset-index';
 export const SESSION_STORE = 'catalogotop-sessions';
 export const MAX_PRODUCTS_BYTES = 3_000_000;
 export const MAX_CATALOGS_BYTES = 3_000_000;
+export const MAX_ASSET_INDEX_BYTES = 2_000_000;
 export const MAX_ASSET_BYTES = 6_000_000;
 
-// Verificador público da frase compartilhada. A frase em si nunca entra no código.
-// Como a frase gerada tem alta entropia, manter apenas o scrypt verifier no repo
-// evita depender de secrets/env vars para o bootstrap do pequeno app interno.
 const ACCESS_PHRASE_SCRYPT = 'scrypt$16384$8$1$cA6iGPNH7ZJb8kK_TfSHxQ$NLnD8tXtJTr67OvFoj0_m7c79bekQg2XTaXp37cI-O10Y8E1qYWeuzR5-8u_KW_GSAh-GGn9w7yt691A6s_JuA';
 
 export type ProductSnapshot = {
@@ -40,6 +40,15 @@ export type CatalogStoreSnapshot = {
   catalogs: unknown[];
 };
 
+export type AssetIndexStoreSnapshot = {
+  schemaVersion: number;
+  revision: number;
+  updatedAt: string;
+  writeId: string;
+  folders?: unknown[];
+  assets: unknown[];
+};
+
 type WriteSession = {
   exp: number;
   createdAt: string;
@@ -54,27 +63,23 @@ function deployStore(name: string) {
 }
 
 export function productsStore() {
-  return isProduction()
-    ? getStore(PRODUCT_STORE, { consistency: 'strong' })
-    : deployStore(PRODUCT_STORE);
+  return isProduction() ? getStore(PRODUCT_STORE, { consistency: 'strong' }) : deployStore(PRODUCT_STORE);
 }
 
 export function catalogsStore() {
-  return isProduction()
-    ? getStore(CATALOG_STORE, { consistency: 'strong' })
-    : deployStore(CATALOG_STORE);
+  return isProduction() ? getStore(CATALOG_STORE, { consistency: 'strong' }) : deployStore(CATALOG_STORE);
 }
 
 export function assetsStore() {
-  return isProduction()
-    ? getStore(ASSET_STORE, { consistency: 'strong' })
-    : deployStore(ASSET_STORE);
+  return isProduction() ? getStore(ASSET_STORE, { consistency: 'strong' }) : deployStore(ASSET_STORE);
+}
+
+export function assetIndexStore() {
+  return isProduction() ? getStore(ASSET_INDEX_STORE, { consistency: 'strong' }) : deployStore(ASSET_INDEX_STORE);
 }
 
 export function sessionsStore() {
-  return isProduction()
-    ? getStore(SESSION_STORE, { consistency: 'strong' })
-    : deployStore(SESSION_STORE);
+  return isProduction() ? getStore(SESSION_STORE, { consistency: 'strong' }) : deployStore(SESSION_STORE);
 }
 
 export function json(data: unknown, status = 200, headers: HeadersInit = {}) {
@@ -112,10 +117,7 @@ function sessionKey(token: string) {
 export async function issueWriteSession(ttlSeconds = 3600) {
   const token = randomBytes(32).toString('base64url');
   const now = Math.floor(Date.now() / 1000);
-  const record: WriteSession = {
-    exp: now + ttlSeconds,
-    createdAt: new Date().toISOString()
-  };
+  const record: WriteSession = { exp: now + ttlSeconds, createdAt: new Date().toISOString() };
   await sessionsStore().setJSON(sessionKey(token), record);
   return token;
 }
@@ -190,20 +192,27 @@ export function validateCatalogStoreSnapshot(folders: unknown, catalogs: unknown
   return validateCatalogSnapshot(folders, catalogs);
 }
 
+export function validateAssetIndexStoreSnapshot(folders: unknown, assets: unknown) {
+  return validateAssetIndexSnapshot(folders, assets);
+}
+
 export async function currentSnapshot(): Promise<ProductSnapshot> {
   const store = productsStore();
   const current = await store.get('current', { type: 'json' });
-  if (!current) {
-    return { schemaVersion: 1, revision: 0, updatedAt: '', writeId: '', products: [] };
-  }
+  if (!current) return { schemaVersion: 1, revision: 0, updatedAt: '', writeId: '', products: [] };
   return current as ProductSnapshot;
 }
 
 export async function currentCatalogSnapshot(): Promise<CatalogStoreSnapshot> {
   const store = catalogsStore();
   const current = await store.get('current', { type: 'json' });
-  if (!current) {
-    return { schemaVersion: CATALOG_SNAPSHOT_VERSION, revision: 0, updatedAt: '', writeId: '', folders: [], catalogs: [] };
-  }
+  if (!current) return { schemaVersion: CATALOG_SNAPSHOT_VERSION, revision: 0, updatedAt: '', writeId: '', folders: [], catalogs: [] };
   return current as CatalogStoreSnapshot;
+}
+
+export async function currentAssetIndexSnapshot(): Promise<AssetIndexStoreSnapshot> {
+  const store = assetIndexStore();
+  const current = await store.get('current', { type: 'json' });
+  if (!current) return { schemaVersion: ASSET_INDEX_SNAPSHOT_VERSION, revision: 0, updatedAt: '', writeId: '', folders: [], assets: [] };
+  return current as AssetIndexStoreSnapshot;
 }

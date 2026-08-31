@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="product-actions.css" />
   <link rel="stylesheet" href="product-library.css" />
   <link rel="stylesheet" href="catalog-library.css" />
+  <link rel="stylesheet" href="asset-library.css" />
   <link rel="stylesheet" href="contextual-inspector.css" />
   <link rel="stylesheet" href="image-variants.css" />
   <link rel="stylesheet" href="grouping-controls.css" />
@@ -101,6 +102,7 @@
           <section class="product-form-step" data-form-step="2" aria-label="Apresentação do produto">
             <div class="field-grid two"><label>Preço<input id="price" placeholder="Ex.: R$ 17,64" /></label><label>Imagem por URL<input id="imageUrl" inputmode="url" placeholder="https://..." /></label></div>
             <div class="image-picker" id="imageDropzone"><input id="imageFile" type="file" accept="image/*" /><img id="imagePreview" alt="Prévia do produto" /><div class="image-picker-copy"><strong>Imagem do produto</strong><span>Arraste, clique ou use uma URL.</span></div></div>
+            <div class="asset-library-picker-action"><button class="button secondary compact" id="btnChooseAssetLibrary" type="button">Escolher da Biblioteca</button></div>
             <label>Especificações<textarea id="specs" rows="5" placeholder="Uma por linha. Ex.:&#10;Carga: 35 kg&#10;Ciclos: 40.000"></textarea></label>
           </section>
           <section class="product-form-step" data-form-step="3" aria-label="Variações e tabela comercial">
@@ -151,10 +153,11 @@
     </section>
 
     <section class="panel" id="library">
-      <div class="section-heading"><div><p class="eyebrow">BIBLIOTECA</p><h2>Encontre e administre recursos.</h2><p class="muted">Produtos e catálogos compartilham a superfície, mas mantêm providers e revisões independentes.</p></div></div>
+      <div class="section-heading"><div><p class="eyebrow">BIBLIOTECA</p><h2>Encontre e administre recursos.</h2><p class="muted">Produtos, catálogos e imagens compartilham a superfície, mas mantêm providers e revisões independentes.</p></div></div>
       <div class="library-provider-switch" role="tablist" aria-label="Tipo de recurso da Biblioteca">
         <button class="active" type="button" role="tab" aria-selected="true" data-library-provider="products">Produtos</button>
         <button type="button" role="tab" aria-selected="false" data-library-provider="catalogs" tabindex="-1">Catálogos</button>
+        <button type="button" role="tab" aria-selected="false" data-library-provider="images" tabindex="-1">Imagens</button>
       </div>
       <div data-library-provider-panel="products">
         <div class="library-mobile-switch" role="tablist" aria-label="Biblioteca de produtos"><button class="active" type="button" role="tab" aria-selected="true" data-library-mobile-view="folders">Pastas</button><button type="button" role="tab" aria-selected="false" data-library-mobile-view="products" tabindex="-1">Produtos</button></div>
@@ -190,6 +193,15 @@
           </section>
         </div>
       </div>
+      <div data-library-provider-panel="images" hidden>
+        <section class="card asset-library-panel" id="assetLibraryPanel">
+          <div class="asset-picker-context hidden" id="assetPickerContext"><div><strong>Escolha uma imagem existente</strong><span>A referência será reutilizada sem novo upload.</span></div><button class="button secondary compact" id="assetPickerCancel" type="button">Voltar ao Cadastro</button></div>
+          <div class="library-toolbar"><input id="assetLibrarySearch" type="search" placeholder="Buscar nome, hash, produto ou catálogo" /><span class="counter" id="assetLibraryCount">0 imagens</span></div>
+          <div class="library-scope">Inventário autoritativo: <strong id="assetLibraryAuthority">índice r0 · produtos r0 · catálogos r0</strong></div>
+          <div class="asset-library-list" id="assetLibraryList"></div>
+          <div class="empty-state hidden" id="assetLibraryEmpty"><strong>Nenhuma imagem gerenciada encontrada.</strong><span>Imagens passam a aparecer quando são usadas por produtos/catálogos ou recebem metadata no índice.</span></div>
+        </section>
+      </div>
     </section>
   </main>
 
@@ -199,6 +211,8 @@
   <script defer src="src/catalog-date.js"></script>
   <script defer src="src/folder-tree.js"></script>
   <script defer src="src/catalog-snapshot.js"></script>
+  <script defer src="src/asset-index-snapshot.js"></script>
+  <script defer src="src/asset-usage.js"></script>
   <script defer src="src/product-folder-migration.js"></script>
   <script defer src="src/product-domain.js"></script>
   <script defer src="src/product-snapshot.js"></script>
@@ -210,6 +224,7 @@
   <script defer src="src/asset-client.js"></script>
   <script defer src="src/product-store.js"></script>
   <script defer src="src/catalog-store.js"></script>
+  <script defer src="src/asset-index-store.js"></script>
   <script defer src="src/importer.js"></script>
   <script defer src="src/templates.js"></script>
   <script defer src="src/icons.js"></script>
@@ -252,6 +267,7 @@
   <script defer src="src/product-library.js"></script>
   <script defer src="src/library-shell.js"></script>
   <script defer src="src/catalog-library.js"></script>
+  <script defer src="src/asset-library.js"></script>
   <script defer src="src/cadastro-surface.js"></script>
 </body>
 </html>

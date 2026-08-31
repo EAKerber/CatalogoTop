@@ -13,25 +13,32 @@ The V2 goal is not to turn CatalogoTop into a free-form page editor. The product
 
 The primary change in V2 is that the app stops treating the current browser session as the center of the product. Products, catalogs, reusable assets and templates become explicit resources that can be found, organized and reopened without collapsing their authorities into one monolithic state object.
 
+## Current milestone status
+
+- **R1 — Product Library Foundation: complete**.
+- **R2 — Saved Catalog Documents: complete** after R2a + R2b. See `R2-CLOSEOUT.md`.
+- **R3 — Asset Library / reusable media index: active**. First cut: `R3A-ASSET-INVENTORY-REUSE-INTENT.md`.
+- R4+ remain directional and are not authorized merely by appearing in this roadmap.
+
 ## Architectural direction — one Library UI, multiple authorities
 
-The visible `Biblioteca` can become a single navigation surface, but persistence should grow by resource provider rather than through one universal `LibraryStore`.
+The visible `Biblioteca` is a single navigation surface, while persistence grows by resource provider rather than through one universal `LibraryStore`.
 
 ```text
 Biblioteca UI
   ├─ Product provider    -> ProductStore / ProductSnapshot
-  ├─ Catalog provider    -> future CatalogStore / CatalogDocument records
-  ├─ Asset provider      -> future AssetIndex over content-addressed AssetStore
+  ├─ Catalog provider    -> CatalogStore / CatalogSnapshot
+  ├─ Asset provider      -> AssetIndexStore / AssetIndexSnapshot + immutable AssetStore
   └─ Template provider   -> future TemplateStore / constrained visual contracts
 ```
 
 A shared pure `FolderTree` vocabulary may be reused by providers, but folder namespaces and revision authorities remain provider-scoped unless a later real use case proves a global tree is superior.
 
-Reason: saving a catalog should not conflict merely because another client renamed a product folder. Likewise template lifecycle should not become coupled to product revision numbers.
+Reason: saving a catalog should not conflict merely because another client renamed a product folder. Likewise asset metadata should not share the ProductStore or CatalogStore revision.
 
 ## Product navigation target
 
-Primary application navigation evolves toward:
+Primary application navigation is:
 
 `Cadastro | Catálogo | Biblioteca`
 
@@ -42,7 +49,7 @@ Primary application navigation evolves toward:
 
 ## Dependency roadmap
 
-### V2-R1 — Product Library Foundation
+### V2-R1 — Product Library Foundation — COMPLETE
 
 Purpose: establish stable hierarchical organization for products and split product authoring from product administration without changing the A4 renderer.
 
@@ -59,24 +66,24 @@ Core deliverables:
 
 The detailed intent contract lives in `R1-PRODUCT-LIBRARY-INTENT.md`.
 
-### V2-R2 — Saved Catalog Documents
+### V2-R2 — Saved Catalog Documents — COMPLETE
 
 Purpose: make a catalog an explicit reopenable resource instead of only a transient local session/backup.
 
-Expected responsibilities:
+Delivered through R2a + R2b:
 
-- stable catalog ID and metadata;
+- stable catalog ID/metadata;
 - create/open/save/duplicate catalog;
-- optimistic revision/readback semantics analogous to the proven ProductStore pattern, but in a separate authority;
-- catalog folders in the Library using the shared folder vocabulary;
-- catalog-local composition state remains separate from product truth;
+- independent optimistic revision/readback/cache/conflict semantics;
+- catalog folders in the Library;
+- catalog-local composition state separate from product truth;
 - explicit dirty/saved state;
-- migration/import from the current session/backup shape;
+- compatible migration/import from current session/backup shape;
 - current A4 materialization remains `state/catalog record -> CatalogOrder -> CatalogDocument -> preview/print`.
 
-Do not make ProductStore revision the revision of a catalog.
+See `R2-SAVED-CATALOGS-INTENT.md`, `R2B-CATALOG-LIBRARY-ADMIN-INTENT.md` and `R2-CLOSEOUT.md`.
 
-### V2-R3 — Asset Library / reusable media index
+### V2-R3 — Asset Library / reusable media index — ACTIVE
 
 Purpose: turn the existing content-addressed blob store into a usable resource system without losing immutability/deduplication.
 
@@ -89,7 +96,21 @@ Expected responsibilities:
 - product images and future catalog assets can reference the same immutable content;
 - no automatic deletion of a hash merely because one product/resource stopped referencing it.
 
-This recut should reuse AssetStore rather than replace it.
+This recut reuses AssetStore rather than replacing it.
+
+#### R3a — Asset Inventory & Reuse Foundation
+
+First vertical:
+
+- separate `AssetIndexSnapshot` / `AssetIndexStore` authority;
+- inventory = indexed assets union managed hashes referenced by persisted ProductSnapshot/CatalogSnapshot;
+- derived usage projection rather than persisted usage counters;
+- `Imagens` provider inside Biblioteca;
+- human label editing;
+- reuse of an existing managed asset from Cadastro without re-upload/copy;
+- no blob deletion/GC and no full folder administration yet.
+
+Detailed contract: `R3A-ASSET-INVENTORY-REUSE-INTENT.md`.
 
 ### V2-R4 — Constrained Template System 2.0
 
@@ -162,12 +183,14 @@ Transport success alone is not sufficient.
 8. A4 renderer/pagination changes require their own explicit recut and physical browser gates.
 9. No free-form editor, generic nesting or arbitrary executable template system without a new product decision.
 10. Browser-local session state is not a substitute for saved-resource persistence.
+11. Content-addressed asset bytes remain immutable; metadata/index lifecycle must not rewrite or silently garbage-collect blobs.
+12. Usage/accounting must derive from authoritative resource snapshots rather than transient Core/session projections.
 
 ## Sequence rationale
 
-R1 comes first because every later resource-management workflow benefits from a stable Library/folder vocabulary.
+R1 came first because every later resource-management workflow benefits from a stable Library/folder vocabulary.
 
-R2 comes before major template/editor work because reopenable catalog identity is a prerequisite for meaningful template migration, version compatibility and preflight history.
+R2 came before major template/editor work because reopenable catalog identity is a prerequisite for meaningful template migration, version compatibility and preflight history.
 
 R3 precedes richer templates because reusable assets should have stable references before templates begin to depend on them.
 
