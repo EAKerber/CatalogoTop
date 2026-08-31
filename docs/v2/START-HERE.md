@@ -5,7 +5,12 @@ Baseline estável V1: **`main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v
 
 ## Estado atual
 
-A linha V2 concluiu R1, R2 e R3. O recorte **R4a — Template Contract & Versioned Binding** está implementado e em fechamento/promoção sobre a baseline `v2@bea1c20b629b49edd2c13b0bfd02fc87fab7382b`.
+A linha V2 concluiu R1, R2, R3 e **R4a — Template Contract & Versioned Binding**.
+
+Authority atual após a promoção do R4a:
+
+- `v2@dc36f31029a7deb2b6bbb3003a8227717c2c1e77`;
+- `main` permanece linha V1 estável e não é destino rotineiro de desenvolvimento V2.
 
 Entregas consolidadas:
 
@@ -14,8 +19,6 @@ Entregas consolidadas:
 - **R3 — Asset Library**: AssetIndex independente, inventory/usage autoritativos, provider `Imagens`, labels, pastas, busca/filtros, upload standalone deduplicado e reuso no Cadastro;
 - **R4a — Template Contract & Versioned Binding**: TemplateContract v1 bounded, built-ins versionados, binding persistido `templateId + templateVersion`, resolução fail-closed, budgets declarativos e chrome institucional app-owned.
 
-`main` permanece linha V1 estável e não é destino rotineiro de desenvolvimento V2.
-
 ## Ordem de leitura
 
 1. `docs/v2/START-HERE.md` — bootstrap e fronteiras atuais;
@@ -23,7 +26,7 @@ Entregas consolidadas:
 3. `docs/v2/R4A-CLOSEOUT.md` — estado fechado do contrato/version binding de templates;
 4. `docs/v2/R4A-TEMPLATE-CONTRACT-INTENT.md` — contrato original do recorte;
 5. `docs/v2/R3-CLOSEOUT.md` e `docs/v2/R2-CLOSEOUT.md` — authorities já estabilizadas;
-6. intents R1/R2/R3 quando precisar de decisões históricas específicas.
+6. intents R1/R2/R3 quando precisar entender decisões históricas específicas.
 
 ## Authorities V2
 
@@ -81,7 +84,7 @@ O backup não é uma authority V2.
 
 ## Próximo ponto de decisão — R4b
 
-Após a promoção do R4a, o próximo recorte direcional é **R4b — Template Library & Immutable Versions**.
+O próximo recorte direcional é **R4b — Template Library & Immutable Versions**.
 
 Antes de implementar R4b, preservar as fronteiras já provadas:
 
