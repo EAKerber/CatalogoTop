@@ -46,30 +46,29 @@ try {
   await page.waitForFunction(() => Boolean(window.CatalogoTop?.Core && window.CatalogoTop?.GroupingControls && window.CatalogoTop?.ContextualInspector && window.CatalogoTop?.CadastroSurface));
   await page.evaluate(installFixture);
 
-  await page.evaluate(() => document.querySelector('[data-mobile-workspace-target="library"]')?.click());
+  await page.evaluate(() => document.querySelector('[data-mobile-workspace-target="context"]')?.click());
   await page.waitForSelector('#cadastroProductRows tr');
   const existing = await page.evaluate(() => {
-    const panel = document.querySelector('#productLibraryPanel');
+    const panel = document.querySelector('#cadastroContextPanel');
     const rows = [...document.querySelectorAll('#cadastroProductRows tr')];
     const first = rows[0];
     const edit = first?.querySelector('[data-cadastro-edit]');
     const clone = first?.querySelector('[data-cadastro-clone]');
-    const legacy = panel.querySelector('[data-r1d-legacy-product-list-compat]');
     return {
-      selected: document.querySelector('[data-mobile-workspace-target="library"]')?.getAttribute('aria-selected'),
-      label: document.querySelector('[data-mobile-workspace-target="library"]')?.textContent?.trim(),
+      selected: document.querySelector('[data-mobile-workspace-target="context"]')?.getAttribute('aria-selected'),
+      label: document.querySelector('[data-mobile-workspace-target="context"]')?.textContent?.trim(),
       panelDisplay: getComputedStyle(panel).display,
       panelActive: panel.classList.contains('mobile-workspace-active'),
       rowCount: rows.length,
       rowHeight: first?.getBoundingClientRect().height || 0,
       editVisible: Boolean(edit && edit.getClientRects().length),
       cloneVisible: Boolean(clone && clone.getClientRects().length),
-      destructiveVisible: [...panel.querySelectorAll('[data-delete-product-direct], [data-delete-category]')].some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length),
-      legacyHidden: Boolean(legacy?.hidden),
+      destructiveVisible: [...panel.querySelectorAll('[data-delete-product-direct], [data-delete-category], [data-library-delete-products]')].some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length),
+      legacyPresent: Boolean(document.querySelector('[data-r1d-legacy-product-list-compat], #categoryFolders, #productRows')),
       overflowX: Math.max(0, panel.scrollWidth - panel.clientWidth)
     };
   });
-  if (existing.selected !== 'true' || existing.label !== 'Existentes' || existing.panelDisplay === 'none' || !existing.panelActive || existing.rowCount !== 14 || existing.rowHeight < 44 || !existing.editVisible || !existing.cloneVisible || existing.destructiveVisible || !existing.legacyHidden || existing.overflowX > 3) {
+  if (existing.selected !== 'true' || existing.label !== 'Existentes' || existing.panelDisplay === 'none' || !existing.panelActive || existing.rowCount !== 14 || existing.rowHeight < 44 || !existing.editVisible || !existing.cloneVisible || existing.destructiveVisible || existing.legacyPresent || existing.overflowX > 3) {
     throw new Error(`Existentes mobile regrediu: ${JSON.stringify(existing)}`);
   }
 
@@ -153,7 +152,7 @@ try {
   }));
   if (anchor.filter <= anchor.inspector || anchor.mode !== 'general' || !anchor.returning) throw new Error(`⚙ mobile não ancorou no topo da configuração: ${JSON.stringify(anchor)}`);
 
-  console.log('PASS browser mobile polish gate: Cadastro Existentes, rails, callout, escopo editorial e anchor contextual');
+  console.log('PASS browser mobile polish gate: Cadastro Existentes R1 final, rails, callout, escopo editorial e anchor contextual');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

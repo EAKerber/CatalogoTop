@@ -57,7 +57,7 @@ function installFixture() {
     ],
     selectedIds: [],
     catalog: {
-      title: 'Cadastro R1d gate',
+      title: 'Cadastro R1 final gate',
       templateId: 'technical',
       showPrices: true,
       createdAt: '2026-08-30T00:00:00.000Z',
@@ -85,21 +85,22 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('#cadastroProductRows tr').length === 3);
 
   const shell = await page.evaluate(() => {
-    const panel = document.querySelector('#productLibraryPanel');
-    const legacyShim = panel?.querySelector('[data-r1d-legacy-product-list-compat]');
-    const destructive = [...(panel?.querySelectorAll('[data-delete-product-direct], [data-delete-category]') || [])];
+    const panel = document.querySelector('#cadastroContextPanel');
+    const category = document.querySelector('#category');
+    const subcategory = document.querySelector('#subcategory');
+    const destructive = [...(panel?.querySelectorAll('[data-delete-product-direct], [data-delete-category], [data-library-delete-products]') || [])];
     return {
-      categoryHidden: document.querySelector('#category')?.closest('label')?.hidden,
-      subcategoryHidden: document.querySelector('#subcategory')?.closest('label')?.hidden,
-      deleteHidden: document.querySelector('#btnDeleteProduct')?.hidden,
-      mobileLabel: document.querySelector('[data-mobile-workspace-target="library"]')?.textContent?.trim(),
-      legacyShimHidden: Boolean(legacyShim?.hidden) && getComputedStyle(legacyShim).display === 'none' && legacyShim.getClientRects().length === 0,
-      destructiveOutsideCompat: destructive.some(node => !node.closest('[data-r1d-legacy-product-list-compat]')),
-      destructiveVisible: destructive.some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length > 0)
+      categoryHidden: category?.type === 'hidden',
+      subcategoryHidden: subcategory?.type === 'hidden',
+      deleteAbsent: !document.querySelector('#btnDeleteProduct'),
+      mobileLabel: document.querySelector('[data-mobile-workspace-target="context"]')?.textContent?.trim(),
+      legacyAbsent: !document.querySelector('[data-r1d-legacy-product-list-compat], #categoryFolders, #productRows'),
+      destructiveVisible: destructive.some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length > 0),
+      libraryHandoff: Boolean(panel?.querySelector('[data-cadastro-library]'))
     };
   });
-  if (!shell.categoryHidden || !shell.subcategoryHidden || !shell.deleteHidden || shell.mobileLabel !== 'Existentes' || !shell.legacyShimHidden || shell.destructiveOutsideCompat || shell.destructiveVisible) {
-    throw new Error(`Cadastro ainda expõe responsabilidades legadas/destrutivas: ${JSON.stringify(shell)}`);
+  if (!shell.categoryHidden || !shell.subcategoryHidden || !shell.deleteAbsent || shell.mobileLabel !== 'Existentes' || !shell.legacyAbsent || shell.destructiveVisible || !shell.libraryHandoff) {
+    throw new Error(`Cadastro final ainda expõe responsabilidades legadas/destrutivas ou perdeu handoff: ${JSON.stringify(shell)}`);
   }
 
   await page.fill('#productFolderPath', 'Ferragens / Corrediças');
@@ -120,9 +121,9 @@ try {
     path: document.querySelector('#productFolderPath').value,
     title: document.querySelector('#formTitle').textContent,
     sourceCount: window.CatalogoTop.Core.getState().products.length,
-    deleteHidden: document.querySelector('#btnDeleteProduct').hidden
+    deleteAbsent: !document.querySelector('#btnDeleteProduct')
   }));
-  if (!cloneDraft.productId || cloneDraft.productId === 'p1' || cloneDraft.code !== '' || cloneDraft.path !== 'Ferragens / Corrediças / Telescópicas' || cloneDraft.sourceCount !== 3 || !cloneDraft.deleteHidden || !cloneDraft.title.includes('ABC-100')) {
+  if (!cloneDraft.productId || cloneDraft.productId === 'p1' || cloneDraft.code !== '' || cloneDraft.path !== 'Ferragens / Corrediças / Telescópicas' || cloneDraft.sourceCount !== 3 || !cloneDraft.deleteAbsent || !cloneDraft.title.includes('ABC-100')) {
     throw new Error(`Usar como base não ficou como draft desacoplado: ${JSON.stringify(cloneDraft)}`);
   }
 
@@ -181,15 +182,15 @@ try {
   if (edit.productId !== 'p2' || edit.path !== 'Ferragens / Corrediças' || edit.code !== 'ABC-200') throw new Error(`Editar contextual perdeu identidade/pasta: ${JSON.stringify(edit)}`);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.click('[data-mobile-workspace-target="library"]');
+  await page.click('[data-mobile-workspace-target="context"]');
   const mobile = await page.evaluate(() => ({
-    selected: document.querySelector('[data-mobile-workspace-target="library"]')?.getAttribute('aria-selected'),
-    panelActive: document.querySelector('#productLibraryPanel')?.classList.contains('mobile-workspace-active'),
-    display: getComputedStyle(document.querySelector('#productLibraryPanel')).display
+    selected: document.querySelector('[data-mobile-workspace-target="context"]')?.getAttribute('aria-selected'),
+    panelActive: document.querySelector('#cadastroContextPanel')?.classList.contains('mobile-workspace-active'),
+    display: getComputedStyle(document.querySelector('#cadastroContextPanel')).display
   }));
   if (mobile.selected !== 'true' || !mobile.panelActive || mobile.display === 'none') throw new Error(`mobile não abriu Existentes de forma explícita: ${JSON.stringify(mobile)}`);
 
-  console.log('PASS browser Cadastro R1d gate: folder path, recursive context, clone draft, duplicate guard, deep create and mobile existing-products surface');
+  console.log('PASS browser Cadastro R1 final gate: folder path, recursive context, clone draft, duplicate guard, deep create, Library handoff and mobile existing-products surface');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

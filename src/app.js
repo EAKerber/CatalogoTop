@@ -42,47 +42,24 @@
     return product.image || Render.PLACEHOLDER;
   }
 
-  function renderProducts() {
-    const current = state();
-    const query = $('#searchProducts').value.trim();
-    const category = $('#filterCategory').value;
-    const products = current.products.filter(product => productMatches(product, query, category));
-    $('#productRows').innerHTML = products.map(product => `<tr>
-      <td><img class="product-thumb" src="${Render.esc(imageValue(product))}" alt="" /></td>
-      <td><strong>${Render.esc(product.code)}</strong><span class="status ${product.status === 'Ativo' ? 'active' : 'inactive'}">${Render.esc(product.status)}</span></td>
-      <td><button class="table-product-link" data-edit-product="${Render.esc(product.id)}">${Render.esc(product.description)}</button>${product.notes ? `<small>${Render.esc(product.notes)}</small>` : ''}</td>
-      <td>${Render.esc(product.category || '—')}<small>${Render.esc(product.subcategory || '')}</small></td>
-      <td><strong>${Render.esc(product.price || '—')}</strong></td>
-      <td><div class="product-row-actions">
-        <button class="icon-button" data-edit-product="${Render.esc(product.id)}" title="Editar" aria-label="Editar produto">›</button>
-        <button class="icon-button danger-action" data-delete-product-direct="${Render.esc(product.id)}" title="Excluir produto" aria-label="Excluir produto">×</button>
-      </div></td>
-    </tr>`).join('');
-    $('#productCount').textContent = `${current.products.length} ${current.products.length === 1 ? 'produto' : 'produtos'}`;
-    $('#productsEmpty').classList.toggle('hidden', current.products.length !== 0);
-  }
-
   function categories() {
     return Array.from(new Set(state().products.map(product => product.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }
 
-  function renderCategorySelects() {
+  function renderSelectionCategories() {
+    const select = $('#selectionCategory');
+    if (!select) return;
     const values = categories();
-    ['filterCategory', 'selectionCategory'].forEach(id => {
-      const select = $(`#${id}`);
-      const selected = select.value;
-      select.innerHTML = `<option value="">Todas as categorias</option>${values.map(category => `<option value="${Render.esc(category)}">${Render.esc(category)}</option>`).join('')}`;
-      if (values.includes(selected)) select.value = selected;
-    });
+    const selected = select.value;
+    select.innerHTML = `<option value="">Todas as categorias</option>${values.map(category => `<option value="${Render.esc(category)}">${Render.esc(category)}</option>`).join('')}`;
+    if (values.includes(selected)) select.value = selected;
   }
 
-  function renderTemplates() {
+  function renderTemplateSelect() {
+    const select = $('#catalogTemplate');
+    if (!select) return;
     const current = state();
-    $('#catalogTemplate').innerHTML = Templates.templates.map(template => `<option value="${template.id}" ${template.id === current.catalog.templateId ? 'selected' : ''}>${Render.esc(template.name)}</option>`).join('');
-    $('#templateCards').innerHTML = Templates.templates.map(template => `<article class="card template-card ${template.id === current.catalog.templateId ? 'selected' : ''}">
-      ${Render.renderTemplatePreview(template)}
-      <div class="template-card-copy"><span>${template.perPage} cards / página</span><h3>${Render.esc(template.name)}</h3><p>${Render.esc(template.description)}</p><button class="button ${template.id === current.catalog.templateId ? 'primary' : 'secondary'}" data-template="${template.id}">${template.id === current.catalog.templateId ? 'Em uso' : 'Usar template'}</button></div>
-    </article>`).join('');
+    select.innerHTML = Templates.templates.map(template => `<option value="${template.id}" ${template.id === current.catalog.templateId ? 'selected' : ''}>${Render.esc(template.name)}</option>`).join('');
   }
 
   function selectionFilters() {
@@ -184,9 +161,8 @@
   }
 
   function renderAll() {
-    renderCategorySelects();
-    renderProducts();
-    renderTemplates();
+    renderSelectionCategories();
+    renderTemplateSelect();
     renderSelection();
     renderCatalog();
   }
@@ -202,7 +178,6 @@
     $('#productForm').reset();
     $('#productId').value = '';
     $('#formTitle').textContent = 'Novo produto';
-    $('#btnDeleteProduct').disabled = true;
     $('#imagePreview').removeAttribute('src');
     $('#imageDropzone').classList.remove('has-image');
   }
@@ -224,7 +199,6 @@
     $('#imagePreview').src = imageValue(product);
     $('#imageDropzone').classList.add('has-image');
     $('#formTitle').textContent = `Editar ${product.code}`;
-    $('#btnDeleteProduct').disabled = false;
     $('#productForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -253,12 +227,17 @@
     $('#importReport').classList.remove('hidden');
     $('#btnConfirmImport')?.addEventListener('click', async () => {
       if (!pendingImport) return;
-      Core.mergeProducts(pendingImport.products, $('#importMode').value);
-      pendingImport = null;
-      $('#importProductsFile').value = '';
-      $('#importReport').classList.add('hidden');
-      renderAll();
-      await publishProducts();
+      try {
+        Core.mergeProducts(pendingImport.products, $('#importMode').value);
+        pendingImport = null;
+        $('#importProductsFile').value = '';
+        $('#importReport').classList.add('hidden');
+        window.dispatchEvent(new CustomEvent('catalogotop:products-updated', { detail: { type: 'products-imported' } }));
+        renderAll();
+        await publishProducts();
+      } catch (error) {
+        $('#importReport').innerHTML = `<div class="import-error"><strong>Não foi possível importar.</strong><span>${Render.esc(error.message || String(error))}</span></div>`;
+      }
     });
   }
 
@@ -308,16 +287,6 @@
     });
   }
 
-  async function deleteProductFromUi(id) {
-    try {
-      if (!NS.ProductActions?.deleteProduct) throw new Error('Operação de exclusão indisponível.');
-      const deleted = await NS.ProductActions.deleteProduct(id);
-      if (deleted && String($('#productId').value || '') === String(id)) clearProductForm();
-    } catch (error) {
-      alert(error.message || 'Não foi possível excluir o produto.');
-    }
-  }
-
   function bindOrderEvents(root) {
     root.addEventListener('dragstart', event => {
       const handle = event.target.closest('[data-order-handle]');
@@ -365,22 +334,9 @@
     $$('.tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
     $('#btnNewProduct').addEventListener('click', clearProductForm);
     $('#btnCancelEdit').addEventListener('click', clearProductForm);
-    $('#searchProducts').addEventListener('input', renderProducts);
-    $('#filterCategory').addEventListener('change', renderProducts);
     $('#searchSelection').addEventListener('input', renderSelection);
     $('#selectionCategory').addEventListener('change', renderSelection);
     $('#importProductsFile').addEventListener('change', event => handleProductImport(event.target.files[0]));
-
-    $('#productRows').addEventListener('click', event => {
-      const deleteButton = event.target.closest('[data-delete-product-direct]');
-      if (deleteButton) {
-        event.preventDefault();
-        deleteProductFromUi(deleteButton.dataset.deleteProductDirect);
-        return;
-      }
-      const editButton = event.target.closest('[data-edit-product]');
-      if (editButton) editProduct(editButton.dataset.editProduct);
-    });
 
     $('#productForm').addEventListener('submit', async event => {
       event.preventDefault();
@@ -426,13 +382,9 @@
         if (index >= 0) draft.products[index] = assignedProduct;
         else draft.products.push(assignedProduct);
       });
+      window.dispatchEvent(new CustomEvent('catalogotop:products-updated', { detail: { type: 'product-saved', productId: id } }));
       clearProductForm();
       await publishProducts();
-    });
-
-    $('#btnDeleteProduct').addEventListener('click', () => {
-      const id = $('#productId').value;
-      if (id) deleteProductFromUi(id);
     });
 
     const dropzone = $('#imageDropzone');
@@ -491,13 +443,6 @@
     });
     $('#btnPrint').addEventListener('click', () => { switchTab('catalog'); setTimeout(() => window.print(), 0); });
 
-    $('#templateCards').addEventListener('click', event => {
-      const button = event.target.closest('[data-template]');
-      if (!button) return;
-      save(draft => { draft.catalog.templateId = button.dataset.template; });
-      switchTab('catalog');
-    });
-
     $('#btnExportBackup').addEventListener('click', () => {
       download(`catalogotop-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(state(), null, 2), 'application/json');
     });
@@ -510,6 +455,7 @@
         NS.ComposerSelection?.clear?.();
         clearProductForm();
         renderAll();
+        window.dispatchEvent(new CustomEvent('catalogotop:products-updated', { detail: { type: 'backup-loaded' } }));
         if (confirm('Backup carregado localmente. Publicar os produtos deste backup na base compartilhada?')) await publishProducts();
       } catch (error) {
         alert('Backup inválido ou incompatível.');
@@ -524,7 +470,6 @@
   NS.App = {
     state,
     switchTab,
-    renderProducts,
     renderSelection,
     renderCatalog,
     renderAll,

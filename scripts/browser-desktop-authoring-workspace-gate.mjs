@@ -145,25 +145,23 @@ try {
   const products = await page.evaluate(() => {
     const workspace = document.querySelector('#products .product-workspace');
     const form = document.querySelector('#productForm');
-    const contextual = document.querySelector('#productLibraryPanel');
+    const contextual = document.querySelector('#cadastroContextPanel');
     const path = document.querySelector('#productFolderPath');
-    const legacyShim = document.querySelector('[data-r1d-legacy-product-list-compat]');
-    const legacyFolders = document.querySelector('#categoryFolders');
     const visibleTable = document.querySelector('.cadastro-product-table')?.closest('.table-wrap');
     return {
       columns: getComputedStyle(workspace).gridTemplateColumns,
       formDisplay: getComputedStyle(form).display,
       contextualDisplay: getComputedStyle(contextual).display,
       pathDisplay: getComputedStyle(path).display,
-      legacyShimHidden: Boolean(legacyShim?.hidden),
-      legacyShimDisplay: legacyShim ? getComputedStyle(legacyShim).display : '',
-      legacyFoldersRects: legacyFolders?.getClientRects().length || 0,
+      legacyShimPresent: Boolean(document.querySelector('[data-r1d-legacy-product-list-compat]')),
+      legacyFoldersPresent: Boolean(document.querySelector('#categoryFolders')),
+      legacyRowsPresent: Boolean(document.querySelector('#productRows')),
       tableOverflow: visibleTable ? Math.max(0, visibleTable.scrollWidth - visibleTable.clientWidth) : -1,
-      destructiveVisible: [...contextual.querySelectorAll('[data-delete-product-direct], [data-delete-category]')].some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length)
+      destructiveVisible: [...contextual.querySelectorAll('[data-delete-product-direct], [data-delete-category], [data-library-delete-products]')].some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length)
     };
   });
-  if (products.formDisplay === 'none' || products.contextualDisplay === 'none' || products.pathDisplay === 'none' || !products.legacyShimHidden || products.legacyShimDisplay !== 'none' || products.legacyFoldersRects !== 0 || products.tableOverflow > 3 || products.destructiveVisible) {
-    throw new Error(`Cadastro desktop deve usar formulário + consulta contextual, sem filesystem/destruição legados: ${JSON.stringify(products)}`);
+  if (products.formDisplay === 'none' || products.contextualDisplay === 'none' || products.pathDisplay === 'none' || products.legacyShimPresent || products.legacyFoldersPresent || products.legacyRowsPresent || products.tableOverflow > 3 || products.destructiveVisible) {
+    throw new Error(`Cadastro desktop deve usar formulário + consulta contextual, sem filesystem/shim/destruição legados: ${JSON.stringify(products)}`);
   }
 
   await page.setViewportSize({ width: 1100, height: 800 });
@@ -196,7 +194,7 @@ try {
   }));
   if (mobileAnchor.filterTop <= mobileAnchor.inspectorTop || !mobileAnchor.returning) throw new Error(`⚙ mobile deve ancorar na configuração, antes do filtro: ${JSON.stringify(mobileAnchor)}`);
 
-  console.log('PASS desktop panel ergonomics gate: metadata contextual, actions compactas, Cadastro contextual, 100%=0.8 e lista útil');
+  console.log('PASS desktop panel ergonomics gate: metadata contextual, actions compactas, Cadastro R1 final sem shim, 100%=0.8 e lista útil');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

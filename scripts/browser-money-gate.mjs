@@ -124,7 +124,7 @@ try {
   await page.click('[data-tab="products"]');
   await page.fill('#code', 'MONEY-GATE');
   await page.fill('#description', 'Produto de teste monetário');
-  await page.fill('#category', 'CORREDIÇAS');
+  await page.fill('#productFolderPath', 'CORREDIÇAS');
   await page.click('[data-form-step-target="2"]');
   await page.waitForSelector('[data-form-step="2"].active #price');
   await page.fill('#price', '4.2');

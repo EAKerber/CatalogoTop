@@ -151,6 +151,10 @@
       }
 
       const normalized = Core().normalizeProduct(product);
+      // CSV/XLSX V1 não declara folderId. normalizeProduct cria o campo vazio por
+      // conveniência de runtime, mas a fronteira de merge precisa enxergar a
+      // intenção legada category/subcategory para resolvê-la deterministicamente.
+      delete normalized.folderId;
       if (!quantityMin && !quantityPriceValue) delete normalized.quantityPrice;
       products.push(normalized);
     });

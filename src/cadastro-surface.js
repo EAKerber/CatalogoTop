@@ -7,64 +7,25 @@
   const ProductQuery = NS?.ProductQuery;
   const ProductDomain = NS?.ProductDomain;
   const ProductSnapshot = NS?.ProductSnapshot;
-  const Migration = NS?.ProductFolderMigration;
   const App = NS?.App;
   const Render = NS?.Render;
 
   const form = document.getElementById('productForm');
-  const panel = document.getElementById('productLibraryPanel');
+  const panel = document.getElementById('cadastroContextPanel');
+  const pathInput = document.getElementById('productFolderPath');
+  const pathOptions = document.getElementById('productFolderPathOptions');
   const categoryInput = document.getElementById('category');
   const subcategoryInput = document.getElementById('subcategory');
   const codeInput = document.getElementById('code');
   const productIdInput = document.getElementById('productId');
-  if (!Core || !FolderTree || !ProductQuery || !ProductDomain || !ProductSnapshot || !Migration || !App || !Render || !form || !panel || !categoryInput || !subcategoryInput || !codeInput || !productIdInput) return;
-
-  const categoryLabel = categoryInput.closest('label');
-  const subcategoryLabel = subcategoryInput.closest('label');
-  const deleteButton = document.getElementById('btnDeleteProduct');
-  const mobileLibraryButton = document.querySelector('[data-mobile-workspace-target="library"]');
-
-  if (categoryLabel) categoryLabel.hidden = true;
-  if (subcategoryLabel) subcategoryLabel.hidden = true;
-  if (deleteButton) deleteButton.hidden = true;
-  if (mobileLibraryButton) mobileLibraryButton.textContent = 'Existentes';
-
-  const folderField = document.createElement('label');
-  folderField.className = 'product-folder-path-field';
-  folderField.innerHTML = `Pasta *
-    <input id="productFolderPath" list="productFolderPathOptions" autocomplete="off" placeholder="Ex.: Ferragens / Corrediças / Telescópicas" />
-    <datalist id="productFolderPathOptions"></datalist>
-    <small>Escolha um caminho existente ou digite um novo. Pastas novas são criadas ao salvar o produto.</small>`;
-  categoryLabel?.before(folderField);
-
-  panel.innerHTML = `
-    <div class="form-head">
-      <div><p class="eyebrow">EXISTENTES</p><h3>Produtos nesta pasta e subpastas</h3></div>
-      <span id="cadastroScopedCount" class="counter">0 produtos</span>
-    </div>
-    <div class="list-toolbar"><input id="cadastroProductSearch" type="search" placeholder="Buscar código ou descrição" /></div>
-    <div class="table-wrap">
-      <table class="product-table cadastro-product-table">
-        <thead><tr><th>Código</th><th>Produto</th><th>Pasta</th><th></th></tr></thead>
-        <tbody id="cadastroProductRows"></tbody>
-      </table>
-    </div>
-    <div id="cadastroProductsEmpty" class="empty-state hidden"><strong>Nenhum produto neste escopo.</strong><span>Escolha outra pasta ou limpe a busca.</span></div>
-    <div hidden aria-hidden="true" data-r1d-legacy-product-list-compat>
-      <input id="searchProducts" type="search" />
-      <select id="filterCategory"><option value="">Todas as categorias</option></select>
-      <span id="productCount"></span>
-      <div id="categoryFolders"></div>
-      <table><tbody id="productRows"></tbody></table>
-      <div id="productsEmpty" class="hidden"></div>
-    </div>`;
-
-  const pathInput = document.getElementById('productFolderPath');
-  const pathOptions = document.getElementById('productFolderPathOptions');
   const contextSearch = document.getElementById('cadastroProductSearch');
   const contextRows = document.getElementById('cadastroProductRows');
   const contextEmpty = document.getElementById('cadastroProductsEmpty');
   const scopedCount = document.getElementById('cadastroScopedCount');
+
+  if (!Core || !FolderTree || !ProductQuery || !ProductDomain || !ProductSnapshot || !App || !Render
+      || !form || !panel || !pathInput || !pathOptions || !categoryInput || !subcategoryInput
+      || !codeInput || !productIdInput || !contextSearch || !contextRows || !contextEmpty || !scopedCount) return;
 
   function pathSegments(value = pathInput.value) {
     const raw = String(value || '').trim();
@@ -97,8 +58,7 @@
   function folderPathForId(folderId) {
     const id = String(folderId || '').trim();
     if (!id) return '';
-    const record = folderRecords().find(item => item.folder.id === id);
-    return record?.label || '';
+    return folderRecords().find(item => item.folder.id === id)?.label || '';
   }
 
   function renderFolderOptions() {
@@ -151,14 +111,14 @@
         <td><div class="product-row-actions">
           <button class="button secondary compact" type="button" data-cadastro-edit="${Render.esc(product.id)}">Editar</button>
           <button class="button secondary compact" type="button" data-cadastro-clone="${Render.esc(product.id)}">Usar como base</button>
+          <button class="button secondary compact" type="button" data-cadastro-library="${Render.esc(product.id)}">Biblioteca</button>
         </div></td>
       </tr>`).join('');
     contextEmpty.classList.toggle('hidden', products.length !== 0);
   }
 
   function setPathFromProduct(product) {
-    const path = folderPathForId(product?.folderId) || [product?.category, product?.subcategory].filter(Boolean).join(' / ');
-    pathInput.value = path;
+    pathInput.value = folderPathForId(product?.folderId) || [product?.category, product?.subcategory].filter(Boolean).join(' / ');
     syncLegacyFields();
     renderContext();
   }
@@ -166,6 +126,8 @@
   function editProduct(id) {
     const product = Core.getState().products.find(item => String(item.id) === String(id));
     if (!product) return;
+    App.switchTab('products');
+    document.querySelector('[data-mobile-workspace-target="form"]')?.click();
     App.editProduct(product.id);
     NS.ProductDetails?.loadDetails?.();
     setPathFromProduct(product);
@@ -180,6 +142,8 @@
       now: () => new Date().toISOString()
     });
 
+    App.switchTab('products');
+    document.querySelector('[data-mobile-workspace-target="form"]')?.click();
     App.editProduct(source.id);
     NS.ProductDetails?.loadDetails?.();
 
@@ -192,13 +156,13 @@
     document.getElementById('specs').value = Core.specsToText(clone.specs);
     document.getElementById('imageUrl').value = clone.image;
     document.getElementById('formTitle').textContent = `Novo produto baseado em ${source.code}`;
-    if (deleteButton) {
-      deleteButton.hidden = true;
-      deleteButton.disabled = true;
-    }
     setPathFromProduct(clone);
     document.querySelector('[data-form-step-target="1"]')?.click();
     codeInput.focus();
+  }
+
+  function openLibrary(id) {
+    NS.ProductLibrary?.openProduct?.(id);
   }
 
   function resetCadastroPath() {
@@ -251,12 +215,11 @@
 
   panel.addEventListener('click', event => {
     const editButton = event.target.closest('[data-cadastro-edit]');
-    if (editButton) {
-      editProduct(editButton.dataset.cadastroEdit);
-      return;
-    }
+    if (editButton) return editProduct(editButton.dataset.cadastroEdit);
     const cloneButton = event.target.closest('[data-cadastro-clone]');
-    if (cloneButton) useAsBase(cloneButton.dataset.cadastroClone);
+    if (cloneButton) return useAsBase(cloneButton.dataset.cadastroClone);
+    const libraryButton = event.target.closest('[data-cadastro-library]');
+    if (libraryButton) openLibrary(libraryButton.dataset.cadastroLibrary);
   });
 
   ['btnNewProduct', 'btnCancelEdit'].forEach(id => {
@@ -276,6 +239,7 @@
     assignProduct,
     editProduct,
     useAsBase,
+    openLibrary,
     pathSegments
   });
 })();
