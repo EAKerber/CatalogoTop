@@ -194,13 +194,23 @@
         </div>
       </div>
       <div data-library-provider-panel="images" hidden>
-        <section class="card asset-library-panel" id="assetLibraryPanel">
-          <div class="asset-picker-context hidden" id="assetPickerContext"><div><strong>Escolha uma imagem existente</strong><span>A referência será reutilizada sem novo upload.</span></div><button class="button secondary compact" id="assetPickerCancel" type="button">Voltar ao Cadastro</button></div>
-          <div class="library-toolbar"><input id="assetLibrarySearch" type="search" placeholder="Buscar nome, hash, produto ou catálogo" /><span class="counter" id="assetLibraryCount">0 imagens</span></div>
-          <div class="library-scope">Inventário autoritativo: <strong id="assetLibraryAuthority">índice r0 · produtos r0 · catálogos r0</strong></div>
-          <div class="asset-library-list" id="assetLibraryList"></div>
-          <div class="empty-state hidden" id="assetLibraryEmpty"><strong>Nenhuma imagem gerenciada encontrada.</strong><span>Imagens passam a aparecer quando são usadas por produtos/catálogos ou recebem metadata no índice.</span></div>
-        </section>
+        <div class="library-mobile-switch" role="tablist" aria-label="Biblioteca de imagens"><button type="button" role="tab" aria-selected="false" data-asset-library-mobile-view="folders" tabindex="-1">Pastas</button><button class="active" type="button" role="tab" aria-selected="true" data-asset-library-mobile-view="images">Imagens</button></div>
+        <div class="asset-library-admin" id="assetLibraryAdmin" data-mobile-view="images">
+          <aside class="card library-tree-pane asset-library-tree-pane">
+            <div class="library-pane-head"><h3>Pastas</h3><button class="button secondary compact" id="assetLibraryCreateFolder" type="button">+ Pasta</button></div>
+            <div class="library-folder-tree" id="assetLibraryFolderTree"></div>
+            <div class="library-folder-actions"><select id="assetLibraryFolderParent" aria-label="Nova pasta pai de imagem"></select><div class="library-folder-actions-row"><button class="button secondary compact" id="assetLibraryRenameFolder" type="button">Renomear</button><button class="button secondary compact" id="assetLibraryMoveFolder" type="button">Mover pasta</button><button class="button secondary compact library-danger" id="assetLibraryDeleteFolder" type="button">Excluir vazia</button></div></div>
+          </aside>
+          <section class="card asset-library-resources-pane">
+            <div class="asset-picker-context hidden" id="assetPickerContext"><div><strong>Escolha uma imagem existente</strong><span>A referência será reutilizada sem novo upload.</span></div><button class="button secondary compact" id="assetPickerCancel" type="button">Voltar ao Cadastro</button></div>
+            <div class="library-toolbar asset-library-toolbar"><input id="assetLibrarySearch" type="search" placeholder="Buscar nome, hash, pasta, produto ou catálogo" /><select id="assetLibraryUsageFilter" aria-label="Filtrar imagens por uso"><option value="all">Todos</option><option value="used">Em uso</option><option value="unused">Sem uso</option></select><span class="counter" id="assetLibraryCount">0 imagens</span></div>
+            <div class="library-scope">Escopo: <strong id="assetLibraryFolderPath">Todas as imagens</strong> · inclui subpastas · <span id="assetLibraryAuthority">índice r0 · produtos r0 · catálogos r0</span></div>
+            <div class="library-selection-toolbar"><span class="counter" id="assetLibrarySelectionCount">0 selecionadas</span><button class="button secondary compact" id="assetLibrarySelectVisible" type="button">Selecionar visíveis</button><button class="button secondary compact" id="assetLibraryClearSelection" type="button">Limpar</button><select id="assetLibraryMoveDestination" aria-label="Pasta de destino"><option value="__choose__">Mover para…</option></select><button class="button secondary compact" id="assetLibraryMoveAssets" type="button">Mover selecionadas</button></div>
+            <div class="asset-library-upload"><input id="assetLibraryUploadInput" type="file" accept="image/*" multiple /><button class="button primary compact" id="assetLibraryUploadButton" type="button">+ Adicionar imagens</button><span class="asset-library-upload-status" id="assetLibraryUploadStatus" aria-live="polite"></span></div>
+            <div class="asset-library-list" id="assetLibraryList"></div>
+            <div class="empty-state hidden" id="assetLibraryEmpty"><strong>Nenhuma imagem neste escopo.</strong><span>Ajuste a pasta, a busca ou o filtro. Imagens novas podem ser adicionadas diretamente aqui.</span></div>
+          </section>
+        </div>
       </div>
     </section>
   </main>
@@ -213,6 +223,8 @@
   <script defer src="src/catalog-snapshot.js"></script>
   <script defer src="src/asset-index-snapshot.js"></script>
   <script defer src="src/asset-usage.js"></script>
+  <script defer src="src/asset-query.js"></script>
+  <script defer src="src/asset-inventory.js"></script>
   <script defer src="src/product-folder-migration.js"></script>
   <script defer src="src/product-domain.js"></script>
   <script defer src="src/product-snapshot.js"></script>

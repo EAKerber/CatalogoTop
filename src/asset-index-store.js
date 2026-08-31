@@ -271,6 +271,7 @@
 
   NS.AssetIndexStore = Object.freeze({
     bootstrap,
+    ensureWritable: ensureSession,
     setLabel,
     createFolder,
     renameFolder,
