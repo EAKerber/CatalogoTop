@@ -74,6 +74,11 @@ const browser = await chromium.launch({ headless: true });
 
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const dialogs = [];
+  page.on('dialog', async dialog => {
+    dialogs.push(dialog.message());
+    await dialog.dismiss();
+  });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.CatalogoTop?.CadastroSurface && document.querySelector('#productFolderPath')));
   await page.evaluate(installFixture);
@@ -136,17 +141,27 @@ try {
   await page.fill('#code', 'NEW-1');
   await page.fill('#description', 'Corrediça premium');
   await page.locator('#productForm').evaluate(form => form.requestSubmit());
-  await page.waitForFunction(() => window.CatalogoTop.Core.getState().products.some(product => product.code === 'NEW-1'));
+  await page.waitForTimeout(100);
   const created = await page.evaluate(() => {
     const NS = window.CatalogoTop;
     const product = NS.Core.getState().products.find(item => item.code === 'NEW-1');
-    return {
+    return product ? {
+      exists: true,
       count: NS.Core.getState().products.length,
       path: NS.FolderTree.pathOf(NS.Core.getState().folders, product.folderId).map(item => item.name),
       category: product.category,
       subcategory: product.subcategory
+    } : {
+      exists: false,
+      count: NS.Core.getState().products.length,
+      codeValidity: document.querySelector('#code').validationMessage,
+      pathValidity: document.querySelector('#productFolderPath').validationMessage,
+      category: document.querySelector('#category').value,
+      subcategory: document.querySelector('#subcategory').value,
+      productId: document.querySelector('#productId').value
     };
   });
+  if (!created.exists) throw new Error(`criação profunda pelo Cadastro não materializou produto: ${JSON.stringify({ ...created, dialogs })}`);
   if (created.count !== 4 || created.path.join(' / ') !== 'Ferragens / Corrediças / Telescópicas / Premium' || created.category !== 'Ferragens' || created.subcategory !== 'Corrediças / Telescópicas / Premium') {
     throw new Error(`criação profunda pelo Cadastro não preservou hierarquia/mirrors: ${JSON.stringify(created)}`);
   }
