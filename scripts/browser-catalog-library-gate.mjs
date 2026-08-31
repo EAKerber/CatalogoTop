@@ -208,7 +208,13 @@ try {
     };
   });
   await page.click('#catalogLibraryDeleteCatalogs');
-  await page.waitForFunction(id => !window.CatalogoTop.CatalogStore.getSnapshot().catalogs.some(record => record.id === id), betaId);
+  await page.waitForFunction(id => {
+    const store = window.CatalogoTop.CatalogStore;
+    const removed = !store.getSnapshot().catalogs.some(record => record.id === id);
+    const unsaved = !store.getActiveCatalogId() && store.isDirty();
+    const badgeDirty = document.getElementById('catalogSaveStatus')?.dataset.saveState === 'dirty';
+    return removed && unsaved && badgeDirty;
+  }, betaId);
   const afterDelete = await page.evaluate(() => {
     const NS = window.CatalogoTop;
     const state = NS.Core.getState();
