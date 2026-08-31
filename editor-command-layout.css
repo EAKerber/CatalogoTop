@@ -101,7 +101,7 @@
     font-size: 7px;
   }
   #catalog .contextual-inspector .inspector-fields[data-inspector-table] > .inspector-price-style .inspector-segmented {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 3px;
   }
   #catalog .contextual-inspector .inspector-fields[data-inspector-table] > .inspector-price-style .inspector-segmented span {
