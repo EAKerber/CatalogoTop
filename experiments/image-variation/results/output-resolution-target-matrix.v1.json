@@ -1,0 +1,51 @@
+{
+  "kind": "catalogotop.image-output-resolution-target-matrix",
+  "version": 1,
+  "status": "research-only",
+  "basis": {
+    "cssPixelsPerInch": 96,
+    "millimetersPerInch": 25.4,
+    "researchDpiTargets": [240, 300],
+    "note": "The benchmark profiles are logical/CSS-pixel fixtures. Actual materialized widthMm/heightMm remains the preferred authority in V2. Pixel counts below conservatively use ceil after conversion."
+  },
+  "profiles": [
+    {
+      "id": "card-standard",
+      "logicalPx": [300, 220],
+      "physicalMmApprox": [79.375, 58.208333333333336],
+      "print240RequiredPx": [750, 550],
+      "print300RequiredPx": [938, 688],
+      "fourXFixturePx": [1200, 880],
+      "fourXEffectiveDpi": 384
+    },
+    {
+      "id": "collection-member",
+      "logicalPx": [180, 140],
+      "physicalMmApprox": [47.625, 37.041666666666664],
+      "print240RequiredPx": [450, 350],
+      "print300RequiredPx": [563, 438],
+      "fourXFixturePx": [720, 560],
+      "fourXEffectiveDpi": 384
+    },
+    {
+      "id": "card-wide",
+      "logicalPx": [440, 180],
+      "physicalMmApprox": [116.41666666666667, 47.625],
+      "print240RequiredPx": [1101, 450],
+      "print300RequiredPx": [1376, 563],
+      "fourXFixturePx": [1760, 720],
+      "fourXEffectiveDpi": 384,
+      "roundingNote": "The exact mathematical CSS conversion lands essentially on 1100/1375 horizontally; the research utility intentionally uses conservative ceil over floating/measured-mm input, yielding one pixel of headroom."
+    }
+  ],
+  "fourXVs300": {
+    "linearHeadroomRatio": 1.28,
+    "approxPixelAreaHeadroomRatio": 1.6384,
+    "interpretation": "A 4x CSS-derived master corresponds to 384 DPI and therefore carries about 28% linear / 64% raster-area headroom over a 300-DPI physical-use target. This is acceptable as a research fixture but is not evidence that 4x should be a product contract."
+  },
+  "reuseDecision": {
+    "pixelAdequacyAloneIsSufficientForReuse": false,
+    "reason": "A derivative may have enough pixels for another placement while its aspect/composition/semantic framing remains inappropriate there.",
+    "default": "Keep catalog derivatives placement-local; explicit promotion/reuse requires fidelity plus composition compatibility, not only raster sufficiency."
+  }
+}
