@@ -1,0 +1,41 @@
+{
+  "kind": "catalogotop.r-img-1-4-producer-repeatability",
+  "version": 1,
+  "status": "research-only",
+  "caseId": "h45-native-source-grounded-master",
+  "goal": "Obtain 3-5 clean image-only H45 candidates with the exact factual source anchor, unchanged viewpoint/composition and native output raster adequate for the wide physical-use target.",
+  "attempts": [
+    {
+      "generatorId": "f3660d0d-5c32-44ba-9f5f-e6946f1bd039",
+      "producerContract": "fail",
+      "reason": "Returned an infographic/report containing multiple self-declared candidates, metrics and verdicts instead of image-only masters."
+    },
+    {
+      "generatorId": "835c43b7-87c9-456b-b19f-9b641c296eb1",
+      "producerContract": "fail",
+      "reason": "Returned another research dashboard rather than a clean edited product image, despite explicit source-reference anchoring."
+    },
+    {
+      "generatorId": "feecda2c-e8f3-4fef-b91f-f1147b20d244",
+      "producerContract": "fail",
+      "reason": "Returned an infographic board with embedded candidate imagery and generated gate claims rather than image-only native masters."
+    }
+  ],
+  "cleanImageOnlyCandidatesObtained": 0,
+  "nativeMasterClaimsVerified": 0,
+  "embeddedCandidateImageryAdmissibleForNativeResolutionGate": false,
+  "independentFactualFinding": {
+    "reviewedGeneratorId": "aa89f137-0218-41db-b39f-be47943197cc",
+    "outcome": "FAIL_FACTUAL_TOPOLOGY_MISMATCH",
+    "note": "The visually promising prior candidate becomes a factual failure when compared to the exact H45 source: the source has two separate slide pieces and the generated rail topology/hole patterns/terminal structures materially differ."
+  },
+  "result": "PRODUCER_NOT_RELIABLE_FOR_FAITHFUL_IMAGE_ONLY_MASTER",
+  "interpretation": [
+    "The producer demonstrates strong visual plausibility for furniture hardware but currently poor contract reliability in this session.",
+    "Visual plausibility and source fidelity must remain separate gates.",
+    "The repeated report-output behavior prevents measuring native master resolution or a true 3-5-sample factual pass rate.",
+    "The experiment should not be converted into a success by extracting report imagery and treating it as native masters."
+  ],
+  "stopDecision": "Do not spend further samples on the same producer/channel in this experiment unless the editing channel behavior changes materially.",
+  "nextUsefulHypothesis": "Keep the source-grounded capability hypothesis open, but require a producer that can return image-only edits before testing viewpoint change or production policy."
+}
