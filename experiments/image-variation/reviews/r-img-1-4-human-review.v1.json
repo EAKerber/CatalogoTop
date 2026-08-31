@@ -1,0 +1,49 @@
+{
+  "kind": "catalogotop.r-img-1-4-human-review",
+  "version": 1,
+  "status": "research-only",
+  "caseId": "h45-native-source-grounded-master",
+  "reviewScope": "Human visual signal for the two producer attempts shown in the active research session. Generated report text, self-authored metrics and self-declared PASS labels are explicitly non-authoritative.",
+  "attempts": [
+    {
+      "attempt": 1,
+      "generatorId": "2638cff6-aec2-4753-b809-3b968d1426cb",
+      "outcome": "FAIL_VISIBLE_HALLUCINATION",
+      "humanObservation": "Generated fantasy items / hardware were visibly introduced.",
+      "admissibleAsCandidate": false,
+      "reason": "Visible invented product geometry/items violates the factual-identity gate regardless of presentation quality."
+    },
+    {
+      "attempt": 2,
+      "generatorId": "aa89f137-0218-41db-b39f-be47943197cc",
+      "outcome": "VISUAL_PASS_CANDIDATE",
+      "humanObservation": "The source-grounded product rendering appears very good and substantially more convincing than attempt 1.",
+      "admissibleAsCandidate": "conditional",
+      "reason": "The embedded product rendering is visually promising, but the producer still returned a report/infographic rather than a clean image-only master. The report's own claims, metrics and PASS labels are not research evidence."
+    }
+  ],
+  "interpretation": [
+    "Producer reliability is not binary: the same source-grounded task can range from obvious hallucination to a visually convincing result.",
+    "A successful-looking sample is evidence that the capability is promising, not evidence that the producer is consistently factual.",
+    "The important next question is repeatability and landmark fidelity, not whether one sample looks plausible at normal viewing size.",
+    "The second attempt justifies continuing R-IMG-1.4; it does not yet justify production promotion or schema freeze."
+  ],
+  "nextGate": {
+    "producerContract": [
+      "return the edited/product image only; no infographic, report, metrics or verdict text",
+      "use the exact H45 source as factual anchor",
+      "preserve the already-approved composition/viewpoint for this experiment",
+      "return a native output meeting the physical-use raster requirement (minimum approximately 1376x563 for the current wide 300-DPI target; 1760x720 remains an acceptable research master)"
+    ],
+    "fidelityReview": [
+      "compare piece count",
+      "compare long-slot and circular-hole pattern",
+      "compare terminal/end structures",
+      "compare visible fittings/stops",
+      "compare relative rail proportions and overlap",
+      "inspect at native pixels and zoom, not only placement scale"
+    ],
+    "successCondition": "A clean image-only candidate passes the landmark review without visible invention/removal and remains materially better presented than the deterministic baseline.",
+    "failureCondition": "Any invented/removed hardware, changed hole/slot topology, altered piece count, unsupported geometry, or inability to obtain an image-only candidate."
+  }
+}
