@@ -1,0 +1,26 @@
+{
+  "kind": "catalogotop.image-variant-inference-warning-decision",
+  "version": 1,
+  "status": "research-only-provisional",
+  "scope": "R-IMG-1.4 and future V2 image-variant UX",
+  "decision": "A visually acceptable source-grounded variant may remain usable even when some geometry or surface information is inferred, but the inference must be visible to the author at variant selection/review time.",
+  "principles": [
+    "Do not collapse inferred variants into the same status as original or purely deterministic recompositions.",
+    "Inference status belongs to the variant/provenance layer, not to the factual product record itself.",
+    "The warning is an authoring/review signal and should not be printed into the catalog by default.",
+    "Exported metadata should preserve the inference/review state for traceability.",
+    "This record does not freeze a production schema or final UI wording."
+  ],
+  "provisionalUxDirection": {
+    "selectionBadge": "Inferida / revisar",
+    "selectionWarning": "Esta variante preserva a referência original, mas contém elementos visuais inferidos. Revise antes do uso.",
+    "firstUseBehavior": "A lightweight acknowledgment may be appropriate on first use, but remains an open UX decision."
+  },
+  "provisionalTaxonomy": [
+    "no-inference",
+    "light-inference",
+    "material-inference"
+  ],
+  "currentH45A0Interpretation": "The first valid direct-source-bound A0 result is a candidate for light-inference/review-required because the output presents a more rectified/orthographic view than the factual source and therefore may expose or resolve geometry not fully visible in the source.",
+  "researchBoundary": "Continue the producer experiment independently; this warning decision must not be used to excuse fantasy hardware, changed topology, invented fittings, or other factual failures."
+}
