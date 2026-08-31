@@ -1,7 +1,7 @@
 {
   "kind": "catalogotop.r-img-1-4-independent-factual-review",
   "version": 1,
-  "status": "research-only",
+  "status": "research-only-superseded-verdict",
   "caseId": "h45-native-source-grounded-master",
   "source": {
     "sourceId": "h45",
@@ -12,25 +12,31 @@
   },
   "reviewedGeneratorId": "aa89f137-0218-41db-b39f-be47943197cc",
   "priorHumanSignal": "VISUAL_PASS_CANDIDATE",
-  "independentOutcome": "FAIL_FACTUAL_TOPOLOGY_MISMATCH",
-  "scope": "Independent visual comparison against the exact factual H45 source. Text, metrics, self-declared PASS labels and the producer's own embedded reference are non-authoritative.",
-  "observations": [
-    "The exact source visibly contains two separate telescopic-slide pieces arranged diagonally.",
-    "The generated candidate depicts a materially different dominant assembled-rail topology rather than preserving the two factual source pieces.",
-    "Visible hole/slot patterns and terminal structures do not correspond closely enough to the exact source to pass the factual-identity gate.",
-    "The generated object is visually plausible as furniture hardware, which explains the strong normal-view visual impression, but plausibility is not source fidelity."
+  "supersededOutcome": "FAIL_FACTUAL_TOPOLOGY_MISMATCH",
+  "currentOutcome": "INCONCLUSIVE_PENDING_POSE_INVARIANT_LANDMARK_REVIEW",
+  "correctionReason": "The earlier review over-weighted source pose/layout (two diagonal pieces) versus the approved horizontal recomposition and therefore risked treating legitimate reorientation/overlap as topology change. The attached A/B evidence shows the generated candidate tracks the deterministic factual recomposition far more closely than the later fantasy-hardware regime.",
+  "scope": "Independent factual review must compare exact source landmarks after neutralizing allowed pose/composition transforms. Text, metrics, self-declared PASS labels and regenerated source depictions inside producer reports remain non-authoritative.",
+  "currentObservations": [
+    "The reviewed candidate is visually much closer to the deterministic factual H45 recomposition than the later fantasy-hardware outputs.",
+    "The previous raw-source-layout comparison is insufficient to prove a topology mismatch because horizontal reorientation and factual-group overlap are allowed transformations in this case.",
+    "The candidate should be retained as a positive-control candidate for the producer's high-adherence regime, not promoted as a faithful variant yet.",
+    "A new review must compare pose-invariant landmarks: piece count, per-piece hole/slot sequence, terminal structures, fittings/stops, rail proportions and relative overlap after alignment."
   ],
   "decision": {
-    "presentationQuality": "promising",
-    "factualFidelity": "fail",
-    "admissibleAsFaithfulVariant": false,
+    "presentationQuality": "promising-positive-control",
+    "factualFidelity": "not-yet-established",
+    "admissibleAsFaithfulVariant": "pending-landmark-review",
     "productionPromotion": false,
     "schemaImplication": "none"
   },
+  "negativeControlContrast": {
+    "description": "Later outputs repeatedly collapse to an obviously invented roller/rail archetype with fantasy mechanical features. Those remain clear factual failures and should not be grouped with this candidate.",
+    "researchUse": "Use the good candidate and fantasy archetype as positive/negative controls when characterizing producer mode switching and reference adherence."
+  },
   "researchConsequence": [
-    "Normal-size human plausibility review is insufficient for factual product-image generation.",
-    "Independent comparison must use the exact source bytes, not a source depiction regenerated inside the producer output.",
-    "Piece topology and landmark patterns must be gated before presentation quality can matter.",
-    "A visually excellent failure remains useful evidence about capability but cannot be promoted as a faithful product variant."
+    "Normal-size visual plausibility remains insufficient, but neither may pose/layout difference be used as a topology proxy.",
+    "Factual gates for allowed reorientation must be landmark-based and pose-invariant.",
+    "The producer appears capable of at least two qualitatively different regimes: high reference adherence and fantasy prototype substitution.",
+    "The next question is what controls or predicts the regime switch, not whether the capability is uniformly poor."
   ]
 }
