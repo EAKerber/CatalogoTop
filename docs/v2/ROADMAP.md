@@ -17,8 +17,9 @@ The primary change in V2 is that the app stops treating the current browser sess
 
 - **R1 — Product Library Foundation: complete**.
 - **R2 — Saved Catalog Documents: complete** after R2a + R2b. See `R2-CLOSEOUT.md`.
-- **R3 — Asset Library / reusable media index: active**. R3a is complete; R3b is the active operationalization cut.
-- R4+ remain directional and are not authorized merely by appearing in this roadmap.
+- **R3 — Asset Library / reusable media index: complete** after R3a + R3b. See `R3-CLOSEOUT.md`.
+- **R4 — Constrained Template System 2.0: next directional planning target, not active/authorized yet**.
+- R5+ remain directional and are not authorized merely by appearing in this roadmap.
 
 ## Architectural direction — one Library UI, multiple authorities
 
@@ -83,17 +84,17 @@ Delivered through R2a + R2b:
 
 See `R2-SAVED-CATALOGS-INTENT.md`, `R2B-CATALOG-LIBRARY-ADMIN-INTENT.md` and `R2-CLOSEOUT.md`.
 
-### V2-R3 — Asset Library / reusable media index — ACTIVE
+### V2-R3 — Asset Library / reusable media index — COMPLETE
 
 Purpose: turn the existing content-addressed blob store into a usable resource system without losing immutability/deduplication.
 
-Expected responsibilities:
+Delivered responsibilities:
 
 - metadata/index separate from immutable blob bytes;
-- reusable image/logo/media references;
-- foldering/search/usage information;
-- safe orphan/reference accounting before any garbage collection;
-- product images and future catalog assets can reference the same immutable content;
+- reusable managed image references;
+- provider-scoped foldering/search/usage information;
+- authoritative current-reference accounting without conflating `Sem uso` with deletion safety;
+- product images and catalog-local variants can reference the same immutable content;
 - no automatic deletion of a hash merely because one product/resource stopped referencing it.
 
 This recut reuses AssetStore rather than replacing it.
@@ -112,11 +113,9 @@ Delivered first vertical:
 
 Detailed contract: `R3A-ASSET-INVENTORY-REUSE-INTENT.md`.
 
-#### R3b — Asset Organization & Ingest — ACTIVE
+#### R3b — Asset Organization & Ingest — COMPLETE
 
-Purpose: operationalize the R3a resource foundation without introducing destructive blob lifecycle.
-
-Planned/delivered responsibilities in this cut:
+Delivered operationalization:
 
 - provider-scoped folder tree using the `folders[]`/`folderId` already reserved in AssetIndexSnapshot v1;
 - recursive folder scope plus virtual `Sem pasta`;
@@ -131,9 +130,9 @@ Planned/delivered responsibilities in this cut:
 
 Detailed contract: `R3B-ASSET-ORGANIZATION-INGEST-INTENT.md`.
 
-After R3b, perform a short closure audit. If add/discover/name/search/organize/reuse and authoritative usage accounting are stable, R3 closes without manufacturing a GC recut. A destructive R3c requires a concrete retention/cleanup need.
+The post-R3b closure audit found no concrete functional gap requiring a destructive R3c. Garbage collection remains a future retention/cleanup decision, not an unfinished R3 requirement. See `R3-CLOSEOUT.md`.
 
-### V2-R4 — Constrained Template System 2.0
+### V2-R4 — Constrained Template System 2.0 — NEXT DIRECTIONAL TARGET
 
 Purpose: make templates reusable visual systems rather than hard-coded style choices, without reopening arbitrary HTML/CSS/JS authoring.
 
@@ -145,6 +144,8 @@ Expected responsibilities:
 - preview and print driven by the same contract;
 - template resources become a Library provider;
 - validation/migration rules for template revisions.
+
+Before implementation, R4 requires explicit review/planning of the current template/renderer boundary and migration path. Its presence here is not authorization to implement it.
 
 Explicitly out of scope unless separately decided: arbitrary executable templates, arbitrary XY layout, free CSS injection or a generic webpage builder.
 
