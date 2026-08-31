@@ -1,0 +1,137 @@
+.library-provider-switch {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 12px;
+  border: 1px solid var(--line, #d7dbe0);
+  border-radius: 10px;
+  background: var(--surface-soft, #f7f8fa);
+}
+
+.library-provider-switch button {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  padding: 8px 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.library-provider-switch button.active {
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
+}
+
+.catalog-save-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line, #d7dbe0);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.catalog-save-status[data-save-state="dirty"],
+.catalog-save-status[data-save-state="conflict"],
+.catalog-save-status[data-save-state="offline"] {
+  border-style: dashed;
+}
+
+.catalog-save-status[data-save-state="conflict"] {
+  cursor: pointer;
+}
+
+.catalog-library-admin {
+  display: grid;
+  gap: 12px;
+}
+
+.catalog-library-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.catalog-library-toolbar input {
+  min-width: 0;
+  flex: 1;
+}
+
+.catalog-library-list {
+  display: grid;
+  gap: 8px;
+}
+
+.catalog-library-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line, #d7dbe0);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.catalog-library-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.catalog-library-copy strong,
+.catalog-library-copy span,
+.catalog-library-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-library-copy small {
+  opacity: .7;
+}
+
+.catalog-library-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 639px) {
+  .library-provider-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .catalog-library-row {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-library-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .catalog-library-actions .button {
+    min-height: 44px;
+  }
+
+  #catalog .catalog-heading .heading-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media print {
+  .library-provider-switch,
+  .catalog-save-status {
+    display: none !important;
+  }
+}

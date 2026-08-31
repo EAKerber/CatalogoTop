@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="table-block.css" />
   <link rel="stylesheet" href="product-actions.css" />
   <link rel="stylesheet" href="product-library.css" />
+  <link rel="stylesheet" href="catalog-library.css" />
   <link rel="stylesheet" href="contextual-inspector.css" />
   <link rel="stylesheet" href="image-variants.css" />
   <link rel="stylesheet" href="grouping-controls.css" />
@@ -125,7 +126,7 @@
     </section>
 
     <section class="panel" id="catalog">
-      <div class="section-heading catalog-heading"><div><p class="eyebrow">COMPOSIÇÃO</p><h2>Selecione os produtos e ajuste a composição.</h2><p class="muted">Clique no A4 para editar. Use a lista para incluir, navegar e ordenar produtos.</p></div><div class="heading-actions"><button class="button secondary" id="btnNewCatalog">Novo catálogo</button><button class="button primary" id="btnPrint">Gerar PDF / Imprimir</button></div></div>
+      <div class="section-heading catalog-heading"><div><p class="eyebrow">COMPOSIÇÃO</p><h2>Selecione os produtos e ajuste a composição.</h2><p class="muted">Clique no A4 para editar. Use a lista para incluir, navegar e ordenar produtos.</p></div><div class="heading-actions"><button class="catalog-save-status" id="catalogSaveStatus" type="button" data-save-state="new" title="Estado do catálogo salvo">Novo</button><button class="button secondary" id="btnSaveCatalog" type="button">Salvar</button><button class="button secondary" id="btnNewCatalog">Novo catálogo</button><button class="button primary" id="btnPrint">Gerar PDF / Imprimir</button></div></div>
       <div class="catalog-controls editorial-controls card">
         <label>Nome do catálogo<input id="catalogTitle" value="Categoria" /></label>
         <label>Template<select id="catalogTemplate"></select></label>
@@ -150,20 +151,33 @@
     </section>
 
     <section class="panel" id="library">
-      <div class="section-heading"><div><p class="eyebrow">BIBLIOTECA · PRODUTOS</p><h2>Organize a base compartilhada.</h2><p class="muted">Pastas estáveis, busca recursiva, seleção múltipla e administração explícita.</p></div></div>
-      <div class="library-mobile-switch" role="tablist" aria-label="Biblioteca de produtos"><button class="active" type="button" role="tab" aria-selected="true" data-library-mobile-view="folders">Pastas</button><button type="button" role="tab" aria-selected="false" data-library-mobile-view="products" tabindex="-1">Produtos</button></div>
-      <div class="product-library-admin" id="productLibraryAdmin" data-mobile-view="folders">
-        <aside class="card library-tree-pane">
-          <div class="library-pane-head"><h3>Pastas</h3><button class="button secondary compact" id="libraryCreateFolder" type="button">+ Pasta</button></div>
-          <div class="library-folder-tree" id="libraryFolderTree"></div>
-          <div class="library-folder-actions"><select id="libraryFolderParent" aria-label="Nova pasta pai"></select><div class="library-folder-actions-row"><button class="button secondary compact" id="libraryRenameFolder" type="button">Renomear</button><button class="button secondary compact" id="libraryMoveFolder" type="button">Mover pasta</button><button class="button secondary compact library-danger" id="libraryDeleteFolder" type="button">Excluir vazia</button></div></div>
-        </aside>
-        <section class="card library-products-pane">
-          <div class="library-toolbar"><input id="libraryProductSearch" type="search" placeholder="Buscar código, descrição ou pasta" /><span class="counter" id="libraryVisibleCount">0 produtos</span></div>
-          <div class="library-scope">Escopo: <strong id="libraryFolderPath">Todos os produtos</strong> · inclui subpastas</div>
-          <div class="library-selection-toolbar"><span class="counter" id="librarySelectionCount">0 selecionados</span><button class="button secondary compact" id="librarySelectVisible" type="button">Selecionar visíveis</button><button class="button secondary compact" id="libraryClearSelection" type="button">Limpar</button><select id="libraryMoveDestination" aria-label="Pasta de destino"><option value="">Mover para…</option></select><button class="button secondary compact" id="libraryMoveProducts" type="button">Mover selecionados</button><button class="button secondary compact" id="libraryOpenCadastro" type="button">Editar no Cadastro</button><button class="button secondary compact library-danger" id="libraryDeleteProducts" type="button">Excluir selecionados</button></div>
-          <div class="library-product-list" id="libraryProductList"></div>
-          <div class="empty-state hidden" id="libraryProductsEmpty"><strong>Nenhum produto neste escopo.</strong><span>Ajuste a pasta ou a busca.</span></div>
+      <div class="section-heading"><div><p class="eyebrow">BIBLIOTECA</p><h2>Encontre e administre recursos.</h2><p class="muted">Produtos e catálogos compartilham a superfície, mas mantêm providers e revisões independentes.</p></div></div>
+      <div class="library-provider-switch" role="tablist" aria-label="Tipo de recurso da Biblioteca">
+        <button class="active" type="button" role="tab" aria-selected="true" data-library-provider="products">Produtos</button>
+        <button type="button" role="tab" aria-selected="false" data-library-provider="catalogs" tabindex="-1">Catálogos</button>
+      </div>
+      <div data-library-provider-panel="products">
+        <div class="library-mobile-switch" role="tablist" aria-label="Biblioteca de produtos"><button class="active" type="button" role="tab" aria-selected="true" data-library-mobile-view="folders">Pastas</button><button type="button" role="tab" aria-selected="false" data-library-mobile-view="products" tabindex="-1">Produtos</button></div>
+        <div class="product-library-admin" id="productLibraryAdmin" data-mobile-view="folders">
+          <aside class="card library-tree-pane">
+            <div class="library-pane-head"><h3>Pastas</h3><button class="button secondary compact" id="libraryCreateFolder" type="button">+ Pasta</button></div>
+            <div class="library-folder-tree" id="libraryFolderTree"></div>
+            <div class="library-folder-actions"><select id="libraryFolderParent" aria-label="Nova pasta pai"></select><div class="library-folder-actions-row"><button class="button secondary compact" id="libraryRenameFolder" type="button">Renomear</button><button class="button secondary compact" id="libraryMoveFolder" type="button">Mover pasta</button><button class="button secondary compact library-danger" id="libraryDeleteFolder" type="button">Excluir vazia</button></div></div>
+          </aside>
+          <section class="card library-products-pane">
+            <div class="library-toolbar"><input id="libraryProductSearch" type="search" placeholder="Buscar código, descrição ou pasta" /><span class="counter" id="libraryVisibleCount">0 produtos</span></div>
+            <div class="library-scope">Escopo: <strong id="libraryFolderPath">Todos os produtos</strong> · inclui subpastas</div>
+            <div class="library-selection-toolbar"><span class="counter" id="librarySelectionCount">0 selecionados</span><button class="button secondary compact" id="librarySelectVisible" type="button">Selecionar visíveis</button><button class="button secondary compact" id="libraryClearSelection" type="button">Limpar</button><select id="libraryMoveDestination" aria-label="Pasta de destino"><option value="">Mover para…</option></select><button class="button secondary compact" id="libraryMoveProducts" type="button">Mover selecionados</button><button class="button secondary compact" id="libraryOpenCadastro" type="button">Editar no Cadastro</button><button class="button secondary compact library-danger" id="libraryDeleteProducts" type="button">Excluir selecionados</button></div>
+            <div class="library-product-list" id="libraryProductList"></div>
+            <div class="empty-state hidden" id="libraryProductsEmpty"><strong>Nenhum produto neste escopo.</strong><span>Ajuste a pasta ou a busca.</span></div>
+          </section>
+        </div>
+      </div>
+      <div data-library-provider-panel="catalogs" hidden>
+        <section class="card catalog-library-admin" id="catalogLibraryAdmin">
+          <div class="catalog-library-toolbar"><input id="catalogLibrarySearch" type="search" placeholder="Buscar catálogo" /><span class="counter" id="catalogLibraryCount">0 catálogos</span></div>
+          <div class="catalog-library-list" id="catalogLibraryList"></div>
+          <div class="empty-state hidden" id="catalogLibraryEmpty"><strong>Nenhum catálogo salvo.</strong><span>Abra a aba Catálogo e use Salvar para criar o primeiro recurso.</span></div>
         </section>
       </div>
     </section>
@@ -174,6 +188,7 @@
   <script defer src="src/v1-retirement.js"></script>
   <script defer src="src/catalog-date.js"></script>
   <script defer src="src/folder-tree.js"></script>
+  <script defer src="src/catalog-snapshot.js"></script>
   <script defer src="src/product-folder-migration.js"></script>
   <script defer src="src/product-domain.js"></script>
   <script defer src="src/product-snapshot.js"></script>
@@ -183,6 +198,7 @@
   <script defer src="src/indexed-cache.js"></script>
   <script defer src="src/asset-client.js"></script>
   <script defer src="src/product-store.js"></script>
+  <script defer src="src/catalog-store.js"></script>
   <script defer src="src/importer.js"></script>
   <script defer src="src/templates.js"></script>
   <script defer src="src/icons.js"></script>
@@ -223,6 +239,8 @@
   <script defer src="src/block-overlap-guard.js"></script>
   <script defer src="src/product-details.js"></script>
   <script defer src="src/product-library.js"></script>
+  <script defer src="src/library-shell.js"></script>
+  <script defer src="src/catalog-library.js"></script>
   <script defer src="src/cadastro-surface.js"></script>
 </body>
 </html>

@@ -51,8 +51,8 @@
     Core.mutate(draft => {
       draft.folders = snapshot.folders;
       draft.products = normalized;
-      const validIds = new Set(normalized.map(product => String(product.id)));
-      draft.selectedIds = draft.selectedIds.map(String).filter(id => validIds.has(id));
+      // A seleção pertence ao documento editorial corrente. Sincronizar a verdade
+      // de produtos não apaga referências stale de um catálogo salvo/reaberto.
     });
     notifyProductsChanged();
     return read;
