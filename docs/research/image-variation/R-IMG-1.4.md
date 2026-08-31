@@ -8,97 +8,150 @@ Base research branch: `research/semantic-image-variation-v2`
 
 Can a source-grounded producer return a clean, high-native-resolution H45 master for the known wide composition while preserving factual identity closely enough to outperform the strongest deterministic presentation path?
 
-This experiment intentionally separates:
+The experiment now separates five things:
 
 - visual plausibility;
 - factual fidelity;
 - producer contract reliability;
-- native output raster.
+- native output raster;
+- **reference-adherence regime**.
 
 ## Resolution contract
 
 The wide placement is composition geometry, not the requested file raster.
-
-Current physical-use requirement:
 
 - logical placement: `440×180` / aspect `22:9`;
 - physical holder: approximately `116.42×47.63 mm`;
 - 300-DPI minimum use raster: approximately `1376×563`;
 - `1760×720` remains an acceptable research master with headroom.
 
-## Producer behavior
+## Producer-contract behavior
 
-The producer repeatedly returns research dashboards/infographics instead of an image-only edited product master.
+The tested producer repeatedly returns research dashboards/infographics instead of an image-only edited product master.
 
-This is a producer-contract failure. Generated tables, metrics, PASS labels, source depictions and claimed dimensions inside those reports are not research evidence.
+Generated tables, metrics, PASS labels, source depictions, control images and claimed dimensions inside those reports are not research evidence.
 
-Three additional repeatability attempts in this slice all failed the image-only contract. See `results/r-img-1-4-producer-repeatability.v1.json`.
+Three additional repeatability attempts failed the image-only contract. See `results/r-img-1-4-producer-repeatability.v1.json`.
 
-## Two distinct output regimes
+## Critical audit: the dashboard regenerated its own control
 
-The current evidence should not be collapsed into a single statement that the producer is uniformly poor.
+A later comparison against the actual research files exposed an important error in our earlier interpretation.
 
-### High-adherence positive-control regime
+The visually stronger dashboard (`aa89f137-0218-41db-b39f-be47943197cc`) shows an `A) determinístico` rail next to a `B) source-grounded` rail. However, that A panel is **not the real Mitchell deterministic H45 output**.
 
-Attempt `aa89f137-0218-41db-b39f-be47943197cc` contains an embedded generated H45 candidate that is visually very close to the deterministic factual recomposition shown beside it. The overall longitudinal structure, terminal region, dark fitting/stop region, rail proportions and much of the visible hole/slot logic track the factual recomposition far better than the later fantasy outputs.
+Authoritative evidence:
 
-The earlier independent review incorrectly promoted raw pose/layout difference into a topology verdict. Because the H45 benchmark explicitly allows whole-group reorientation/recomposition, factual review must be **pose-invariant**. The prior `FAIL_FACTUAL_TOPOLOGY_MISMATCH` verdict is therefore superseded and the candidate is now retained as:
+- exact H45 source: two separate telescopic-slide pieces;
+- real Mitchell deterministic output: preserves both factual pieces while reorienting the group;
+- dashboard A: a newly synthesized assembled rail;
+- dashboard B: another newly synthesized assembled rail.
 
-`POSITIVE_CONTROL_PENDING_POSE_INVARIANT_LANDMARK_REVIEW`
+Therefore:
 
-This does not yet mean faithful-variant approval. It means the producer has demonstrated a qualitatively much stronger source-adherence regime that is worth reproducing and characterizing.
+> **A↔B similarity inside a generated dashboard is self-consistency of the generated report, not source-fidelity evidence.**
 
-### Fantasy prototype-substitution regime
+This supersedes two earlier overstatements in opposite directions:
 
-Later dashboard outputs repeatedly converge on essentially the **same obviously invented telescopic-slide/roller prototype**.
+1. `FAIL_FACTUAL_TOPOLOGY_MISMATCH` was too strong because it treated allowed pose/layout change as topology evidence;
+2. `POSITIVE_CONTROL_PENDING_POSE_INVARIANT_LANDMARK_REVIEW` was also too strong because the supposed deterministic comparison image was itself generated.
 
-This object is not merely an imperfect H45. It contains conspicuous fantasy mechanical structures and should not be described as commercially plausible or nearly faithful.
+The aa89f137 candidate is now retained only as:
 
-The repeated similarity across these outputs is therefore not positive repeatability. It is:
+`VISUALLY_DISCREET_GENERATIVE_REGIME_CONTROL`
+
+It demonstrates a much less obvious hallucination regime, not a validated faithful H45 master.
+
+## Two clearly different visual regimes
+
+### Regime D — discreet generic-hardware synthesis
+
+The aa89f137 embedded rail looks close enough to ordinary telescopic-slide hardware that it could plausibly pass unnoticed at normal catalog scale.
+
+That is valuable capability evidence about appearance quality, but factual H45 identity is not established.
+
+### Regime F — fantasy prototype substitution
+
+Attempt `2638cff6-aec2-4753-b809-3b968d1426cb` and later repeatability outputs (`f3660d0d...`, `835c43b7...`, `feecda2c...`) converge on essentially the same obvious fantasy rail/roller mechanism.
+
+This is not a subtle product mismatch. The mechanical structures are visibly invented and the repeated cross-run similarity indicates a stable learned/prototypical fallback rather than independent random mistakes.
+
+Diagnosis:
 
 `SYSTEMATIC_PROTOTYPE_SUBSTITUTION`
 
-The important producer-level finding is the enormous regime difference: the same broad experiment can produce either a near-reference reconstruction or a repeated fantasy archetype.
+## Regime-switch investigation
 
-## Correct factual-review method
+See `results/r-img-1-4-regime-switch-investigation.v1.json`.
 
-Allowed pose/composition transforms must be neutralized before evaluating identity.
+The current strongest hypotheses are:
 
-The next factual gate for the positive control must compare, per factual piece:
+1. **reference-target binding / proximity** — moderate-high, unproven. The visually discreet run occurred immediately after the exact H45 image was re-established as the active image target; later runs happened after generated-dashboard context accumulated;
+2. **dashboard-context contamination** — high confidence. Every run synthesized a report even when the desired deliverable was an image-only product master;
+3. **semantic archetype fallback** — high confidence. Weakly grounded runs repeatedly converge on the same fantasy slide archetype;
+4. requested high raster itself — weak evidence as a cause;
+5. random seed alone — unlikely to explain repeated convergence on one wrong archetype.
 
-- piece count and correspondence;
+The current conversation is too contaminated by generated dashboards to cleanly isolate these hypotheses.
+
+## Correct next experiment
+
+Do not blindly repeat more samples here.
+
+Use a clean-context A/B:
+
+### A — source-bound minimal
+
+- exact H45 source only;
+- short image-only edit instruction;
+- approved composition target;
+- native raster requirement;
+- no dashboard/report/benchmark context.
+
+### B — source + external composition reference
+
+- exact H45 source remains factual authority;
+- actual deterministic Mitchell render may be supplied only as layout/composition reference;
+- image-only output contract.
+
+### C — no-source negative control
+
+- text-only telescopic-slide description;
+- same aspect/output request.
+
+If the fantasy archetype is a semantic fallback, C should cluster toward it while A/B should remain close to source landmarks.
+
+## Factual gate for any future clean candidate
+
+Allowed pose transforms must be neutralized before identity review.
+
+Compare against exact source evidence:
+
+- piece count/correspondence;
 - sequence and relative spacing of circular holes and elongated slots;
 - terminal/end structures;
-- visible fittings/stops;
+- fittings/stops;
 - rail lengths/proportions;
-- relative overlap/relationship between pieces after alignment.
+- relationship between pieces after pose normalization.
 
-Raw diagonal-vs-horizontal layout is not itself a topology difference.
+A generated report is never allowed to regenerate its own control/reference and use that internal comparison as evidence.
 
 ## Current conclusion
 
 The producer/channel remains unsuitable for promotion because:
 
-1. it fails the image-only contract repeatedly;
+1. image-only contract compliance is effectively zero in this slice;
 2. it can collapse catastrophically into fantasy hardware;
-3. the conditions that separate the high-adherence regime from the fantasy regime are not yet understood.
+3. the visually discreet run is not proven source-grounded after auditing its fabricated control panel;
+4. the regime-switch conditions remain uncontrolled.
 
-Current scoped producer result remains:
+Scoped producer result remains:
 
 `PRODUCER_NOT_RELIABLE_FOR_FAITHFUL_IMAGE_ONLY_MASTER`
 
-But the capability hypothesis is stronger than that result alone suggests:
+The broader capability hypothesis remains open:
 
-> **At least one observed output regime is visually close enough to the factual deterministic reconstruction that source-grounded generation remains worth investigating. The research problem is now reference-adherence reliability / regime switching, not a simple capability/no-capability question.**
-
-## Stop condition for blind repetition
-
-Do not consume more samples by repeating the same context/prompt blindly. Resume generation only through an experiment designed to isolate what changes reference adherence: clean context, reference binding, edit-vs-generation mode, prompt scope and output contract.
+> **The producer can synthesize product imagery ranging from subtly believable generic hardware to obvious fantasy. The remaining research question is whether explicit source binding in a clean edit context can make the discreet regime reliably factual rather than merely visually convincing.**
 
 ## Architecture consequence
 
-Keep Class C optional and downstream of deterministic composition/raster paths.
-
-Future gates must use exact source evidence and pose-invariant landmarks. Cross-run convergence is positive evidence only if candidates also converge on the factual landmarks; convergence on the same fantasy archetype is an explicit failure signal.
-
-No production schema, runtime or ProductStore change is justified by this trial.
+Keep Class C optional and downstream of deterministic composition/raster paths. No production schema, runtime or ProductStore change is justified by this trial.
