@@ -18,7 +18,9 @@ The primary change in V2 is that the app stops treating the current browser sess
 - **R1 — Product Library Foundation: complete**.
 - **R2 — Saved Catalog Documents: complete** after R2a + R2b. See `R2-CLOSEOUT.md`.
 - **R3 — Asset Library / reusable media index: complete** after R3a + R3b. See `R3-CLOSEOUT.md`.
-- **R4 — Constrained Template System 2.0: next directional planning target, not active/authorized yet**.
+- **R4 — Constrained Template System 2.0: active as staged recuts**.
+  - **R4a — Template Contract & Versioned Binding: implementation complete / closing promotion**. See `R4A-TEMPLATE-CONTRACT-INTENT.md` and `R4A-CLOSEOUT.md`.
+  - **R4b — Template Library & Immutable Versions: next directional recut, not automatically authorized**.
 - R5+ remain directional and are not authorized merely by appearing in this roadmap.
 
 ## Architectural direction — one Library UI, multiple authorities
@@ -30,7 +32,9 @@ Biblioteca UI
   ├─ Product provider    -> ProductStore / ProductSnapshot
   ├─ Catalog provider    -> CatalogStore / CatalogSnapshot
   ├─ Asset provider      -> AssetIndexStore / AssetIndexSnapshot + immutable AssetStore
-  └─ Template provider   -> future TemplateStore / constrained visual contracts
+  └─ Template provider   -> future R4b TemplateStore / TemplateSnapshot
+
+Built-in template language -> TemplateRegistry / TemplateContract
 ```
 
 A shared pure `FolderTree` vocabulary may be reused by providers, but folder namespaces and revision authorities remain provider-scoped unless a later real use case proves a global tree is superior.
@@ -132,20 +136,40 @@ Detailed contract: `R3B-ASSET-ORGANIZATION-INGEST-INTENT.md`.
 
 The post-R3b closure audit found no concrete functional gap requiring a destructive R3c. Garbage collection remains a future retention/cleanup decision, not an unfinished R3 requirement. See `R3-CLOSEOUT.md`.
 
-### V2-R4 — Constrained Template System 2.0 — NEXT DIRECTIONAL TARGET
+### V2-R4 — Constrained Template System 2.0 — ACTIVE IN STAGED RECUTS
 
 Purpose: make templates reusable visual systems rather than hard-coded style choices, without reopening arbitrary HTML/CSS/JS authoring.
 
-Expected responsibilities:
+#### R4a — Template Contract & Versioned Binding — IMPLEMENTATION COMPLETE
 
-- versioned declarative template contract;
-- shared institutional header/footer primitives;
-- layout/tokens/allowed structural treatments declared by schema;
-- preview and print driven by the same contract;
-- template resources become a Library provider;
-- validation/migration rules for template revisions.
+Delivered responsibilities:
 
-Before implementation, R4 requires explicit review/planning of the current template/renderer boundary and migration path. Its presence here is not authorization to implement it.
+- `TemplateContract v1`, strict bounded data-only contract;
+- immutable built-ins `technical@1`, `compact@1`, `showcase@1`;
+- `perPage` derived from rows × columns;
+- persisted exact `templateId + templateVersion` binding;
+- Core schema 9 and CatalogSnapshot v2 deterministic migration;
+- unknown ID/version combinations fail closed rather than silently changing visual system;
+- content budgets/layout behavior driven by contract properties/tokens rather than template-ID runtime branches;
+- shared institutional chrome extracted behind application-owned `DocumentChrome`, initial primitive `top-mobili-v1`;
+- preview and print driven by the same resolved template contract;
+- existing physical A4 behavior preserved;
+- no TemplateStore/backend template API/Library provider yet.
+
+Detailed contract: `R4A-TEMPLATE-CONTRACT-INTENT.md`. Closure: `R4A-CLOSEOUT.md`.
+
+#### R4b — Template Library & Immutable Versions — NEXT DIRECTIONAL RECUT
+
+Subject to explicit planning/authorization, expected responsibilities:
+
+- independent `TemplateSnapshot` / `TemplateStore` revision authority;
+- `Biblioteca > Templates`, without a new primary application tab;
+- built-ins exposed as immutable sources/presets;
+- duplicate a built-in or existing resource to create an editable template resource;
+- publishing/editing creates a new immutable version rather than overwriting a version already referenced by catalogs;
+- catalog upgrade from one template version to another is explicit and marks the catalog dirty;
+- search/foldering only where real operational use justifies them;
+- stored resources remain bounded data validated by the existing `TemplateContract`.
 
 Explicitly out of scope unless separately decided: arbitrary executable templates, arbitrary XY layout, free CSS injection or a generic webpage builder.
 
@@ -208,6 +232,8 @@ Transport success alone is not sufficient.
 11. Content-addressed asset bytes remain immutable; metadata/index lifecycle must not rewrite or silently garbage-collect blobs.
 12. Usage/accounting must derive from authoritative resource snapshots rather than transient Core/session projections.
 13. `Sem uso` is an accounting state, not proof that a blob is safe to delete.
+14. Saved catalogs bind to an exact template ID/version and must not silently fall back to another visual system.
+15. Persisted template resources, when introduced, remain bounded data validated by the application-owned TemplateContract.
 
 ## Sequence rationale
 
@@ -216,6 +242,8 @@ R1 came first because every later resource-management workflow benefits from a s
 R2 came before major template/editor work because reopenable catalog identity is a prerequisite for meaningful template migration, version compatibility and preflight history.
 
 R3 precedes richer templates because reusable assets should have stable references before templates begin to depend on them.
+
+R4a precedes template-resource persistence because the language and version binding must be trustworthy before a TemplateStore can save it. R4b may now add reusable template resources without inventing a second template model.
 
 R4 precedes major new editorial primitives because layout capabilities should be constrained by an explicit template contract rather than accumulated as one-off renderer exceptions.
 

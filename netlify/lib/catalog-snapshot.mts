@@ -1,6 +1,6 @@
 import { validateProductFolders } from './product-folders.mts';
 
-export const CATALOG_SNAPSHOT_VERSION = 1;
+export const CATALOG_SNAPSHOT_VERSION = 2;
 export const MAX_CATALOGS = 1000;
 export const MAX_SELECTED_IDS = 5000;
 export const MAX_CATALOG_ID_LENGTH = 180;
@@ -25,6 +25,11 @@ function validTimestamp(value: unknown) {
 
 function validDateOverride(value: unknown) {
   return value === '' || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+function validTemplateVersion(value: unknown) {
+  const version = Number(value);
+  return Number.isInteger(version) && version >= 1 && version <= 999999;
 }
 
 function folderIds(folders: unknown) {
@@ -53,6 +58,7 @@ function validateCatalogContent(value: unknown, catalogId: string) {
   const catalog = value as Record<string, unknown>;
   if (!validString(catalog.title, { max: MAX_CATALOG_TITLE_LENGTH })) return `Catálogo ${catalogId} possui título inválido.`;
   if (!validString(catalog.templateId, { max: 80 })) return `Catálogo ${catalogId} possui template inválido.`;
+  if (!validTemplateVersion(catalog.templateVersion)) return `Catálogo ${catalogId} possui templateVersion inválida.`;
   if (typeof catalog.showPrices !== 'boolean') return `Catálogo ${catalogId} possui showPrices inválido.`;
   if (!validDateOverride(catalog.dateOverride)) return `Catálogo ${catalogId} possui dateOverride inválido.`;
   if (!validTimestamp(catalog.createdAt)) return `Catálogo ${catalogId} possui createdAt editorial inválido.`;

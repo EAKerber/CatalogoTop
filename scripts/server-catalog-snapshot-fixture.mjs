@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { CATALOG_SNAPSHOT_VERSION, validateCatalogSnapshot } from '../netlify/lib/catalog-snapshot.mts';
 
-assert.equal(CATALOG_SNAPSHOT_VERSION, 1);
+assert.equal(CATALOG_SNAPSHOT_VERSION, 2);
 
 const folders = [
   { id: 'root', parentId: null, name: 'Campanhas' },
@@ -16,6 +16,7 @@ const catalog = {
   catalog: {
     title: 'Catálogo agosto',
     templateId: 'technical',
+    templateVersion: 1,
     showPrices: true,
     dateOverride: '2026-08-31',
     createdAt: '2026-08-31T12:00:00.000Z',
@@ -29,10 +30,12 @@ assert.match(validateCatalogSnapshot(folders, [{ ...catalog, folderId: 'missing'
 assert.match(validateCatalogSnapshot(folders, [catalog, { ...catalog }]), /ID de catálogo duplicado/);
 assert.match(validateCatalogSnapshot(folders, [{ ...catalog, selectedIds: ['p1', 'p1'] }]), /referência de produto duplicada/);
 assert.match(validateCatalogSnapshot(folders, [{ ...catalog, catalog: { ...catalog.catalog, title: '' } }]), /título inválido/);
+assert.match(validateCatalogSnapshot(folders, [{ ...catalog, catalog: { ...catalog.catalog, templateVersion: 0 } }]), /templateVersion inválida/);
+assert.match(validateCatalogSnapshot(folders, [{ ...catalog, catalog: { ...catalog.catalog, templateVersion: undefined } }]), /templateVersion inválida/);
 assert.match(validateCatalogSnapshot(folders, [{ ...catalog, catalog: { ...catalog.catalog, presentation: [] } }]), /presentation inválida/);
 assert.match(validateCatalogSnapshot([
   { id: 'a', parentId: null, name: 'Campanhas' },
   { id: 'b', parentId: null, name: 'campanhas' }
 ], []), /duplicado entre irmãos/, 'provider de catálogo deve reutilizar os mesmos guards estruturais de FolderTree');
 
-console.log('PASS server catalog snapshot fixture: separate catalog provider validation, folder guards and stale product references');
+console.log('PASS server catalog snapshot fixture: v2 template version validation, folder guards and stale product references');

@@ -69,12 +69,14 @@ Core.setState(source, { persist: false });
 const before = Core.getState();
 const backupJson = JSON.stringify(before);
 if (!backupJson.includes('external-job-a') || !backupJson.includes('imageGallery') || !backupJson.includes('imageSelections')) fail('backup JSON precisa conter galeria, variante local e seleção');
+if (before.catalog.templateVersion !== 1) fail('backup migrado deve conter templateVersion explícita');
 
 Core.setState(Core.createInitialState(), { persist: false });
 const restored = Core.setState(JSON.parse(backupJson), { persist: false });
 const product = restored.products[0];
 const presentation = restored.catalog.presentation;
-if (restored.schemaVersion !== 8) fail(`round-trip deve migrar para schema 8: ${restored.schemaVersion}`);
+if (restored.schemaVersion !== 9) fail(`round-trip deve migrar para schema 9: ${restored.schemaVersion}`);
+if (restored.catalog.templateVersion !== 1) fail(`round-trip deve preservar templateVersion 1: ${restored.catalog.templateVersion}`);
 if (product.image !== original) fail('Original canônico mudou no round-trip');
 if (product.imageGallery.length !== 1 || product.imageGallery[0].image !== reusable || product.imageGallery[0].provenance?.kind !== 'manual-upload') fail('Product.imageGallery não sobreviveu ao round-trip');
 if (presentation.imageVariants.p1?.length !== 1 || presentation.imageVariants.p1[0].image !== local) fail('variante local do catálogo não sobreviveu ao round-trip');
@@ -82,13 +84,12 @@ if (presentation.imageVariants.p1[0].provenance?.resultSha256 !== '4'.repeat(64)
 if (presentation.imageSelections.p1?.source !== 'catalog' || presentation.imageSelections.p1?.id !== 'external-job-a') fail('seleção editorial da variante não sobreviveu ao round-trip');
 if (presentation.imageFrames.p1?.zoom !== 1.35 || presentation.imageFrames.p1?.x !== 35 || presentation.imageFrames.p1?.y !== 60) fail('framing não sobreviveu ao round-trip');
 
-// Persistência de sessão é deliberadamente separada do ProductStore: produtos não são duplicados no localStorage,
-// mas o catálogo em elaboração precisa preservar a apresentação local, inclusive variantes importadas.
 Core.setState(restored);
 const session = JSON.parse(storage.get(Core.STORAGE_KEY) || 'null');
 if (!session || session.products?.length !== 0) fail('sessão local não deve duplicar a base remota de produtos');
 if (session.catalog?.presentation?.imageVariants?.p1?.[0]?.image !== local) fail('sessão local perdeu variante externa do catálogo');
 if (session.catalog?.presentation?.imageSelections?.p1?.id !== 'external-job-a') fail('sessão local perdeu seleção da variante');
+if (session.catalog?.templateVersion !== 1) fail('sessão local perdeu binding versionado do template');
 
 const [app, productStore] = await Promise.all([
   readFile('src/app.js', 'utf8'),
@@ -106,4 +107,4 @@ if (!app.includes('return ProductStore.publishCurrent()')) fail('app deve public
 if (!productStore.includes('publishCurrent: () => publishProducts(Core.getState().products, { folders: Core.getState().folders })')) fail('ProductStore.publishCurrent deve publicar folders + products como uma biblioteca atômica');
 if (productStore.includes('catalog: Core.getState().catalog')) fail('ProductStore não pode publicar o catálogo editorial junto da biblioteca');
 
-console.log('PASS image variants backup fixture: schema 8, Original, gallery, local variants, selection, framing, sessão e publicação product-only');
+console.log('PASS image variants backup fixture: schema 9, template binding, Original, gallery, local variants, selection, framing, sessão e publicação product-only');

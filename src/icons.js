@@ -58,4 +58,89 @@
   }
 
   NS.Icons = Object.freeze({ LIBRARY, resolve, render });
+
+  function esc(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function formatDate(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat('pt-BR').format(date);
+  }
+
+  function chromeIssue(name) {
+    const error = new Error(`Chrome documental indisponível: ${String(name || 'vazio')}.`);
+    error.code = 'document_chrome_unavailable';
+    error.chrome = String(name || '');
+    return error;
+  }
+
+  function footerItem(iconName, title, subtitle = '') {
+    return `<div class="footer-item">${render(iconName)}<div><strong>${esc(title)}</strong>${subtitle ? `<span>${esc(subtitle)}</span>` : ''}</div></div>`;
+  }
+
+  const TOP_MOBILI_V1 = Object.freeze({
+    header({ category, productCount }) {
+      return `<header class="catalog-page-header">
+        <img class="catalog-logo" src="assets/logo-top-mobili.svg" alt="Top Mobili" />
+        <div class="catalog-title-block">
+          <span>CATÁLOGO</span>
+          <h2>${esc(category || 'Sem categoria')}</h2>
+          <p>${productCount} ${productCount === 1 ? 'produto nesta categoria' : 'produtos nesta categoria'}</p>
+          <i aria-hidden="true"></i>
+        </div>
+        <div class="catalog-blueprint catalog-blueprint-dots" aria-hidden="true"></div>
+        <div class="catalog-blueprint catalog-blueprint-word" aria-hidden="true">TOP MOBILI</div>
+      </header>`;
+    },
+    footer({ pageIndex, pageTotal, createdAt, config = NS.Core?.APP_CONFIG || {} }) {
+      return `<footer class="catalog-page-footer">
+        <div class="footer-line"></div>
+        <div class="footer-grid">
+          ${footerItem('location', 'TOP MOBILI FERRAGENS', config.location)}
+          ${footerItem('whatsapp', config.whatsapp, 'Atendimento via WhatsApp')}
+          ${footerItem('award', 'QUALIDADE')}
+          ${footerItem('stock', 'ESTOQUE')}
+          ${footerItem('truck', 'ENTREGA RÁPIDA')}
+          ${footerItem('headset', 'ATENDIMENTO')}
+          <div class="footer-meta">
+            <div><span>PÁGINA</span><strong>${String(pageIndex + 1).padStart(2, '0')}<small> / ${String(pageTotal).padStart(2, '0')}</small></strong></div>
+            <div class="footer-date">${render('calendar')}<p><span>CRIADO EM</span><strong>${formatDate(createdAt)}</strong></p></div>
+          </div>
+        </div>
+      </footer>`;
+    }
+  });
+
+  const CHROME = Object.freeze({ 'top-mobili-v1': TOP_MOBILI_V1 });
+  function chrome(name) {
+    const value = CHROME[String(name || '')];
+    if (!value) throw chromeIssue(name);
+    return value;
+  }
+  function renderHeader(name, context) { return chrome(name).header(context || {}); }
+  function renderFooter(name, context) { return chrome(name).footer(context || {}); }
+
+  NS.DocumentChrome = Object.freeze({ CHROME, chrome, renderHeader, renderFooter });
+
+  // Assets podem existir em outra authority/site durante migrações ou previews.
+  // A UI não deve expor o ícone nativo de imagem quebrada; preserva a caixa e cai
+  // para um pixel transparente até que a referência seja novamente resolvível.
+  if (typeof document !== 'undefined' && typeof HTMLImageElement !== 'undefined') {
+    const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+    document.addEventListener('error', event => {
+      const image = event.target;
+      if (!(image instanceof HTMLImageElement)) return;
+      if (!image.closest('#selectableProducts,#catalogPreview')) return;
+      if (image.dataset.catalogoFallbackApplied === 'true') return;
+      image.dataset.catalogoFallbackApplied = 'true';
+      image.src = transparentPixel;
+    }, true);
+  }
 })();

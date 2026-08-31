@@ -41,8 +41,9 @@ for (const file of ['folder-tree.js', 'product-folder-migration.js', 'product-do
 }
 
 const { Core, FolderTree } = context.window.CatalogoTop;
-assert.equal(Core.SCHEMA_VERSION, 8);
+assert.equal(Core.SCHEMA_VERSION, 9);
 assert.deepEqual(Array.from(Core.createInitialState().folders), []);
+assert.equal(Core.createInitialState().catalog.templateVersion, 1, 'sessão nova deve vincular explicitamente technical@1');
 
 const legacy = Core.migrate({
   schemaVersion: 7,
@@ -52,7 +53,9 @@ const legacy = Core.migrate({
   selectedIds: ['p1'],
   catalog: { title: 'Teste', presentation: { order: ['p1'] } }
 });
-assert.equal(legacy.schemaVersion, 8);
+assert.equal(legacy.schemaVersion, 9);
+assert.equal(legacy.catalog.templateId, 'technical');
+assert.equal(legacy.catalog.templateVersion, 1, 'catálogo legado sem versão deve migrar para v1');
 assert.equal(legacy.products.length, 1);
 assert.ok(legacy.products[0].folderId);
 assert.deepEqual(Array.from(FolderTree.pathOf(legacy.folders, legacy.products[0].folderId), item => item.name), ['Ferragens', 'Corrediças']);
@@ -78,7 +81,7 @@ const deepFolders = [
 ];
 Core.setState({
   ...Core.createInitialState(),
-  schemaVersion: 8,
+  schemaVersion: 9,
   folders: deepFolders,
   products: [{
     id: 'deep-product', code: 'DEEP', description: 'Profundo', folderId: 'deep-leaf',
@@ -109,7 +112,7 @@ assert.deepEqual(Array.from(FolderTree.pathOf(deepState.folders, deepState.produ
 const preservedEmpty = { id: 'folder-empty', parentId: null, name: 'Planejada' };
 Core.setState({
   ...afterCreate,
-  schemaVersion: 8,
+  schemaVersion: 9,
   folders: afterCreate.folders.concat([preservedEmpty])
 });
 Core.mergeProducts([
@@ -120,13 +123,21 @@ assert.equal(afterReplace.products.length, 1);
 assert.equal(afterReplace.folders.some(folder => folder.id === 'folder-empty'), true, 'replace de produtos deve preservar pastas explícitas');
 assert.deepEqual(Array.from(FolderTree.pathOf(afterReplace.folders, afterReplace.products[0].folderId), item => item.name), ['Perfis', 'Sobrepor']);
 
+const versioned = Core.migrate({
+  ...afterReplace,
+  catalog: { ...afterReplace.catalog, templateId: 'technical', templateVersion: 7 }
+});
+assert.equal(versioned.catalog.templateVersion, 7, 'Core deve preservar versão positiva explícita sem assumir versão disponível');
+
 const session = JSON.parse(storage.get(Core.STORAGE_KEY));
 assert.deepEqual(session.products, []);
 assert.deepEqual(session.folders, []);
-assert.equal(session.schemaVersion, 8);
+assert.equal(session.schemaVersion, 9);
+assert.equal(session.catalog.templateVersion, 1);
 
 const backupRoundTrip = Core.migrate(JSON.parse(JSON.stringify(afterReplace)));
 assert.deepEqual(JSON.parse(JSON.stringify(backupRoundTrip.folders)), JSON.parse(JSON.stringify(afterReplace.folders)));
 assert.equal(backupRoundTrip.products[0].folderId, afterReplace.products[0].folderId);
+assert.equal(backupRoundTrip.catalog.templateVersion, afterReplace.catalog.templateVersion);
 
-console.log('PASS core folder-state fixture: schema 8, legacy migration, deep-merge preservation, explicit moves, replace preservation and backup round-trip');
+console.log('PASS core folder-state fixture: schema 9, template binding migration, deep-merge preservation, explicit moves, replace preservation and backup round-trip');

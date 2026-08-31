@@ -161,7 +161,7 @@ try {
     };
   });
 
-  if (result.schemaVersion !== 8 || result.currentFolderId !== 'f-leaf') {
+  if (result.schemaVersion !== 9 || result.currentFolderId !== 'f-leaf') {
     throw new Error(`snapshot atual não preservou folderId: ${JSON.stringify(result)}`);
   }
   if (result.currentPath.join(' / ') !== 'Ferragens / Corrediças / Telescópicas') {
@@ -179,11 +179,11 @@ try {
   if (result.projectedCategory !== 'Ferragens' || result.projectedSubcategory !== 'Corrediças / Telescópicas') {
     throw new Error(`folderId não permaneceu autoridade dos mirrors: ${JSON.stringify(result)}`);
   }
-  if (result.migratedSchemaVersion !== 8 || !result.migratedHasFolderId || result.migratedPath.join(' / ') !== 'Perfis / Alumínio') {
+  if (result.migratedSchemaVersion !== 9 || !result.migratedHasFolderId || result.migratedPath.join(' / ') !== 'Perfis / Alumínio') {
     throw new Error(`entrada schema 7 não migrou deterministicamente no browser: ${JSON.stringify(result)}`);
   }
 
-  console.log('PASS browser ProductSnapshot gate: schema 8 estrito, folderId autoritativo, merge profundo e migração v7→v8');
+  console.log('PASS browser ProductSnapshot gate: core schema 9, folderId autoritativo, merge profundo e migração v7→v9');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

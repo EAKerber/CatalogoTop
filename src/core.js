@@ -3,7 +3,7 @@
 
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const STORAGE_KEY = 'catalogotop:state:v1';
-  const SCHEMA_VERSION = 8;
+  const SCHEMA_VERSION = 9;
 
   const APP_CONFIG = Object.freeze({
     brandName: 'Top Mobili',
@@ -174,6 +174,7 @@
       catalog: {
         title: 'Categoria',
         templateId: 'technical',
+        templateVersion: 1,
         showPrices: true,
         dateOverride: '',
         createdAt: effectiveCatalogDateIso(''),
@@ -334,6 +335,9 @@
       order: Array.isArray(rawPresentation.order) ? rawPresentation.order : selectedIds
     });
     const dateOverride = NS.CatalogDate?.normalizeOverride?.(raw.catalog?.dateOverride) || '';
+    const templateId = ({ eletrica: 'technical', moveis: 'compact', promo: 'showcase' }[String(raw.catalog?.templateId || raw.currentTemplate || '')] || String(raw.catalog?.templateId || raw.currentTemplate || base.catalog.templateId));
+    const rawTemplateVersion = Number(raw.catalog?.templateVersion);
+    const templateVersion = Number.isInteger(rawTemplateVersion) && rawTemplateVersion > 0 ? rawTemplateVersion : 1;
     return {
       schemaVersion: SCHEMA_VERSION,
       folders: organization.folders || [],
@@ -341,7 +345,8 @@
       selectedIds,
       catalog: {
         title: String(raw.catalog?.title || raw.selectionName || base.catalog.title),
-        templateId: ({ eletrica: 'technical', moveis: 'compact', promo: 'showcase' }[String(raw.catalog?.templateId || raw.currentTemplate || '')] || String(raw.catalog?.templateId || raw.currentTemplate || base.catalog.templateId)),
+        templateId,
+        templateVersion,
         showPrices: raw.catalog?.showPrices ?? raw.showPrices ?? true,
         dateOverride,
         createdAt: effectiveCatalogDateIso(dateOverride),

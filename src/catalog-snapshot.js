@@ -6,7 +6,8 @@
   const Composition = NS.Composition;
   if (!FolderTree || !Composition) return;
 
-  const SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 2;
+  const LEGACY_SCHEMA_VERSION = 1;
   const MAX_CATALOGS = 1000;
   const MAX_SELECTED_IDS = 5000;
   const MAX_ID_LENGTH = 180;
@@ -47,6 +48,13 @@
     return result;
   }
 
+  function templateVersion(value, { legacy = false } = {}) {
+    if ((value == null || value === '') && legacy) return 1;
+    const version = Number(value);
+    if (!Number.isInteger(version) || version < 1 || version > 999999) throw issue('catalog_template_version_invalid', 'Versão de template inválida.');
+    return version;
+  }
+
   function normalizeSelectedIds(value) {
     if (!Array.isArray(value)) throw issue('catalog_selected_ids_invalid', 'selectedIds deve ser um array.');
     if (value.length > MAX_SELECTED_IDS) throw issue('catalog_selected_ids_too_large', `Limite de ${MAX_SELECTED_IDS} referências excedido.`);
@@ -59,7 +67,7 @@
     });
   }
 
-  function normalizeCatalog(value) {
+  function normalizeCatalog(value, { legacy = false } = {}) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw issue('catalog_content_invalid', 'Conteúdo de catálogo inválido.');
     const title = String(value.title || '').trim();
     if (!title || title.length > MAX_TITLE_LENGTH) throw issue('catalog_title_invalid', 'Título de catálogo inválido.');
@@ -68,6 +76,7 @@
     return {
       title,
       templateId,
+      templateVersion: templateVersion(value.templateVersion, { legacy }),
       showPrices: value.showPrices !== false,
       dateOverride: dateOverride(value.dateOverride),
       createdAt: timestamp(value.createdAt),
@@ -75,7 +84,7 @@
     };
   }
 
-  function normalizeRecord(raw, folders = [], index = -1, { validateFolder = true } = {}) {
+  function normalizeRecord(raw, folders = [], index = -1, { validateFolder = true, legacy = false } = {}) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
       throw issue('catalog_record_invalid', `Catálogo inválido${index >= 0 ? ` no índice ${index}` : ''}.`, { index });
     }
@@ -90,38 +99,42 @@
       createdAt: timestamp(raw.createdAt),
       updatedAt: timestamp(raw.updatedAt),
       selectedIds: normalizeSelectedIds(raw.selectedIds || []),
-      catalog: normalizeCatalog(raw.catalog || {})
+      catalog: normalizeCatalog(raw.catalog || {}, { legacy })
     };
   }
 
-  function normalizeV1(raw) {
+  function normalizeCollection(raw, { legacy = false } = {}) {
     const folders = FolderTree.normalize(raw?.folders || []);
     if (!Array.isArray(raw?.catalogs)) throw issue('catalog_snapshot_catalogs_invalid', 'catalogs deve ser um array.');
     if (raw.catalogs.length > MAX_CATALOGS) throw issue('catalog_snapshot_too_large', `Limite de ${MAX_CATALOGS} catálogos excedido.`);
     const ids = new Set();
     const catalogs = raw.catalogs.map((catalog, index) => {
-      const normalized = normalizeRecord(catalog, folders, index);
+      const normalized = normalizeRecord(catalog, folders, index, { legacy });
       if (ids.has(normalized.id)) throw issue('catalog_id_duplicate', `ID de catálogo duplicado: ${normalized.id}.`, { catalogId: normalized.id });
       ids.add(normalized.id);
       return normalized;
     });
-    return {
-      schemaVersion: SCHEMA_VERSION,
-      ...metadata(raw),
-      folders,
-      catalogs
-    };
+    return { schemaVersion: SCHEMA_VERSION, ...metadata(raw), folders, catalogs };
+  }
+
+  function normalizeV2(raw) {
+    return normalizeCollection(raw, { legacy: false });
+  }
+
+  function migrateV1(raw) {
+    return normalizeCollection(raw, { legacy: true });
   }
 
   function read(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw issue('catalog_snapshot_invalid', 'Snapshot de catálogos inválido.');
-    const version = Number(raw.schemaVersion || SCHEMA_VERSION);
-    if (version !== SCHEMA_VERSION) throw issue('catalog_snapshot_version', `Versão de CatalogSnapshot não suportada: ${version}.`, { version });
-    return { snapshot: normalizeV1(raw), migratedFromVersion: null };
+    const version = Number(raw.schemaVersion || LEGACY_SCHEMA_VERSION);
+    if (version === LEGACY_SCHEMA_VERSION) return { snapshot: migrateV1(raw), migratedFromVersion: LEGACY_SCHEMA_VERSION };
+    if (version === SCHEMA_VERSION) return { snapshot: normalizeV2(raw), migratedFromVersion: null };
+    throw issue('catalog_snapshot_version', `Versão de CatalogSnapshot não suportada: ${version}.`, { version });
   }
 
   function forWrite({ revision = 0, updatedAt = '', writeId = '', folders = [], catalogs = [] } = {}) {
-    return normalizeV1({ schemaVersion: SCHEMA_VERSION, revision, updatedAt, writeId, folders, catalogs });
+    return normalizeV2({ schemaVersion: SCHEMA_VERSION, revision, updatedAt, writeId, folders, catalogs });
   }
 
   function fromState(state, { id, folderId = null, createdAt = '', updatedAt = '', now = '' } = {}) {
@@ -137,6 +150,7 @@
       catalog: {
         title: currentCatalog.title || 'Categoria',
         templateId: currentCatalog.templateId || 'technical',
+        templateVersion: currentCatalog.templateVersion || 1,
         showPrices: currentCatalog.showPrices !== false,
         dateOverride: currentCatalog.dateOverride || '',
         createdAt: currentCatalog.createdAt || stamp,
@@ -184,10 +198,12 @@
 
   NS.CatalogSnapshot = Object.freeze({
     SCHEMA_VERSION,
+    LEGACY_SCHEMA_VERSION,
     MAX_CATALOGS,
     MAX_SELECTED_IDS,
     read,
-    normalizeV1,
+    normalizeV2,
+    migrateV1,
     normalizeRecord,
     forWrite,
     fromState,

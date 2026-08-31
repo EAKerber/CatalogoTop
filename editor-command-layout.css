@@ -8,6 +8,32 @@
  * A regra explícita evita que o display:flex estrutural vença o presentation hint do browser. */
 .editor-history-controls[hidden] { display: none !important; }
 
+/* Contenção transversal das superfícies autorais. CommercialControls injeta o preço
+ * dentro de grids compactos: Cards/membros recebem a largura inteira; a malha de quatro
+ * opções já existente passa então a ter território real em vez de comprimir rótulos. */
+#catalog .contextual-inspector .inspector-fields > .inspector-price-style {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+/* O cabeçalho de Existentes é filho de um card com overflow:hidden. O inset precisa
+ * pertencer ao próprio cabeçalho para eyebrow/título/contador não encostarem no recorte. */
+#products .product-list-card > .form-head {
+  min-width: 0;
+  gap: 14px;
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+#products .product-list-card > .form-head > div {
+  min-width: 0;
+  flex: 1 1 320px;
+}
+#products .product-list-card > .form-head .counter {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 @media (min-width: 1180px) {
   /* Collection: título/subtítulo em uma linha; tema/colunas/apresentação em outra. */
   #catalog .contextual-inspector .inspector-fields[data-inspector-collection] {
@@ -86,5 +112,32 @@
   #catalog .contextual-inspector .inspector-fields[data-inspector-table] > .inspector-columns {
     grid-column: 1 / -1;
     grid-row: 3;
+  }
+
+  /* O toolbar do A4 não força metadados, ações e zoom na mesma linha. Em territórios
+   * estreitos do preview as ações ficam na primeira linha; contador + zoom na segunda. */
+  #catalog .preview-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    row-gap: 4px;
+  }
+  #catalog .preview-toolbar .heading-actions {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: end;
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  #catalog .preview-toolbar-meta {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    overflow: hidden;
+  }
+  #catalog .preview-zoom-controls {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
   }
 }

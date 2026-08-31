@@ -28,6 +28,8 @@
     pageElement.dataset.categoryPage = String(page.categoryPageIndex + 1);
     pageElement.dataset.documentPage = String(pageIndex + 1);
     pageElement.dataset.documentPageTotal = String(pageTotal);
+    pageElement.dataset.templateId = String(template.id || '');
+    pageElement.dataset.templateVersion = String(template.version || state.catalog?.templateVersion || 1);
     pageElement.style.setProperty('--catalog-cols', '6');
     pageElement.style.setProperty('--catalog-rows', String(Math.max(1, page.layout?.rowCount || 1)));
     pageElement.style.setProperty('--catalog-planned-rows', String(Math.max(1, page.layout?.rowCount || 1)));
@@ -56,6 +58,7 @@
       catalog: {
         ...state.catalog,
         templateId: template.id,
+        templateVersion: Number(template.version || state.catalog?.templateVersion || 1),
         presentation: NS.Composition.normalizePresentation({ ...state.catalog.presentation, blocks: [] })
       }
     };
