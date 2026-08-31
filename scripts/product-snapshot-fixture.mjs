@@ -84,6 +84,27 @@ const reused = ProductSnapshot.assignLegacyProduct(
 assert.equal(reused.product.folderId, assigned.product.folderId);
 assert.equal(reused.folders.length, assigned.folders.length);
 
+let pathSequence = 0;
+const deepAssigned = ProductSnapshot.assignPathProduct(
+  assigned.folders,
+  { id: 'p5', code: 'DEEP', description: 'Profunda' },
+  ['Ferragens', 'Corrediças', 'Telescópicas', 'Premium'],
+  { idFactory: () => `path-folder-${++pathSequence}` }
+);
+assert.deepEqual(
+  Array.from(FolderTree.pathOf(deepAssigned.folders, deepAssigned.product.folderId), folder => folder.name),
+  ['Ferragens', 'Corrediças', 'Telescópicas', 'Premium'],
+  'atribuição V2 explícita deve preservar todos os segmentos do caminho'
+);
+assert.equal(deepAssigned.product.category, 'Ferragens');
+assert.equal(deepAssigned.product.subcategory, 'Corrediças / Telescópicas / Premium');
+assert.deepEqual(
+  Array.from(ProductSnapshot.resolveLegacyPath([], { category: 'Ferragens', subcategory: 'Corrediças / Telescópicas' }, { idFactory: () => `legacy-${++pathSequence}` }).folders).map(folder => folder.name),
+  ['Ferragens', 'Corrediças / Telescópicas'],
+  'adaptador legado continua tratando subcategory histórica como um único segmento'
+);
+assert.throws(() => ProductSnapshot.assignPathProduct([], { id: 'x' }, ['Ferragens', ''], { idFactory: () => 'x' }), error => error?.code === 'folder_path_invalid');
+
 const write = ProductSnapshot.forWrite({
   revision: 9,
   folders: assigned.folders,
@@ -94,4 +115,4 @@ assert.equal(write.products[0].folderId, 'folder-new-1');
 
 assert.throws(() => ProductSnapshot.assignLegacyProduct([], { category: 'Ferragens' }), error => error?.code === 'folder_id_factory_required');
 
-console.log('PASS product snapshot fixture: v1 migration, v2 folder/code authority, legacy adapter and fail-closed references');
+console.log('PASS product snapshot fixture: v1 migration, v2 folder/code authority, explicit deep path assignment and fail-closed references');

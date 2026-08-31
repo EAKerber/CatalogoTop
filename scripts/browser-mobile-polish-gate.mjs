@@ -43,34 +43,43 @@ const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => Boolean(window.CatalogoTop?.Core && window.CatalogoTop?.GroupingControls && window.CatalogoTop?.ContextualInspector));
+  await page.waitForFunction(() => Boolean(window.CatalogoTop?.Core && window.CatalogoTop?.GroupingControls && window.CatalogoTop?.ContextualInspector && window.CatalogoTop?.CadastroSurface));
   await page.evaluate(installFixture);
 
   await page.evaluate(() => document.querySelector('[data-mobile-workspace-target="library"]')?.click());
-  await page.waitForSelector('#productRows tr');
-  const library = await page.evaluate(() => {
-    const first = document.querySelector('#productRows tr');
-    const thumb = first.querySelector('.product-thumb');
-    const description = first.querySelector('.table-product-link');
-    const folders = document.querySelector('#categoryFolders');
-    const row = folders.querySelector('.category-folder-row:not(.all)');
-    const folder = row?.querySelector('.category-folder');
-    const trash = row?.querySelector('.category-delete-button');
-    const a = folder?.getBoundingClientRect(); const b = trash?.getBoundingClientRect();
+  await page.waitForSelector('#cadastroProductRows tr');
+  const existing = await page.evaluate(() => {
+    const panel = document.querySelector('#productLibraryPanel');
+    const rows = [...document.querySelectorAll('#cadastroProductRows tr')];
+    const first = rows[0];
+    const edit = first?.querySelector('[data-cadastro-edit]');
+    const clone = first?.querySelector('[data-cadastro-clone]');
+    const legacy = panel.querySelector('[data-r1d-legacy-product-list-compat]');
     return {
-      rowHeight: first.getBoundingClientRect().height,
-      thumbWidth: thumb.getBoundingClientRect().width,
-      clamp: getComputedStyle(description).webkitLineClamp,
-      rowBorder: getComputedStyle(first).borderBottomWidth,
-      cellBorders: Array.from(first.children).map(cell => getComputedStyle(cell).borderBottomWidth),
-      folderGap: a && b ? Math.abs(a.right - b.left) : 999,
-      railDisplay: getComputedStyle(folders).display,
-      railWrap: getComputedStyle(folders).flexWrap,
-      railOverflowX: getComputedStyle(folders).overflowX,
-      align: getComputedStyle(document.querySelector('.product-library')).alignContent
+      selected: document.querySelector('[data-mobile-workspace-target="library"]')?.getAttribute('aria-selected'),
+      label: document.querySelector('[data-mobile-workspace-target="library"]')?.textContent?.trim(),
+      panelDisplay: getComputedStyle(panel).display,
+      panelActive: panel.classList.contains('mobile-workspace-active'),
+      rowCount: rows.length,
+      rowHeight: first?.getBoundingClientRect().height || 0,
+      editVisible: Boolean(edit && edit.getClientRects().length),
+      cloneVisible: Boolean(clone && clone.getClientRects().length),
+      destructiveVisible: [...panel.querySelectorAll('[data-delete-product-direct], [data-delete-category]')].some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length),
+      legacyHidden: Boolean(legacy?.hidden),
+      overflowX: Math.max(0, panel.scrollWidth - panel.clientWidth)
     };
   });
-  if (library.rowHeight < 88 || library.thumbWidth < 46 || library.clamp !== '3' || parseFloat(library.rowBorder) < 1 || library.cellBorders.some(value => parseFloat(value) > .1) || library.folderGap > 1 || library.railDisplay !== 'flex' || library.railWrap !== 'nowrap' || library.railOverflowX !== 'auto' || library.align !== 'start') throw new Error(`biblioteca mobile regrediu: ${JSON.stringify(library)}`);
+  if (existing.selected !== 'true' || existing.label !== 'Existentes' || existing.panelDisplay === 'none' || !existing.panelActive || existing.rowCount !== 14 || existing.rowHeight < 44 || !existing.editVisible || !existing.cloneVisible || existing.destructiveVisible || !existing.legacyHidden || existing.overflowX > 3) {
+    throw new Error(`Existentes mobile regrediu: ${JSON.stringify(existing)}`);
+  }
+
+  await page.fill('#cadastroProductSearch', 'SUPER');
+  await page.waitForFunction(() => document.querySelectorAll('#cadastroProductRows tr').length === 1);
+  const cadastroSearch = await page.evaluate(() => ({
+    count: document.querySelectorAll('#cadastroProductRows tr').length,
+    text: document.querySelector('#cadastroProductRows tr')?.textContent || ''
+  }));
+  if (cadastroSearch.count !== 1 || !cadastroSearch.text.includes('SUPER')) throw new Error(`busca contextual mobile não filtrou Existentes: ${JSON.stringify(cadastroSearch)}`);
 
   await page.click('[data-tab="catalog"]');
   await page.waitForSelector('#catalog.panel.active');
@@ -144,7 +153,7 @@ try {
   }));
   if (anchor.filter <= anchor.inspector || anchor.mode !== 'general' || !anchor.returning) throw new Error(`⚙ mobile não ancorou no topo da configuração: ${JSON.stringify(anchor)}`);
 
-  console.log('PASS browser mobile polish gate: lista, rails, callout, escopo editorial e anchor contextual');
+  console.log('PASS browser mobile polish gate: Cadastro Existentes, rails, callout, escopo editorial e anchor contextual');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

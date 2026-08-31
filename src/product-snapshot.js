@@ -93,17 +93,19 @@
     throw issue('folder_id_factory_failed', 'Não foi possível obter um folderId novo e válido.');
   }
 
-  function legacySegments(product) {
-    return Migration.legacyPathFromProduct(product);
+  function pathSegments(value) {
+    if (!Array.isArray(value)) throw issue('folder_path_invalid', 'Caminho de pasta deve ser um array de segmentos.');
+    const segments = value.map(segment => FolderTree.displayName(segment)).filter(Boolean);
+    if (!segments.length || segments.length !== value.length) throw issue('folder_path_invalid', 'Caminho de pasta contém segmento vazio ou inválido.');
+    return segments;
   }
 
-  function resolveLegacyPath(folders, product, { idFactory } = {}) {
+  function resolvePath(folders, segments, { idFactory } = {}) {
     let next = FolderTree.normalize(folders || []).map(folder => ({ ...folder }));
     const existingIds = new Set(next.map(folder => folder.id));
     let parentId = null;
 
-    for (const rawName of legacySegments(product)) {
-      const name = FolderTree.displayName(rawName);
+    for (const name of pathSegments(segments)) {
       const key = FolderTree.nameKey(name);
       const existing = next.find(folder => folder.parentId === parentId && FolderTree.nameKey(folder.name) === key);
       if (existing) {
@@ -122,6 +124,22 @@
 
     if (!parentId) throw issue('product_folder_resolution_failed', 'Não foi possível resolver a pasta do produto.');
     return { folders: next, folderId: parentId };
+  }
+
+  function legacySegments(product) {
+    return Migration.legacyPathFromProduct(product);
+  }
+
+  function resolveLegacyPath(folders, product, options = {}) {
+    return resolvePath(folders, legacySegments(product), options);
+  }
+
+  function assignPathProduct(folders, product, segments, { idFactory } = {}) {
+    const resolved = resolvePath(folders, segments, { idFactory });
+    return {
+      folders: resolved.folders,
+      product: Migration.applyLegacyProjection({ ...product, folderId: resolved.folderId }, resolved.folders)
+    };
   }
 
   function assignLegacyProduct(folders, product, { idFactory } = {}) {
@@ -148,7 +166,9 @@
     MAX_PRODUCTS,
     read,
     normalizeV2,
+    resolvePath,
     resolveLegacyPath,
+    assignPathProduct,
     assignLegacyProduct,
     forWrite
   });
