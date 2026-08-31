@@ -1,0 +1,46 @@
+{
+  "kind": "catalogotop.image-raster-quality-cross-source-regression",
+  "version": 1,
+  "status": "research-only-pass-no-regression",
+  "caseId": "soft-close-wide-raster-quality",
+  "source": {
+    "sourceId": "soft-close",
+    "sha256": "d0694fc2278ac4c6b88b3f6c1e647c5bcf360f363fe96b80f9e1dff17c9fedec",
+    "widthPx": 420,
+    "heightPx": 420,
+    "authority": "illustrative-source-warning"
+  },
+  "frozenComposition": {
+    "orientationStrategy": "preserve",
+    "foregroundBBoxPx": [12, 134, 406, 304],
+    "placement": { "widthPx": 440, "heightPx": 180, "safeMarginRatio": 0.07 },
+    "placementObjectSizePx": [359, 155],
+    "placementScale": 0.9105882352941177
+  },
+  "comparison": {
+    "baseline": "bilinear-4x-box",
+    "candidate": "mitchell-8x-box",
+    "meanAbsoluteChannelDifference": 0.10682659932659933,
+    "p95AbsoluteChannelDifference": 1,
+    "pixelRatioWithAnyChannelDifferenceAbove8": 0,
+    "baselineNonWhiteOccupancy": 0.1910732323232323,
+    "candidateNonWhiteOccupancy": 0.19061868686868688,
+    "baselineGradientMean": 3.2368950843811035,
+    "candidateGradientMean": 3.2950899600982666
+  },
+  "review": {
+    "outcome": "PASS CROSS-SOURCE RASTER REGRESSION",
+    "materialPresentationGain": false,
+    "visibleGeometryRegression": false,
+    "visibleHaloRegression": false,
+    "sourceAuthorityState": "REVIEW-REQUIRED",
+    "productionApproval": false
+  },
+  "interpretation": [
+    "The higher-order 8x path does not materially change this preserve-orientation placement.",
+    "No visible factual or boundary regression was found, so the sampler generalizes safely to this case as a research option.",
+    "The negligible placement-scale difference is evidence against using 8x supersampling universally when the transform is already mild.",
+    "The source page's illustrative-image warning remains independent of raster quality and continues to require authority review."
+  ],
+  "decision": "Do not promote 8x as an unconditional default from this case. Prefer a transform-severity-aware quality policy and preserve the existing source-authority gate."
+}
