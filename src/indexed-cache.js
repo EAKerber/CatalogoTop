@@ -4,7 +4,8 @@
   const NS = window.CatalogoTop = window.CatalogoTop || {};
   const DB_NAME = 'catalogotop-cache-v1';
   const STORE = 'snapshots';
-  const KEY = 'products-current';
+  const PRODUCT_KEY = 'products-current';
+  const CATALOG_KEY = 'catalogs-current';
 
   function openDb() {
     return new Promise((resolve, reject) => {
@@ -30,12 +31,12 @@
     });
   }
 
-  async function getSnapshot() {
+  async function getByKey(key) {
     try {
       const db = await openDb();
       return await new Promise((resolve, reject) => {
         const transaction = db.transaction(STORE, 'readonly');
-        const request = transaction.objectStore(STORE).get(KEY);
+        const request = transaction.objectStore(STORE).get(key);
         request.onsuccess = () => { db.close(); resolve(request.result || null); };
         request.onerror = () => { db.close(); reject(request.error); };
       });
@@ -45,13 +46,18 @@
     }
   }
 
-  async function setSnapshot(snapshot) {
+  async function setByKey(key, snapshot) {
     try {
-      await withStore('readwrite', store => store.put(snapshot, KEY));
+      await withStore('readwrite', store => store.put(snapshot, key));
     } catch (error) {
       console.warn('Não foi possível atualizar cache IndexedDB:', error);
     }
   }
 
-  NS.IndexedCache = { getSnapshot, setSnapshot };
+  NS.IndexedCache = {
+    getSnapshot: () => getByKey(PRODUCT_KEY),
+    setSnapshot: snapshot => setByKey(PRODUCT_KEY, snapshot),
+    getCatalogSnapshot: () => getByKey(CATALOG_KEY),
+    setCatalogSnapshot: snapshot => setByKey(CATALOG_KEY, snapshot)
+  };
 })();
