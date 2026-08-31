@@ -1,0 +1,38 @@
+{
+  "kind": "catalogotop.image-raster-quality-probe-self-test-result",
+  "version": 1,
+  "status": "pass",
+  "authority": {
+    "researchHead": "688b2b38d9d82200f0a7fd72386df55c2d6fde94",
+    "script": "scripts/research/image-raster-quality-probe.mjs",
+    "scriptBlobSha": "388f9b3d9bf47f44252e492b4f730dc9c45bce78"
+  },
+  "execution": {
+    "workflowRunId": 33343209122,
+    "jobId": 99342461219,
+    "conclusion": "success",
+    "artifactId": 9741183308,
+    "artifactDigest": "sha256:e2e0f0418bc5dcb08944a1d30f50cfdf2b0e5142576620c52b7c06604f2a07cf"
+  },
+  "profiles": {
+    "baseline": { "reconstruction": "bilinear", "masterScaleFactor": 4, "downsample": "box" },
+    "cubic4x": { "reconstruction": "mitchell-bc-1/3", "masterScaleFactor": 4, "downsample": "box" },
+    "cubic8x": { "reconstruction": "mitchell-bc-1/3", "masterScaleFactor": 8, "downsample": "box" },
+    "diagnostic12x": { "reconstruction": "mitchell-bc-1/3", "masterScaleFactor": 12, "downsample": "box", "defaultEligible": false }
+  },
+  "measured": {
+    "partial8xCoveragePixels": 30223,
+    "normalizedCoverageDelta4xVs8x": 0.0000011478686418692094
+  },
+  "guaranteesExercised": [
+    "sampling quality changes do not alter the placement plan or semantic orientation",
+    "cubic interpolation operates on premultiplied factual coverage",
+    "cubic overshoot is clamped rather than treated as factual detail",
+    "no sharpening, super-resolution or generated product detail is introduced"
+  ],
+  "limitations": [
+    "the probe does not increase factual source resolution",
+    "8x remains an experimental quality ceiling, not a production default",
+    "visual/cross-source review remains a separate gate"
+  ]
+}
