@@ -3,46 +3,50 @@
   "version": 1,
   "status": "research-only",
   "caseId": "h45-native-source-grounded-master",
-  "goal": "Obtain 3-5 clean image-only H45 candidates with the exact factual source anchor, unchanged viewpoint/composition and native output raster adequate for the wide physical-use target.",
-  "attempts": [
+  "goal": "Characterize whether the tested producer can repeatedly preserve the exact H45 source while meeting the image-only and native-raster contract.",
+  "cleanImageOnlyCandidatesObtained": 0,
+  "nativeMasterClaimsVerified": 0,
+  "embeddedCandidateImageryAdmissibleForNativeResolutionGate": false,
+  "positiveControl": {
+    "generatorId": "aa89f137-0218-41db-b39f-be47943197cc",
+    "status": "POSITIVE_CONTROL_PENDING_POSE_INVARIANT_LANDMARK_REVIEW",
+    "observation": "Embedded generated product imagery is visually very close to the deterministic factual H45 recomposition and qualitatively far stronger than the later fantasy-prototype outputs.",
+    "correction": "The prior FAIL_FACTUAL_TOPOLOGY_MISMATCH verdict is superseded because it conflated raw source pose/layout with topology. Allowed H45 reorientation must be neutralized before landmark comparison."
+  },
+  "repeatAttempts": [
     {
       "generatorId": "f3660d0d-5c32-44ba-9f5f-e6946f1bd039",
       "producerContract": "fail",
-      "reason": "Returned an infographic/report containing multiple self-declared candidates, metrics and verdicts instead of image-only masters. Embedded product imagery also converges on the same non-source fantasy telescopic-slide prototype seen across the repeated attempts."
+      "factualRegime": "fantasy-prototype-substitution",
+      "reason": "Returned an infographic/report instead of an image-only master and embedded an obviously invented roller/slide archetype rather than the H45 factual design."
     },
     {
       "generatorId": "835c43b7-87c9-456b-b19f-9b641c296eb1",
       "producerContract": "fail",
-      "reason": "Returned another research dashboard rather than a clean edited product image, despite explicit source-reference anchoring. Embedded product imagery again depicts essentially the same plausible but incorrect slide prototype rather than the factual two-piece H45 source."
+      "factualRegime": "fantasy-prototype-substitution",
+      "reason": "Returned another dashboard and repeated essentially the same fantasy mechanical archetype."
     },
     {
       "generatorId": "feecda2c-e8f3-4fef-b91f-f1147b20d244",
       "producerContract": "fail",
-      "reason": "Returned an infographic board with embedded candidate imagery and generated gate claims rather than image-only native masters. The candidate set repeats the same incorrect learned/prototypical slide geometry instead of providing independent faithful H45 reconstructions."
+      "factualRegime": "fantasy-prototype-substitution",
+      "reason": "Returned an infographic board and again repeated the same invented product family instead of a clean source-grounded H45 master."
     }
   ],
-  "cleanImageOnlyCandidatesObtained": 0,
-  "nativeMasterClaimsVerified": 0,
-  "embeddedCandidateImageryAdmissibleForNativeResolutionGate": false,
-  "independentFactualFinding": {
-    "reviewedGeneratorId": "aa89f137-0218-41db-b39f-be47943197cc",
-    "outcome": "FAIL_FACTUAL_TOPOLOGY_MISMATCH",
-    "note": "The visually promising prior candidate becomes a factual failure when compared to the exact H45 source: the source has two separate slide pieces and the generated rail topology/hole patterns/terminal structures materially differ."
-  },
   "crossRunFinding": {
-    "outcome": "SYSTEMATIC_PROTOTYPE_SUBSTITUTION",
-    "humanObservation": "Across the repeated dashboard attempts, the generated product imagery repeatedly uses essentially the same fantasy telescopic-slide design rather than independently preserving the factual H45 source.",
-    "interpretation": "Cross-run similarity is not fidelity evidence here. It indicates mode/prototype convergence toward a learned plausible drawer-slide representation that overrides source identity.",
-    "risk": "The wrong product can look coherent and repeatable enough to appear trustworthy unless compared against source landmarks."
+    "outcome": "TWO_DISTINCT_PRODUCER_REGIMES",
+    "highAdherenceRegime": "At least one earlier output is visually close to the deterministic factual recomposition and should be retained as a positive control pending landmark review.",
+    "failureRegime": "Later outputs repeatedly collapse to the same obvious fantasy telescopic-slide/roller archetype.",
+    "interpretation": "The main unresolved variable is reference-adherence reliability / regime switching. Cross-run similarity is only positive if it is similarity to source landmarks."
   },
   "result": "PRODUCER_NOT_RELIABLE_FOR_FAITHFUL_IMAGE_ONLY_MASTER",
   "interpretation": [
-    "The producer demonstrates strong visual plausibility for furniture hardware but currently poor contract reliability in this session.",
-    "Visual plausibility and source fidelity must remain separate gates.",
-    "The repeated report-output behavior prevents measuring native master resolution or a true 3-5-sample factual pass rate.",
-    "The experiment should not be converted into a success by extracting report imagery and treating it as native masters.",
-    "Repeated similarity between generated candidates is currently evidence of systematic wrong-prototype convergence, not evidence of faithful repeatability."
+    "The producer is not uniformly incapable: a much higher-adherence regime has been observed.",
+    "The producer is still not reliable enough for product use because catastrophic fantasy substitution also occurs and the image-only contract repeatedly fails.",
+    "The experiment must not use pose/layout differences as a proxy for topology when reorientation is explicitly allowed.",
+    "Future factual comparison must be pose-invariant and landmark-based.",
+    "Blind prompt repetition is no longer useful; the next experiment should isolate reference binding, edit-vs-generation mode, context contamination and output-contract effects."
   ],
-  "stopDecision": "Do not spend further samples on the same producer/channel in this experiment unless the editing channel behavior changes materially.",
-  "nextUsefulHypothesis": "Keep the source-grounded capability hypothesis open, but require a producer that can return image-only edits and preserve source landmark topology before testing viewpoint change or production policy."
+  "stopDecision": "Stop blind repetition on the current context/channel. Preserve the high-adherence output as positive control and the repeated fantasy archetype as negative control for a controlled regime-switch experiment.",
+  "nextUsefulHypothesis": "Identify which producer conditions reproduce the high-adherence regime consistently before attempting viewpoint change."
 }
