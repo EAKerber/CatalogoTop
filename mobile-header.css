@@ -43,7 +43,7 @@
     width: 100%;
     min-width: 0;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
     margin: 0;
     padding: 1px 0 0;
@@ -115,8 +115,8 @@
   }
   .app-shell-header .app-tabs .tab {
     min-height: 33px;
-    font-size: 10.5px;
-    padding: 6px 7px;
+    font-size: 9.5px;
+    padding: 6px 4px;
   }
   .app-shell-header .editor-history-controls:not([hidden]) { padding-left: 4px; }
   .app-shell-header .editor-history-controls button {
