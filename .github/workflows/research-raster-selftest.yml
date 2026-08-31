@@ -1,4 +1,4 @@
-name: Research Raster Quality Self-Test
+name: Research Image Pipeline Self-Tests
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  raster-selftest:
+  image-research-selftests:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -26,6 +26,13 @@ jobs:
           node scripts/research/image-raster-quality-probe.mjs | tee research-artifact/raster-quality-self-test.json
           node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('research-artifact/raster-quality-self-test.json','utf8')); if(x.status!=='pass') process.exit(1)"
 
+      - name: Execute committed output-resolution self-test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/research/image-output-resolution.mjs | tee research-artifact/output-resolution-self-test.json
+          node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('research-artifact/output-resolution-self-test.json','utf8')); if(x.status!=='pass') process.exit(1)"
+
       - name: Record authority head
         shell: bash
         run: |
@@ -35,7 +42,7 @@ jobs:
       - name: Upload self-test evidence
         uses: actions/upload-artifact@v4
         with:
-          name: raster-quality-self-test
+          name: image-research-self-tests
           path: research-artifact/
           if-no-files-found: error
           retention-days: 7
