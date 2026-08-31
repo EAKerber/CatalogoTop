@@ -1,209 +1,190 @@
 # R-IMG-1 — Current Research Checkpoint
 
-Date: 2026-08-30  
+Date: 2026-08-30 / 2026-08-31 runner evidence  
 Branch: `research/semantic-image-variation-v2`  
 Stable baseline: `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v1.0.0`
 
-## Current state
+Status: **research only**. No ProductStore/backend, productive V2 runtime or `main` behavior has been changed.
 
-R-IMG-1 has moved beyond the initial “can we make a better-looking variant?” question. The research path now separates:
-
-1. factual source identity / authority;
-2. semantic subject/group interpretation;
-3. placement composition utility;
-4. source-isolation uncertainty;
-5. deterministic raster quality;
-6. master-output resolution;
-7. human fidelity / presentation review;
-8. optional Class C generation risk.
-
-No ProductStore/backend, main-editor runtime, deploy, `main` or productive `v2` semantics have been changed.
-
-The current production-facing conclusion remains **research only**.
-
-## Evidence inventory
-
-### Benchmark and exact sources
-
-- `experiments/image-variation/benchmark.v1.json` — 14 predeclared placement cases across seven source families.
-- `experiments/image-variation/source-readback.v1.json` — exact MIME, dimensions, byte lengths and SHA-256 evidence for all seven source families.
-
-| Source | Dimensions | Key role |
-| --- | ---: | --- |
-| H45 | 450×450 | strong elongated-hardware / reorientation case |
-| Soft Extra | 800×800 | canvas-removal-dominant slide case |
-| Soft Close | 420×420 | preserve-orientation + illustrative-source authority case |
-| Hinge | 450×450 | multi-piece group + semantic labels |
-| Piston | 450×450 | white-on-white + illustrative warning |
-| Caster | 128×128 | source-resolution negative control |
-| Round leg | 800×800 | composite source / semantic-role negative control |
-
-## Composition/semantic findings already established
-
-- **H45:** remove canvas + whole-group horizontal reorientation materially improves wide placement; explicit result is `PASS FOR BENCHMARK COMPARISON`.
-- **Soft Extra:** most utility comes from removing wasted canvas; rotation adds only modest composition gain; authority remains `REVIEW-REQUIRED`.
-- **Soft Close:** preserve orientation is the correct geometric result; source-page illustrative warning keeps authority `REVIEW-REQUIRED`.
-- **Hinge:** trim external neutral canvas but preserve all three representations plus `RETA / CURVA / SUPER CURVA`; annotation removal buys too little utility.
-- **Round leg:** product + application inset makes one image-level principal axis semantically invalid; correct automatic result remains no variant until subject role is resolved.
-- **Piston:** simple light-neutral extraction is fragile on white-on-white hardware; uncertainty must remain observable.
-- **Caster:** larger raster/placement presence never upgrades the exact 128×128 factual source evidence.
-
-## Class C trial
-
-Plan: `experiments/image-variation/class-c-h45-plan.v1.json`  
-Result: `experiments/image-variation/results/h45-class-c-producer-failure.v1.json`
-
-Three bounded attempts on the tested producer/channel failed the requested source-image edit contract and returned report/infographic outputs instead of a factual edited photograph.
-
-Current scoped outcome:
-
-**`CLASS_C_NOT_JUSTIFIED_PRODUCER_CONTRACT_FAILURE`**
-
-This closes only the tested producer path. It does not claim all grounded generative editors are incapable of useful angle/viewpoint variation.
-
-## R-IMG-1.1 — placement vs master raster
-
-R-IMG-1.1 established that logical placement geometry and raster-output dimensions are separate concepts.
-
-Example fixture:
-
-```text
-card-wide logical placement: 440×180
-research master fixture:      1760×720
-```
-
-A larger master improves transform/downsample behavior but is not evidence of new factual product detail.
-
-Key artifacts:
-
-- `experiments/image-variation/render-profiles.v1.json`
-- `scripts/research/image-render-master.mjs`
-- `docs/research/image-variation/PRESENTATION-REVIEW.md`
-- `experiments/image-variation/results/h45-wide-master.v1.json`
-- `experiments/image-variation/results/soft-extra-wide-master.v1.json`
-
-## R-IMG-1.2 — raster quality
-
-Current detailed checkpoint: `docs/research/image-variation/R-IMG-1.2.md`.
-
-The original bilinear master renderer was structurally correct but visually weak. A premultiplied Mitchell-Netravali research sampler was added in `scripts/research/image-raster-quality-probe.mjs`.
-
-### Exact committed sampler gate — PASS
-
-Evidence: `experiments/image-variation/results/raster-quality-self-test.v1.json`.
-
-The exact committed JS sampler was executed by GitHub Actions against the research branch and passed:
-
-- workflow run `33343209122`;
-- artifact `9741183308`;
-- normalized factual coverage remains effectively stable;
-- no sharpening, super-resolution or generated detail is introduced.
-
-### Important correction — 8× is not needed from current evidence
-
-The first H45 exploration accidentally changed supersampling factor and filter/downsample strategy together. The apparent 4×→8× gain was therefore confounded.
-
-`experiments/image-variation/results/mitchell-supersampling-factor-probe.v1.json` isolates the factor while keeping Mitchell reconstruction and box downsample constant.
-
-#### H45
-
-- `1× → 4×`: material placement-scale raster change;
-- `4× → 8×`: mean RGB difference ~`0.041`, P95 `0`, no pixel differs above 4 levels.
-
-#### Soft Extra
-
-- `1× → 4×`: measurable placement-scale raster change;
-- `4× → 8×`: mean RGB difference ~`0.016`, P95 `0`, no pixel differs above 4 levels.
-
-Current conclusion:
-
-> **Mitchell + moderate 4× master fixture captures the useful sampling benefit for the tested cases. 8×/12× complexity is not justified as an ordinary or transform-severity policy.**
-
-### Cross-source regression
-
-- `soft-close-raster-quality-regression.v1.json`: pass/no regression; 8× adds negligible placement value; authority caveat remains.
-- `hinge-raster-quality-regression.v1.json`: pass/no regression; semantic labels preserved; 8× adds negligible placement value.
-- `caster-raster-quality-control.v1.json`: pass as source-resolution negative control.
-
-The provisional policy is documented in `docs/research/image-variation/RASTER-QUALITY-POLICY.md`.
-
-## Current deterministic baseline
-
-The leading ordinary research path is now:
+## Current architecture
 
 ```text
 factual source identity + authority
         ↓
 subject / role / isolation evidence
         ↓
-semantic composition plan
+semantic composition decision
         ↓
-premultiplied Mitchell reconstruction
+placement identity + measured physical holder
         ↓
-moderate master raster fixture
+output-use profile / target DPI
         ↓
-deterministic placement preview
-        ↓
-utility + fidelity + authority + resolution review
-```
-
-Important: the current `4×` result answers **sampling quality**, not the final product question “what should the reusable/export/print master dimensions be?”.
-
-## Adjacent V1 gap discovered — Table image editing
-
-`docs/research/image-variation/TABLE-IMAGE-EDITING-GAP.md` records a separate V1 authoring gap discovered during this research.
-
-V1 Table rows can render `product.image`, but Table is outside the current `imageFrames`, image-selection and Variation Bundle placement contracts. A `table-row` inspector therefore cannot frame/select its image independently.
-
-The V2 direction should be placement-aware rather than simply reusing the product-level frame, because a Table cell, Card and Collection member can require different framing for the same factual asset.
-
-This is recorded as a V2 requirement; it does not interrupt or modify V1 during R-IMG-1.
-
-## Current architecture
-
-```text
-Catalog placement / usage
-        +
-factual source identity/pixels
-        +
-source authority / visual role
-        ↓
-subject/component decomposition when necessary
-        ↓
-semantic role preservation or explicit selection
-        ↓
-placement composition plan
-        ↓
-master-output profile
+derived output raster requirement
         ↓
 higher-quality deterministic raster
         ↓
-placement/print derivation
+placement / print derivation
         ↓
-utility + isolation + fidelity + authority + resolution evidence
+utility + fidelity + authority + resolution review
         ↓
-optional Class C only if it still adds material value
+optional Class C only when it adds material value
 ```
 
-## What remains open
+The research now treats these as separate evidence axes:
 
-The next unresolved boundary is **master-output resolution**, not antialiasing factor.
+1. source factual raster;
+2. placement/composition utility;
+3. isolation uncertainty;
+4. placement-specific raster adequacy;
+5. master/output raster;
+6. product/source authority;
+7. optional generative risk.
 
-Questions now include:
+## Established semantic/composition findings
 
-- what raster dimensions are actually needed for Card/Collection/Table holders at print/export scale;
-- whether master dimensions should be use-profile-driven, source-aware, or both;
-- how to expose a high-resolution deliverable without pretending a weak source contains more factual detail;
-- whether generative/source-grounded producers can legitimately supply higher native-resolution alternatives while passing the same identity gates;
-- how placement-aware image selection/framing extends to Table in V2.
+- **H45:** canvas removal + whole-group reorientation is materially useful; `PASS FOR BENCHMARK COMPARISON`.
+- **Soft Extra:** canvas removal is the main gain; rotation adds modest gain; authority remains `REVIEW-REQUIRED`.
+- **Soft Close:** preserve orientation; authority remains `REVIEW-REQUIRED` because current source imagery is marked illustrative.
+- **Hinge:** preserve three hinge representations plus `RETA / CURVA / SUPER CURVA`; trim external neutral canvas only.
+- **Piston:** white-on-white isolation is parameter-sensitive; uncertainty must remain observable.
+- **Round leg:** composite product + application imagery; no automatic variant before subject-role selection.
+- **Caster:** standing source-resolution negative control.
 
-## Next slice
+Detailed decisions remain in `DECISIONS.md`; newer raster/resolution decisions are in `RESOLUTION-DECISIONS.md`.
 
-### R-IMG-1.3 — master output resolution by use
+## Class C status
 
-1. Measure actual catalog holder → physical print/export requirements instead of using a generic multiplier.
-2. Separate desired master dimensions from factual source-resolution evidence.
-3. Keep caster as the source-limited negative control.
-4. Determine whether `1760×720` is adequate, excessive or insufficient for real wide-card use rather than assuming 4× is a product contract.
-5. Do not add 8×/12× complexity unless new isolated evidence requires it.
-6. Keep Class C and Table placement support as adjacent, separately gated capabilities.
+Historical predeclared H45 trial:
+
+- plan: `experiments/image-variation/class-c-h45-plan.v1.json`;
+- result: `experiments/image-variation/results/h45-class-c-producer-failure.v1.json`;
+- scoped outcome: `CLASS_C_NOT_JUSTIFIED_PRODUCER_CONTRACT_FAILURE`.
+
+The tested producer/channel returned report/infographic outputs rather than the requested factual edited photograph. This closes that producer path only; it does **not** establish that grounded generative viewpoint variation is generally incapable of useful results.
+
+Any future producer must be compared against the strongest deterministic baseline and use the newer output-resolution contract.
+
+## R-IMG-1.1 — placement is not master resolution
+
+A logical holder such as `440×180` is composition geometry, not automatically the native derivative raster.
+
+Initial research fixture:
+
+```text
+logical wide placement: 440×180
+4× research master:     1760×720
+```
+
+The denser master improves transform/downsample representation but does not add factual product detail.
+
+## R-IMG-1.2 — raster quality: factor question closed
+
+The original bilinear path was visually weak. `scripts/research/image-raster-quality-probe.mjs` adds premultiplied Mitchell-Netravali reconstruction.
+
+Exact committed sampler execution passed on GitHub Actions:
+
+- run `33343209122`;
+- artifact `9741183308`;
+- normalized factual coverage stable;
+- no sharpening/super-resolution/generated detail.
+
+Important correction: the first H45 comparison confounded filter changes with 4×→8× supersampling.
+
+`mitchell-supersampling-factor-probe.v1.json` isolates the factor:
+
+- H45: `1×→4×` material; `4×→8×` essentially zero;
+- Soft Extra: same saturation pattern;
+- Soft Close/Hinge: higher effort safe but no material placement gain;
+- Caster remains visibly source-limited.
+
+Current raster conclusion:
+
+> **Mitchell + moderate 4× sampling fixture is sufficient for the tested cases. 8×/12× and adaptive-factor complexity are not justified without new isolated evidence.**
+
+Detailed checkpoint: `R-IMG-1.2.md` and `RASTER-QUALITY-POLICY.md`.
+
+## R-IMG-1.3 — physical-use output resolution: first gate passed
+
+Detailed checkpoint: `R-IMG-1.3.md`.
+
+V1 already measures Card/Collection holders relative to physical A4 and records `widthMm/heightMm`. R-IMG-1.3 adopts that as the preferred authority rather than template names or generic multipliers.
+
+Canonical research model:
+
+```text
+measured holder widthMm / heightMm
+       + targetDpi / output-use profile
+       ↓
+derived targetWidthPx / targetHeightPx
+```
+
+Exact committed `image-output-resolution.mjs` execution passed:
+
+- research head tested: `41a35cf56b91fa72911d791915cb3e4f667153a5`;
+- workflow run `33343924318`;
+- job `99344389537`;
+- artifact `9741379991`;
+- digest `sha256:465ddb2208278350c44d2fadd52254447fcb21e7d7803f61f767199afebbb413`.
+
+Key measured/derived examples:
+
+- wide `440×180 CSS px` ≈ `116.42×47.63 mm`;
+- high-quality research target 300 DPI ≈ `1376×563`;
+- current `1760×720` wide master ≈ **384 DPI** at that physical size;
+- H45 still requires ~`2.83×` sampling of its factual source at 300-DPI wide output, so source detail—not master pixel count—is the main remaining ceiling;
+- current V1 Table geometry contains a square thumbnail at about `11×11 mm`; a 128×128 caster is ~**296 DPI** there.
+
+Therefore:
+
+> **source factual raster, placement adequacy and master output raster are three different things.**
+
+The benchmark output-resolution matrix is in `output-resolution-target-matrix.v1.json` and research profiles in `output-resolution-profiles.v1.json`.
+
+## Generator-resolution consequence
+
+`future-producer-resolution-contract.v1.json` records the future direction.
+
+A producer request should separate:
+
+- composition/aspect target;
+- physical-use/native-output raster requirement;
+- actual returned raster.
+
+For the wide case, the instruction should mean conceptually:
+
+> compose for the `22:9` placement, but return a native master at or above the print-use requirement; do not interpret `440×180` as the desired file resolution.
+
+The historical H45 Class C plan is not retroactively modified.
+
+## V1 Table image-editing gap
+
+`TABLE-IMAGE-EDITING-GAP.md` records that V1 Table can display `product.image` but lacks placement-specific image choice/framing.
+
+R-IMG-1.3 strengthens the V2 requirement: the same product may need not only different framing but also different raster requirements in Table/Card/Collection.
+
+Future Table image state should therefore extend placement-aware identity rather than reuse one product-level frame blindly.
+
+## Current strongest rules
+
+- Resolve subject/semantic role before geometry.
+- Remove irrelevant canvas before deciding rotation.
+- Preserve semantic annotations unless their meaning is safely represented elsewhere.
+- Keep isolation uncertainty visible.
+- Keep source authority separate from pixel fidelity.
+- Keep logical placement separate from native output raster.
+- Plan output raster from physical use, not a universal multiplier.
+- Never claim interpolation/upscale as recovered factual detail.
+- Pixel sufficiency alone does not make a derivative composition reusable.
+- `no variant` remains a valid result.
+
+## Next research gate
+
+R-IMG-1.3 has enough evidence to stop treating output resolution as a generic `4×/8×` question.
+
+Next:
+
+1. use the physical target matrix to decide reuse boundaries across `card-standard`, `collection-member` and `card-wide`;
+2. preserve placement-local derivatives by default unless composition + fidelity + raster adequacy all support reuse;
+3. predeclare a **new** source-grounded producer experiment only when a reliable image-edit channel is available, with native output resolution separate from logical composition;
+4. treat viewpoint/angle change as its own Class C hypothesis with stricter geometry/identity gates, not as an incidental extension of crop/reorientation;
+5. do not freeze a production `generationIntent` schema or integrate the research renderer into V2 until those boundaries are resolved.
