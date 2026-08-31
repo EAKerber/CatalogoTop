@@ -1,0 +1,77 @@
+{
+  "kind": "catalogotop.image-raster-supersampling-factor-probe",
+  "version": 1,
+  "status": "research-only",
+  "purpose": "Isolate supersampling factor from reconstruction/downsample changes after the initial H45 exploration confounded both variables.",
+  "constantPipeline": {
+    "reconstruction": "premultiplied Mitchell-Netravali B=C=1/3",
+    "downsample": "integer box",
+    "geometry": "same approved placement plan at every factor",
+    "sharpening": false,
+    "superResolution": false
+  },
+  "cases": [
+    {
+      "caseId": "h45-wide",
+      "sourceSha256": "e6ed49ef777da2f6da8c627180370a8cafb45274b07f7bccf1742b9488614bb7",
+      "sourceDimensionsPx": [450, 450],
+      "placementDimensionsPx": [440, 180],
+      "approvedRotationDeg": -30.542133584100974,
+      "comparison1xVs4x": {
+        "meanAbsoluteChannelDifference": 0.9203787878787879,
+        "p95AbsoluteChannelDifference": 7,
+        "pixelRatioWithAnyChannelDifferenceAbove8": 0.03313131313131313,
+        "pixelRatioWithAnyChannelDifferenceAbove4": 0.07925505050505051
+      },
+      "comparison4xVs8x": {
+        "meanAbsoluteChannelDifference": 0.04139309764309764,
+        "p95AbsoluteChannelDifference": 0,
+        "pixelRatioWithAnyChannelDifferenceAbove8": 0,
+        "pixelRatioWithAnyChannelDifferenceAbove4": 0
+      },
+      "normalizedCoverageEquivalentPx": {
+        "1x": 17602.50980392157,
+        "4x": 17601.64681372549,
+        "8x": 17601.68118872549
+      }
+    },
+    {
+      "caseId": "soft-extra-wide",
+      "sourceSha256": "07edaca7d481149a3703a0b70cda099afcd88612bacaaee33f2d107c37d7628b",
+      "sourceDimensionsPx": [800, 800],
+      "placementDimensionsPx": [440, 180],
+      "approvedRotationDeg": 31.541814104080995,
+      "comparison1xVs4x": {
+        "meanAbsoluteChannelDifference": 0.28240319865319863,
+        "p95AbsoluteChannelDifference": 2,
+        "pixelRatioWithAnyChannelDifferenceAbove8": 0.0022095959595959595,
+        "pixelRatioWithAnyChannelDifferenceAbove4": 0.014381313131313132
+      },
+      "comparison4xVs8x": {
+        "meanAbsoluteChannelDifference": 0.01642676767676768,
+        "p95AbsoluteChannelDifference": 0,
+        "pixelRatioWithAnyChannelDifferenceAbove8": 0,
+        "pixelRatioWithAnyChannelDifferenceAbove4": 0
+      },
+      "normalizedCoverageEquivalentPx": {
+        "1x": 11856.996078431372,
+        "4x": 11856.485049019608,
+        "8x": 11856.477512254902
+      }
+    }
+  ],
+  "interpretation": [
+    "Once reconstruction and downsample filters are held constant, 4x->8x produces no material placement-scale benefit in either rotated elongated-hardware case.",
+    "1x->4x still changes antialiasing materially enough to justify a moderate supersampling fixture.",
+    "The earlier apparent 4x->8x H45 gain was confounded by simultaneous filter/downsample changes and must not be used as evidence for an 8x policy.",
+    "Normalized factual coverage remains stable across factors; the differences are sampling behavior, not factual content gain."
+  ],
+  "decision": {
+    "preferredResearchCandidate": "Mitchell 4x + deterministic box downsample",
+    "eightXDefaultJustified": false,
+    "twelveXDefaultJustified": false,
+    "adaptiveFactorPolicyJustified": false,
+    "nextQuestion": "Separate internal sampling working scale from deliverable master-asset dimensions before freezing the renderer architecture."
+  },
+  "provenanceNote": "Real-source factor isolation was measured with an independent numerical harness reproducing the committed sampler equations over the exact source readbacks. The committed JS sampler itself is separately validated by raster-quality-self-test.v1.json."
+}
