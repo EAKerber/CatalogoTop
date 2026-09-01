@@ -6,6 +6,7 @@
   const PRODUCT_KEY = 'products-current';
   const CATALOG_KEY = 'catalogs-current';
   const ASSET_INDEX_KEY = 'asset-index-current';
+  const TEMPLATE_KEY = 'templates-current';
   function openDb() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, 1);
@@ -52,6 +53,8 @@
     getCatalogSnapshot: () => getByKey(CATALOG_KEY),
     setCatalogSnapshot: snapshot => setByKey(CATALOG_KEY, snapshot),
     getAssetIndexSnapshot: () => getByKey(ASSET_INDEX_KEY),
-    setAssetIndexSnapshot: snapshot => setByKey(ASSET_INDEX_KEY, snapshot)
+    setAssetIndexSnapshot: snapshot => setByKey(ASSET_INDEX_KEY, snapshot),
+    getTemplateSnapshot: () => getByKey(TEMPLATE_KEY),
+    setTemplateSnapshot: snapshot => setByKey(TEMPLATE_KEY, snapshot)
   };
 })();
