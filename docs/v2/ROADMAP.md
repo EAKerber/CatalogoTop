@@ -7,7 +7,7 @@ V2 starts from the stable V1 release:
 - `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9`
 - tag `v1.0.0`
 - active product-development line: `v2`
-- current promoted V2 authority: `v2@7f6046f7448ff4f1b80082c8aa176d7e75798b24`
+- current promoted R5b functional authority: `v2@a6e461086420733edea162f91da35668c3225a2e`
 - image-generation research remains isolated in `research/semantic-image-variation-v2`
 
 The V2 goal is not to turn CatalogoTop into a free-form page editor. The product remains a constrained catalog-authoring system whose main value is reliable product data, repeatable editorial structures, fast composition, predictable A4 output and low operational friction.
@@ -21,11 +21,14 @@ The primary change in V2 is that the app stops treating the current browser sess
 - **R3 — Asset Library / reusable media index: complete** after R3a + R3b. See `R3-CLOSEOUT.md`.
 - **R4 — Constrained Template System 2.0: complete** after R4a + R4b.
   - **R4a — Template Contract & Versioned Binding: complete**. See `R4A-TEMPLATE-CONTRACT-INTENT.md` and `R4A-CLOSEOUT.md`.
-  - **R4b — Template Library & Immutable Versions: complete, promoted in `v2@7f6046f7448ff4f1b80082c8aa176d7e75798b24`**. See `R4B-TEMPLATE-LIBRARY-VERSIONS-INTENT.md` and `R4B-CLOSEOUT.md`.
-- **R5 — Editorial Vocabulary 2.0: next directional milestone; biopsy/planning required before implementation**.
+  - **R4b — Template Library & Immutable Versions: complete**. See `R4B-TEMPLATE-LIBRARY-VERSIONS-INTENT.md` and `R4B-CLOSEOUT.md`.
+- **R5 — Editorial Vocabulary 2.0: active; recuts are selected only by biopsy of concrete gaps**.
+  - **R5a — Table Row Image Editing Parity: complete**, promoted in `v2@798c8f6d292138e669d7943f65ee8bf99e740761`.
+  - **R5b — Collection Technical Detail: complete**, promoted in `v2@a6e461086420733edea162f91da35668c3225a2e`. See `R5B-CLOSEOUT.md`.
+  - No R5c is implied. Next step is post-R5b biopsy and an explicit decision whether another R5 recut is justified or R5 can close.
 - R6+ remain directional and are not authorized merely by appearing in this roadmap.
 
-The post-R4b closure audit found no concrete functional gap requiring an R4c. Do not create one for symmetry.
+The post-R4b closure audit found no concrete functional gap requiring an R4c. Do not create one for symmetry. Apply the same rule inside R5: do not create R5c, `Callout`, Collection 2.0 or another abstraction only because a roadmap slot exists.
 
 ## Architectural direction — one Library UI, multiple authorities
 
@@ -187,24 +190,71 @@ Final feature head `662957c3839c17e550354d3242eb056fbf9bf63d` passed Validate #1
 
 Detailed contract: `R4B-TEMPLATE-LIBRARY-VERSIONS-INTENT.md`. Closure: `R4B-CLOSEOUT.md`.
 
-### V2-R5 — Editorial Vocabulary 2.0 — NEXT DIRECTIONAL MILESTONE
+### V2-R5 — Editorial Vocabulary 2.0 — ACTIVE, BIOPSY-DRIVEN
 
-Purpose: expand expressive power only after the template contract can represent it coherently.
+Purpose: expand expressive power through observed catalog/editor gaps while preserving the constrained structural vocabulary and the explicit TemplateContract established by R4.
 
-R5 must begin with a biopsy/planning pass against real catalog cases. Its appearance here is not authorization to implement it automatically.
+R5 does **not** mean implementing a predetermined Collection 2.0, Callout or generic editor. Each recut is selected independently after a concrete case proves a missing capability.
 
-Questions to resolve before a recut is selected:
+#### R5a — Table Row Image Editing Parity — COMPLETE
 
-- which real cases require Collection 2.0 changes;
-- whether `Callout` is actually a fourth primitive or can be modeled as a preset/composition of existing vocabulary;
-- which Table refinements solve observed cases rather than hypothetical flexibility;
-- which capabilities belong to TemplateContract versus catalog-local presentation.
+Observed gap: a products-source Table could display an image column, but selecting a Table row did not expose the same single-image selection/framing controls already available to Card and Collection members.
 
-Likely work, if justified by that biopsy:
+Delivered behavior:
 
-- Collection 2.0 informed by real reference catalogs;
-- `Callout` only for cases that cannot be modeled cleanly by Card/Collection/Table;
-- Table refinements where real cases justify them;
+- eligible target is `table-row` in a `rowSource:'products'` Table with the `image` column active;
+- reuses existing `presentation.imageSelections[productId]` and `presentation.imageFrames[productId]`;
+- Table image cells receive the same selected image and non-destructive framing projection;
+- inspector reuses existing single-image controls;
+- `commercialRows` remains outside the image-editing contract;
+- no row-scoped/placement-scoped image authority was introduced;
+- no schema, ProductStore, TableBlock, CatalogDocument or pagination redesign.
+
+Promoted through PR #64 into `v2@798c8f6d292138e669d7943f65ee8bf99e740761`.
+
+Detailed contract: `R5A-TABLE-ROW-IMAGE-EDITING-INTENT.md`.
+
+#### R5b — Collection Technical Detail — COMPLETE
+
+Observed gap: grouping products into a visual Collection preserved the family but removed the small factual technical context available in `product.specs`.
+
+Delivered behavior:
+
+- fourth Collection preset `technical` / `Técnico`;
+- pure `Collection.technicalDetailFor(product, style)` projection;
+- only non-empty factual spec values are eligible;
+- spec order remains product order;
+- bounded budget derives from existing local width:
+  - `simple`: 1;
+  - `wide`: 2;
+  - `full`: 2;
+- no invented placeholder for members without specs;
+- no dynamic DOM measurement or page-layout heuristic;
+- existing local width/emphasis and image selection/framing remain active;
+- Collection remains full-width top-level and atomic;
+- no ProductStore/schema/CatalogOrder/CatalogDocument/TemplateContract change.
+
+Final feature head `2476d6edd64e168c4dbdd8ef5f00eeadec0aeaa0` passed Validate #1083 and Browser #894. PR #65 passed Validate #1084 and Browser #895 on the same head and was squash-merged with expected-head protection into `v2@a6e461086420733edea162f91da35668c3225a2e`.
+
+Detailed contract: `R5B-COLLECTION-TECHNICAL-DETAIL-INTENT.md`. Closure: `R5B-CLOSEOUT.md`.
+
+#### Next R5 decision — post-R5b biopsy
+
+No R5c is selected yet.
+
+Questions to answer against real cases before another recut:
+
+- after R5a, is there another Table gap that cannot be represented without inventing placement semantics or expanding `commercialRows` speculatively?
+- after R5b, is there another Collection gap that cannot be handled by bounded presets/overrides already present?
+- is `Callout` now justified by an irreducible observed case, or can Card `full + feature`, Collection headers and current composition express it?
+- should any new behavior belong to TemplateContract, or remain catalog-local presentation?
+- is R5 already sufficiently complete to close and move to R6 biopsy/planning?
+
+Potential future work is only directional until such a case is demonstrated:
+
+- further Collection refinement informed by real reference catalogs;
+- `Callout` only if a real case cannot be modeled cleanly by Card/Collection/Table;
+- Table refinements only where real cases justify them;
 - reusable editorial presets that remain catalog-local or template-defined, never product facts.
 
 No generic container/nesting system by default.
@@ -258,6 +308,8 @@ Transport success alone is not sufficient.
 14. Saved catalogs bind to an exact template ID/version and must not silently fall back or auto-upgrade to another visual system.
 15. Persisted template resources remain bounded data validated by the application-owned TemplateContract.
 16. Published custom template versions are immutable and append-only; registry projection is not persistence authority.
+17. Card, Collection and Table remain the default top-level structural vocabulary; new primitives require irreducible observed cases.
+18. R5 recuts should reuse catalog-local presentation authorities before adding placement-specific state or persistence.
 
 ## Sequence rationale
 
@@ -267,10 +319,10 @@ R2 came before major template/editor work because reopenable catalog identity is
 
 R3 precedes richer templates because reusable assets should have stable references before templates begin to depend on them.
 
-R4a preceded template-resource persistence because the language and version binding needed to be trustworthy before TemplateStore could save it. R4b then added reusable template resources without inventing a second template model. R4 is now closed.
+R4a preceded template-resource persistence because the language and version binding needed to be trustworthy before TemplateStore could save it. R4b then added reusable template resources without inventing a second template model. R4 is closed.
 
-R5 follows R4 so new editorial vocabulary can be constrained by an explicit template contract rather than accumulated as one-off renderer exceptions.
+R5 follows R4 so new editorial vocabulary can be constrained by an explicit template contract rather than accumulated as one-off renderer exceptions. R5a and R5b demonstrated the intended pattern: identify one observed asymmetry, reuse an existing authority, gate the bounded change, then return to biopsy instead of expanding the abstraction automatically.
 
-R6 follows the stabilization of those contracts so preflight can validate authoritative structures rather than temporary compatibility shims.
+R6 follows stabilization/closure of the relevant editorial contracts so preflight can validate authoritative structures rather than temporary compatibility shims.
 
 This order is directional, not a promise to implement every item unchanged. A recut may be split when uncertainty is high; large adjacent concerns should not be silently pulled forward merely because implementation touches the same files.
