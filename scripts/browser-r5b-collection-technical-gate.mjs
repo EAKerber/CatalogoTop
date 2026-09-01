@@ -101,7 +101,7 @@ function seedState() {
     }
   }, { persist: false });
   window.dispatchEvent(new CustomEvent('catalogotop:products-updated'));
-  return products.map(productItem => ({ id: productItem.id, specs: productItem.specs.map(spec => ({ ...spec })) }));
+  return NS.Core.getState().products.map(productItem => ({ id: productItem.id, specs: productItem.specs.map(spec => ({ ...spec })) }));
 }
 
 function readCollection(rootSelector = '#catalogPreview') {
