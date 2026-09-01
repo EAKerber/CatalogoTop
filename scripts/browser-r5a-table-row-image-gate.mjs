@@ -122,13 +122,17 @@ try {
   }
 
   await page.click(rowSelector);
-  await page.waitForSelector('#contextualInspector [data-table-row-image-frame][data-image-frame-editor="p1"]', { state: 'visible' });
+  await page.waitForSelector('#contextualInspector [data-table-row-image-frame][data-image-frame-editor="p1"]');
   await page.waitForSelector('#contextualInspector [data-image-choice-editor="p1"] [data-image-choice-cycle="1"]', { state: 'visible' });
 
   await page.click('#contextualInspector [data-image-choice-editor="p1"] [data-image-choice-cycle="1"]');
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().catalog.presentation.imageSelections.p1?.id === 'front');
   await page.waitForFunction(() => document.querySelector('#catalogPreview .catalog-table-block[data-table-block-id="table-r5a"] tr[data-table-row-id="p1"] .table-cell-image > img')?.dataset.imageVariantId === 'front');
 
+  await page.waitForSelector('#contextualInspector [data-inspector-image-tab]', { state: 'visible' });
+  await page.click('#contextualInspector [data-inspector-image-tab]');
+  await page.waitForFunction(() => document.querySelector('#contextualInspector')?.dataset.inspectorMode === 'image');
+  await page.waitForSelector('#contextualInspector [data-image-frame-editor="p1"] input[data-image-frame-field="fit"][value="cover"]', { state: 'visible' });
   await page.check('#contextualInspector [data-image-frame-editor="p1"] input[data-image-frame-field="fit"][value="cover"]');
   for (const [field, value] of [['zoom', '1.7'], ['x', '18'], ['y', '82']]) {
     await page.locator(`#contextualInspector [data-image-frame-editor="p1"] input[data-image-frame-field="${field}"]`).evaluate((input, next) => {
