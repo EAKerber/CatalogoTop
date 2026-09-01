@@ -5,11 +5,11 @@ Baseline estável V1: **`main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v
 
 ## Estado atual
 
-A linha V2 concluiu R1, R2, R3 e **R4 — Constrained Template System 2.0**. **R5 — Editorial Vocabulary 2.0** está ativo e já concluiu dois recortes pequenos selecionados por biópsia de gaps reais: R5a e R5b.
+A linha V2 concluiu R1, R2, R3, **R4 — Constrained Template System 2.0** e **R5 — Editorial Vocabulary 2.0**.
 
-Authority funcional promovida após R5b:
+Authority antes deste closeout documental de R5:
 
-- `v2@a6e461086420733edea162f91da35668c3225a2e` — R5b Collection Technical Detail;
+- `v2@c370708fd8c4a538398e9ae9d2ea85c2ffd01cc6` — R5a/R5b promovidos e R5b documentado;
 - `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` permanece linha V1 estável e não é destino rotineiro de desenvolvimento V2.
 
 Entregas consolidadas:
@@ -22,15 +22,15 @@ Entregas consolidadas:
 - **R5a — Table Row Image Editing Parity**: linhas `products` com coluna Imagem reutilizam `imageSelections`/`imageFrames` por `productId`, preservando TableBlock, fragmentação e paginação;
 - **R5b — Collection Technical Detail**: preset `technical` projeta `product.specs` factual de forma bounded, com orçamento `simple=1`, `wide=2`, `full=2`, sem alterar produto, schema ou pipeline A4.
 
-A auditoria pós-R4b não encontrou lacuna funcional concreta que justificasse R4c. R4 está fechado após R4a + R4b. R5 não deve ser expandido por simetria: cada recorte nasce de um gap observado.
+A biópsia pós-R5b não encontrou outro gap editorial concreto que justificasse R5c. R5 fecha após R5a + R5b. Não implementar `Callout`, Collection 2.0, imagem em `commercialRows`, nesting ou outro primitivo por simetria.
 
 ## Ordem de leitura
 
 1. `docs/v2/START-HERE.md` — bootstrap e fronteiras atuais;
-2. `docs/v2/ROADMAP.md` — dependências, milestones e estado de R5;
-3. `docs/v2/R5B-CLOSEOUT.md` — autoridade promovida, gates e estado pós-R5b;
-4. `docs/v2/R5B-COLLECTION-TECHNICAL-DETAIL-INTENT.md` — contrato bounded do recorte atual;
-5. `docs/v2/R5A-TABLE-ROW-IMAGE-EDITING-INTENT.md` — primeiro gap concreto fechado em R5;
+2. `docs/v2/ROADMAP.md` — dependências, milestones e próximo ponto de decisão;
+3. `docs/v2/R5-CLOSEOUT.md` — decisão de fechamento de R5 e transição para R6;
+4. `docs/v2/R5B-CLOSEOUT.md` — autoridade/gates do último recorte funcional de R5;
+5. `docs/v2/R5B-COLLECTION-TECHNICAL-DETAIL-INTENT.md` e `docs/v2/R5A-TABLE-ROW-IMAGE-EDITING-INTENT.md` — contratos bounded estabilizados;
 6. `docs/v2/R4B-CLOSEOUT.md` e `docs/v2/R4A-CLOSEOUT.md` — fronteiras do Template System 2.0;
 7. `docs/v2/R3-CLOSEOUT.md` e `docs/v2/R2-CLOSEOUT.md` — authorities já estabilizadas;
 8. intents R1/R2/R3 quando precisar entender decisões históricas específicas.
@@ -61,7 +61,7 @@ Apresentação catalog-local
 
 `FolderTree` é vocabulário puro reutilizável, não uma authority global. Cada provider mantém namespace e revisão próprios. R4b deliberadamente não introduz folders para templates.
 
-R5a/R5b reutilizam authorities existentes. Nem edição de imagem em Table nem detalhe técnico em Collection criaram estado factual ou uma nova persistence authority.
+R5a/R5b reutilizaram authorities existentes. Nem edição de imagem em Table nem detalhe técnico em Collection criaram estado factual ou uma nova persistence authority.
 
 ## Invariantes
 
@@ -77,7 +77,7 @@ R5a/R5b reutilizam authorities existentes. Nem edição de imagem em Table nem d
 - TemplateContract é data bounded: sem HTML/CSS/JS, selectors, stylesheet URLs ou XY arbitrário.
 - Header/footer institucional são primitives app-owned; templates apenas referenciam IDs suportados.
 - Preview e print consomem o mesmo CatalogDocument/template resolvido.
-- Card, Collection e Table continuam o vocabulário estrutural top-level provado; não adicionar quarto primitivo sem caso irreduzível concreto.
+- Card, Collection e Table são o vocabulário estrutural top-level estabilizado ao fechar R5; não adicionar quarto primitivo sem caso irreduzível concreto.
 - Collection continua atômica, full-width top-level, sem nesting e com geometria discreta; R5b acrescenta somente projeção técnica bounded dentro do membro.
 - Table continua fragmentável e suas linhas comerciais não ganharam semântica de imagem por inferência.
 - Image selection/framing continua apresentação por `productId`; produto original não é reescrito por ajustes editoriais.
@@ -86,6 +86,7 @@ R5a/R5b reutilizam authorities existentes. Nem edição de imagem em Table nem d
 - `Sem uso` é accounting, não autorização para exclusão física.
 - Deploy Preview/branch nunca grava no store global de produção.
 - `main` continua somente leitura para a missão V2 atual até decisão explícita de release.
+- Preflight futuro deve observar/materializar problemas; não pode mutar dados factuais ou editoriais para fazê-los desaparecer.
 
 ## Ambiente de teste V2
 
@@ -109,18 +110,25 @@ O backup JSON continua sendo transporte compatível do estado monolítico legado
 
 O backup não é uma authority V2.
 
-## Próximo ponto de decisão — biópsia pós-R5b
+## Dívida CI conhecida — CI-H1
 
-R5 está ativo, mas **não existe R5c predefinido**.
+Existe uma race conhecida no Browser Asset Library gate: `AssetIndexStore.publishCandidate()` publica um snapshot local otimista com `pendingWrite=true` antes de o PUT remoto concluir e a revisão avançar. O gate antigo espera apenas o asset aparecer e pode ler a revisão antiga nesse intervalo.
 
-R5a fechou a ausência de edição de imagem em linhas `products` de Table usando semântica existente por `productId`. R5b fechou a perda de pequeno contexto técnico factual ao agrupar produtos em Collection. Ambos foram resolvidos sem novo primitivo, nova persistence authority ou exceção de renderer ampla.
+CI-H1 deve endurecer somente o teste: esperar `AssetIndexStore.hasPendingWrite() === false` antes de afirmar a revisão pós-upload. Não alterar a semântica otimista do runtime para satisfazer o gate.
 
-O próximo trabalho deve começar por nova biópsia de casos reais e perguntar:
+## Próximo ponto de decisão — R6
 
-- após R5a, resta algum gap concreto de Table que não exija inventar semântica de placement ou `commercialRows`?
-- após R5b, resta algum gap concreto de Collection que não possa ser resolvido por presets/overrides bounded já existentes?
-- existe finalmente um caso irreduzível que justifique `Callout`, ou Card `full + feature`, cabeçalhos e blocos atuais ainda cobrem os casos observados?
-- alguma capacidade nova pertence ao TemplateContract, ou deve continuar catalog-local?
-- R5 já está suficientemente completo para ser fechado e abrir a biópsia de R6?
+O próximo marco é **R6 — Preflight / Publication Quality**.
 
-Preservar as fronteiras já provadas: nenhuma linguagem de template paralela, nenhum editor XY genérico, nenhum nesting/container genérico e nenhuma exceção de renderer introduzida apenas para aumentar flexibilidade abstrata.
+R6 deve começar por planejamento/intent explícito, não por uma implementação monolítica. A biópsia pós-R5 encontrou evidência concreta para observabilidade de publicação:
+
+- descrição pode ser truncada pelo TextFit e o runtime já registra esse fato;
+- produto sem imagem pode renderizar o placeholder `SEM IMAGEM`;
+- block persistido inválido/stale pode deixar de materializar como block e voltar para Cards individuais;
+- image selection obsoleta pode cair deterministicamente para o Original;
+- template binding já possui falhas fail-closed;
+- os gates físicos já conseguem comparar páginas lógicas e A4 físico.
+
+O primeiro recorte R6 deve transformar parte desses sinais em issues inspecionáveis, separando blockers/warnings, sem inventar política comercial e sem corrigir dados automaticamente.
+
+Fechar CI-H1 antes ou junto do primeiro branch funcional R6 para que flake pré-existente não seja confundida com regressão de preflight.
