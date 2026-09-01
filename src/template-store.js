@@ -203,6 +203,10 @@
     return latest;
   }
 
+  function observeCatalogSelector(select) {
+    if (selectorObserver && select) selectorObserver.observe(select, { childList: true });
+  }
+
   function repairCatalogSelector() {
     if (repairingSelector || typeof document === 'undefined') return;
     const select = document.getElementById('catalogTemplate');
@@ -211,23 +215,34 @@
     const currentId = String(catalog.templateId || 'technical');
     const currentVersion = Number(catalog.templateVersion || 1);
     repairingSelector = true;
-    const choices = selectorChoices();
-    select.innerHTML = choices.map(template => {
-      const exact = template.id === currentId && Number(template.version) === currentVersion;
-      const builtin = Templates.isBuiltIn(template.id);
-      const label = `${template.name}${builtin ? '' : ` · v${template.version}`}${!builtin && exact && Templates.latest(template.id)?.version !== template.version ? ' · em uso' : ''}`;
-      return `<option value="${String(template.id).replace(/"/g, '&quot;')}" data-template-version="${template.version}" ${exact ? 'selected' : ''}>${label}</option>`;
-    }).join('');
-    if (!choices.some(template => template.id === currentId && Number(template.version) === currentVersion)) {
-      const option = document.createElement('option');
-      option.value = currentId;
-      option.dataset.templateVersion = String(currentVersion);
-      option.textContent = `Indisponível · ${currentId}@${currentVersion}`;
-      option.selected = true;
-      option.disabled = true;
-      select.appendChild(option);
+    selectorObserver?.disconnect();
+    try {
+      const choices = selectorChoices();
+      select.replaceChildren();
+      choices.forEach(template => {
+        const exact = template.id === currentId && Number(template.version) === currentVersion;
+        const builtin = Templates.isBuiltIn(template.id);
+        const latestVersion = Templates.latest(template.id)?.version;
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.dataset.templateVersion = String(template.version);
+        option.textContent = `${template.name}${builtin ? '' : ` · v${template.version}`}${!builtin && exact && latestVersion !== template.version ? ' · em uso' : ''}`;
+        option.selected = exact;
+        select.appendChild(option);
+      });
+      if (!choices.some(template => template.id === currentId && Number(template.version) === currentVersion)) {
+        const option = document.createElement('option');
+        option.value = currentId;
+        option.dataset.templateVersion = String(currentVersion);
+        option.textContent = `Indisponível · ${currentId}@${currentVersion}`;
+        option.selected = true;
+        option.disabled = true;
+        select.appendChild(option);
+      }
+    } finally {
+      repairingSelector = false;
+      observeCatalogSelector(select);
     }
-    repairingSelector = false;
   }
 
   function installCatalogSelectorBridge() {
@@ -238,7 +253,6 @@
       selectorObserver = new MutationObserver(() => {
         if (!repairingSelector) queueMicrotask(repairCatalogSelector);
       });
-      selectorObserver.observe(select, { childList: true });
       document.addEventListener('change', event => {
         if (event.target !== select) return;
         const option = select.selectedOptions?.[0];
