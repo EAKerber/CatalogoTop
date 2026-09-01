@@ -5,6 +5,7 @@
   const { IndexedCache, TemplateSnapshot, TemplateContract, Templates, ProductStore } = NS;
   if (!IndexedCache || !TemplateSnapshot || !TemplateContract || !Templates || !ProductStore) return;
 
+  const REGISTRY_MIRROR_KEY = 'catalogotop:templates-registry:v1';
   let revision = 0;
   let snapshot = TemplateSnapshot.forWrite();
   let bootstrapped = false;
@@ -15,8 +16,14 @@
 
   function uuid() { return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
-  function notify(detail = {}) { window.dispatchEvent(new CustomEvent('catalogotop:templates-updated', { detail })); }
-  function install(nextSnapshot = snapshot) { Templates.installCustomResources(nextSnapshot.templates); }
+  function notify(detail = {}) {
+    window.dispatchEvent(new CustomEvent('catalogotop:templates-updated', { detail }));
+    NS.App?.renderAll?.();
+  }
+  function install(nextSnapshot = snapshot) {
+    Templates.installCustomResources(nextSnapshot.templates);
+    try { localStorage.setItem(REGISTRY_MIRROR_KEY, JSON.stringify(nextSnapshot.templates)); } catch (_) {}
+  }
 
   async function fetchSnapshot() {
     const response = await fetch('/api/templates', { credentials: 'same-origin', cache: 'no-store' });
@@ -180,6 +187,7 @@
   }
 
   NS.TemplateStore = Object.freeze({
+    REGISTRY_MIRROR_KEY,
     bootstrap,
     ensureWritable: ensureSession,
     duplicateAsDraft,
