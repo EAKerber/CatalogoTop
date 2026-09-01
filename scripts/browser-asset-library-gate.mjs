@@ -173,7 +173,7 @@ try {
   const initial = await page.evaluate(A => {
     const row = Array.from(document.querySelectorAll('#assetLibraryList [data-asset-resource]')).find(node => node.dataset.assetResource === `sha256/${A}`);
     return {
-      providers: document.querySelectorAll('[data-library-provider]').length,
+      providerIds: Array.from(document.querySelectorAll('[data-library-provider]')).map(node => node.dataset.libraryProvider).sort(),
       rows: document.querySelectorAll('#assetLibraryList [data-asset-resource]').length,
       aText: row?.textContent || '',
       assetRevision: window.CatalogoTop.AssetIndexStore.getRevision(),
@@ -181,7 +181,9 @@ try {
       catalogRevision: window.CatalogoTop.CatalogStore.getRevision()
     };
   }, A);
-  if (initial.providers !== 3 || initial.rows !== 3 || !initial.aText.includes('Produto Um') || !initial.aText.includes('Produto Dois') || !initial.aText.includes('Catálogo Um') || initial.assetRevision !== 0 || initial.productRevision !== 5 || initial.catalogRevision !== 2) {
+  const expectedProviderIds = ['catalogs', 'images', 'products', 'templates'];
+  const providersValid = initial.providerIds.length === expectedProviderIds.length && initial.providerIds.every((id, index) => id === expectedProviderIds[index]);
+  if (!providersValid || initial.rows !== 3 || !initial.aText.includes('Produto Um') || !initial.aText.includes('Produto Dois') || !initial.aText.includes('Catálogo Um') || initial.assetRevision !== 0 || initial.productRevision !== 5 || initial.catalogRevision !== 2) {
     throw new Error(`inventário inicial inválido: ${JSON.stringify(initial)}`);
   }
 
