@@ -7,7 +7,7 @@ V2 starts from the stable V1 release:
 - `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9`
 - tag `v1.0.0`
 - active product-development line: `v2`
-- authority before the R5 documentary closeout: `v2@c370708fd8c4a538398e9ae9d2ea85c2ffd01cc6`
+- promoted R5 closeout authority: `v2@92ee4802ec7045ab89b00d40bb98f9d9df0e0b01`
 - image-generation research remains isolated in `research/semantic-image-variation-v2`
 
 The V2 goal is not to turn CatalogoTop into a free-form page editor. The product remains a constrained catalog-authoring system whose main value is reliable product data, repeatable editorial structures, fast composition, predictable A4 output and low operational friction.
@@ -26,6 +26,7 @@ The primary change in V2 is that the app stops treating the current browser sess
   - **R5a — Table Row Image Editing Parity: complete**, promoted in `v2@798c8f6d292138e669d7943f65ee8bf99e740761`.
   - **R5b — Collection Technical Detail: complete**, promoted in `v2@a6e461086420733edea162f91da35668c3225a2e`. See `R5B-CLOSEOUT.md`.
   - **No R5c**: the post-R5b biopsy found no additional concrete editorial gap with enough evidence to justify another recut.
+- **CI-H1 — AssetIndex Write Settlement Gate: complete as CI/test hygiene**, preserving runtime optimistic-write semantics. See `CI-H1-ASSET-INDEX-WRITE-SETTLEMENT.md`.
 - **R6 — Preflight / Publication Quality: next milestone; planning/intent required before functional implementation**.
 - R7+ remain directional and are not authorized merely by appearing in this roadmap.
 
@@ -250,22 +251,25 @@ The post-R5b biopsy did not find another concrete editorial gap with evidence co
 
 Therefore R5 closes after R5a + R5b. Future editorial work can reopen the vocabulary only from new real-case evidence. See `R5-CLOSEOUT.md`.
 
-### CI-H1 — AssetIndex write-settlement gate — NEXT HYGIENE RECUT
+### CI-H1 — AssetIndex Write Settlement Gate — COMPLETE
 
-This is CI debt, not a product milestone.
+CI-H1 is CI/test hygiene, not a product milestone.
 
 Observed race:
 
 - `AssetIndexStore.publishCandidate()` exposes the optimistic candidate snapshot with `pendingWrite=true` before remote persistence completes and revision advances;
-- the R3b Browser Asset Library gate historically waits only until the uploaded asset appears in the snapshot, then immediately asserts the new revision;
-- the test can therefore observe the correct optimistic asset with the previous revision.
+- the R3b Browser Asset Library gate historically waited only until the changed asset/folder appeared in the snapshot, then immediately started another write or asserted the revision;
+- the test could therefore observe correct optimistic state with the previous authoritative revision.
 
-Required fix:
+Delivered hardening:
 
-- preserve runtime optimistic semantics;
-- update the gate to wait for `AssetIndexStore.hasPendingWrite() === false` before asserting revision after an index-changing upload;
-- keep dedup behavior and post counts unchanged;
-- rerun canonical Validate + Browser gates on the same head.
+- runtime optimistic semantics remain unchanged;
+- a shared browser-fixture helper waits for `hasPendingWrite() === false` and `hasConflict() === false` before authoritative revision assertions or subsequent AssetIndex mutations;
+- a small deterministic fixture delay on AssetIndex PUTs makes the optimistic window reproducible rather than runner-speed dependent;
+- folder create/move/rename, asset adoption/move and upload sequencing all use explicit settlement;
+- physical upload/dedup post counts and revision behavior remain unchanged.
+
+Detailed contract: `CI-H1-ASSET-INDEX-WRITE-SETTLEMENT.md`.
 
 ### V2-R6 — Preflight / Publication Quality — NEXT PRODUCT MILESTONE
 
@@ -332,6 +336,7 @@ Transport success alone is not sufficient.
 17. Card, Collection and Table remain the default top-level structural vocabulary; new primitives require irreducible observed cases.
 18. R5 stabilized catalog-local presentation authorities; future validation should observe them rather than replace them with corrective side effects.
 19. Preflight/quality checks must distinguish detection from mutation. A failing check is not permission to rewrite product or catalog truth.
+20. Tests that require authoritative provider revisions must synchronize on provider write settlement rather than local optimistic projection alone.
 
 ## Sequence rationale
 
@@ -347,6 +352,6 @@ R5 followed R4 so new editorial vocabulary could be constrained by an explicit t
 
 CI-H1 is intentionally separated from product milestones because it hardens an old asynchronous gate assumption without changing runtime semantics.
 
-R6 follows stabilization/closure of the editorial contracts so preflight can validate authoritative structures rather than temporary compatibility shims.
+R6 follows stabilization/closure of the editorial contracts and CI-H1 hardening so preflight can validate authoritative structures without conflating known gate races with new feature regressions.
 
 This order is directional, not a promise to implement every item unchanged. A recut may be split when uncertainty is high; large adjacent concerns should not be silently pulled forward merely because implementation touches the same files.
