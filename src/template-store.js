@@ -13,6 +13,8 @@
   let pendingWrite = false;
   let conflict = false;
   let remotePromise = null;
+  let selectorObserver = null;
+  let repairingSelector = false;
 
   function uuid() { return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
@@ -23,6 +25,7 @@
   function install(nextSnapshot = snapshot) {
     Templates.installCustomResources(nextSnapshot.templates);
     try { localStorage.setItem(REGISTRY_MIRROR_KEY, JSON.stringify(nextSnapshot.templates)); } catch (_) {}
+    repairCatalogSelector();
   }
 
   async function fetchSnapshot() {
@@ -186,6 +189,74 @@
     } catch (error) { console.warn(error); return false; }
   }
 
+  function selectorChoices() {
+    const latest = Templates.templates.slice();
+    const catalog = NS.Core?.getState?.()?.catalog;
+    const currentId = String(catalog?.templateId || '').trim();
+    const currentVersion = Number(catalog?.templateVersion || 1);
+    let currentExact = null;
+    if (currentId) {
+      try { currentExact = Templates.resolve(currentId, currentVersion); }
+      catch (_) {}
+    }
+    if (currentExact && !latest.some(template => template.id === currentExact.id && template.version === currentExact.version)) latest.push(currentExact);
+    return latest;
+  }
+
+  function repairCatalogSelector() {
+    if (repairingSelector || typeof document === 'undefined') return;
+    const select = document.getElementById('catalogTemplate');
+    const catalog = NS.Core?.getState?.()?.catalog;
+    if (!select || !catalog) return;
+    const currentId = String(catalog.templateId || 'technical');
+    const currentVersion = Number(catalog.templateVersion || 1);
+    repairingSelector = true;
+    const choices = selectorChoices();
+    select.innerHTML = choices.map(template => {
+      const exact = template.id === currentId && Number(template.version) === currentVersion;
+      const builtin = Templates.isBuiltIn(template.id);
+      const label = `${template.name}${builtin ? '' : ` · v${template.version}`}${!builtin && exact && Templates.latest(template.id)?.version !== template.version ? ' · em uso' : ''}`;
+      return `<option value="${String(template.id).replace(/"/g, '&quot;')}" data-template-version="${template.version}" ${exact ? 'selected' : ''}>${label}</option>`;
+    }).join('');
+    if (!choices.some(template => template.id === currentId && Number(template.version) === currentVersion)) {
+      const option = document.createElement('option');
+      option.value = currentId;
+      option.dataset.templateVersion = String(currentVersion);
+      option.textContent = `Indisponível · ${currentId}@${currentVersion}`;
+      option.selected = true;
+      option.disabled = true;
+      select.appendChild(option);
+    }
+    repairingSelector = false;
+  }
+
+  function installCatalogSelectorBridge() {
+    if (typeof document === 'undefined') return;
+    const select = document.getElementById('catalogTemplate');
+    if (!select) return;
+    if (!selectorObserver) {
+      selectorObserver = new MutationObserver(() => {
+        if (!repairingSelector) queueMicrotask(repairCatalogSelector);
+      });
+      selectorObserver.observe(select, { childList: true });
+      document.addEventListener('change', event => {
+        if (event.target !== select) return;
+        const option = select.selectedOptions?.[0];
+        const version = Number(option?.dataset?.templateVersion || 1);
+        if (!option || !Number.isInteger(version) || version < 1) return;
+        try {
+          NS.Core?.mutate?.(draft => {
+            draft.catalog.templateId = option.value;
+            draft.catalog.templateVersion = version;
+          });
+        } catch (error) {
+          console.error(error);
+        }
+      }, true);
+    }
+    repairCatalogSelector();
+  }
+
   NS.TemplateStore = Object.freeze({
     REGISTRY_MIRROR_KEY,
     bootstrap,
@@ -194,6 +265,7 @@
     editAsDraft,
     publishDraft,
     reloadRemote,
+    repairCatalogSelector,
     getRevision: () => revision,
     getSnapshot: () => TemplateSnapshot.read(snapshot).snapshot,
     getResource: id => TemplateSnapshot.resourceById(snapshot, id),
@@ -201,4 +273,6 @@
     hasConflict: () => conflict,
     isPublishing: () => publishing
   });
+
+  installCatalogSelectorBridge();
 })();
