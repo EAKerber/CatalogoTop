@@ -119,11 +119,12 @@ try {
   await page.waitForTimeout(40);
   const selector = await page.evaluate(({ id }) => {
     const select = document.getElementById('catalogTemplate');
-    const options = Array.from(select?.options || []).filter(option => option.value === id).map(option => ({ version:Number(option.dataset.templateVersion || 0), selected:option.selected, text:option.textContent, html:option.innerHTML }));
+    const options = Array.from(select?.options || []).filter(option => option.value === id).map(option => ({ version:Number(option.dataset.templateVersion || 0), selected:option.selected, text:option.textContent }));
     return { options, injectedMarkup:Boolean(select?.querySelector('b,script,img,svg')) };
   }, { id:v1.id });
-  if (!selector.options.some(option => option.version === 2) || !selector.options.some(option => option.version === 1 && option.selected)) throw new Error(`seletor não mostrou latest + v1 em uso: ${JSON.stringify(selector)}`);
-  if (selector.injectedMarkup || selector.options.some(option => option.html !== option.text)) throw new Error(`nome de template foi interpretado como markup: ${JSON.stringify(selector)}`);
+  const selectedHistorical = selector.options.find(option => option.version === 1 && option.selected);
+  if (!selector.options.some(option => option.version === 2) || !selectedHistorical) throw new Error(`seletor não mostrou latest + v1 em uso: ${JSON.stringify(selector)}`);
+  if (selector.injectedMarkup || !selectedHistorical.text.includes('R4b <custom> & literal')) throw new Error(`nome de template não permaneceu texto literal: ${JSON.stringify(selector)}`);
 
   await page.evaluate(({ id }) => {
     const NS = window.CatalogoTop;
