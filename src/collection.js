@@ -11,9 +11,11 @@
   const COLLECTION_PRESETS = Object.freeze([
     { id: 'visual', name: 'Visual' },
     { id: 'compact', name: 'Compacto' },
-    { id: 'commercial', name: 'Comercial' }
+    { id: 'commercial', name: 'Comercial' },
+    { id: 'technical', name: 'Técnico' }
   ]);
   const COLLECTION_COLUMNS = Object.freeze([2, 3, 4]);
+  const TECHNICAL_SPEC_BUDGETS = Object.freeze({ simple: 1, wide: 2, full: 2 });
   const MAX_MEMBERS = 12;
 
   function choice(value, allowed, fallback) {
@@ -72,6 +74,27 @@
   function memberStyleFor(block, productId) {
     const normalized = normalizeBlock(block);
     return normalizeMemberStyle(normalized.itemStyles[String(productId)]);
+  }
+
+  function technicalSpecBudget(style) {
+    const normalized = normalizeMemberStyle(style);
+    return TECHNICAL_SPEC_BUDGETS[normalized.width] || TECHNICAL_SPEC_BUDGETS.simple;
+  }
+
+  function technicalDetailFor(product, style) {
+    const specs = (Array.isArray(product?.specs) ? product.specs : []).reduce((items, spec) => {
+      if (!spec || typeof spec !== 'object') return items;
+      const value = String(spec.value ?? '').trim();
+      if (!value) return items;
+      items.push({ label: String(spec.label ?? '').trim(), value });
+      return items;
+    }, []);
+    const limit = technicalSpecBudget(style);
+    return {
+      specs: specs.slice(0, limit),
+      omittedSpecCount: Math.max(0, specs.length - limit),
+      limit
+    };
   }
 
   function localSpan(style, columns) {
@@ -242,11 +265,14 @@
     COLLECTION_THEMES,
     COLLECTION_PRESETS,
     COLLECTION_COLUMNS,
+    TECHNICAL_SPEC_BUDGETS,
     MAX_MEMBERS,
     normalizeMemberStyle,
     normalizeBlock,
     normalizeBlocks,
     memberStyleFor,
+    technicalSpecBudget,
+    technicalDetailFor,
     localSpan,
     planCollection,
     validBlocksForProducts,

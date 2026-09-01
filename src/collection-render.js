@@ -13,10 +13,15 @@
     const showMemberPrice = showPrices && product.price && (preset === 'commercial' || style.priceStyle !== 'standard');
     const price = showMemberPrice ? `<strong class="catalog-collection-price">${Render.esc(product.price)}</strong>` : '';
     const description = preset === 'compact' ? '' : `<b>${Render.esc(product.description)}</b>`;
+    const technicalDetail = preset === 'technical' ? NS.Collection.technicalDetailFor(product, style) : null;
+    const technicalSpecs = technicalDetail?.specs?.length
+      ? `<ul class="catalog-collection-specs">${technicalDetail.specs.map(spec => `<li>${spec.label ? `<span>${Render.esc(spec.label)}</span>` : ''}<strong>${Render.esc(spec.value)}</strong></li>`).join('')}</ul>`
+      : '';
+    const technicalCount = technicalDetail ? ` data-technical-spec-count="${technicalDetail.specs.length}"` : '';
     const effectiveOrder = item.effectiveOrder ? ` data-effective-order="${item.effectiveOrder}"` : '';
-    return `<article class="catalog-collection-item emphasis-${Render.esc(style.emphasis)} width-${Render.esc(style.width)} price-style-${Render.esc(style.priceStyle || 'standard')} preset-${Render.esc(preset)}" data-product-id="${Render.esc(product.id)}" data-member-width="${Render.esc(style.width)}" data-price-style="${Render.esc(style.priceStyle || 'standard')}"${effectiveOrder} style="${placement}">
+    return `<article class="catalog-collection-item emphasis-${Render.esc(style.emphasis)} width-${Render.esc(style.width)} price-style-${Render.esc(style.priceStyle || 'standard')} preset-${Render.esc(preset)}" data-product-id="${Render.esc(product.id)}" data-member-width="${Render.esc(style.width)}" data-price-style="${Render.esc(style.priceStyle || 'standard')}"${technicalCount}${effectiveOrder} style="${placement}">
       <div class="catalog-collection-image"><img src="${Render.esc(product.image || Render.PLACEHOLDER)}" alt="${Render.esc(product.description)}" /></div>
-      <div class="catalog-collection-copy"><span>${Render.esc(product.code)}</span>${description}${price}</div>
+      <div class="catalog-collection-copy"><span>${Render.esc(product.code)}</span>${description}${technicalSpecs}${price}</div>
     </article>`;
   }
 

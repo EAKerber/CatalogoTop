@@ -215,6 +215,46 @@
 .catalog-collection.preset-compact .catalog-collection-copy { min-height: 7mm; align-content: center; }
 .catalog-collection.preset-compact .catalog-collection-image { padding: .9mm; }
 .catalog-collection.preset-commercial .catalog-collection-copy { min-height: 13mm; }
+.catalog-collection.preset-technical .catalog-collection-copy { min-height: 15mm; align-content: start; }
+.catalog-collection-specs {
+  min-width: 0;
+  display: grid;
+  gap: .35mm;
+  margin: .45mm 0 0;
+  padding: .65mm 0 0;
+  border-top: .2mm solid rgba(29, 32, 37, .12);
+  list-style: none;
+}
+.theme-dark .catalog-collection-specs { border-top-color: rgba(255,255,255,.16); }
+.catalog-collection-specs li {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .8mm;
+  font-size: 2mm;
+  line-height: 1.05;
+}
+.catalog-collection-specs li span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 1.9mm;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: none;
+}
+.theme-dark .catalog-collection-specs li span { color: #c9cdd2; }
+.catalog-collection-specs li strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 2mm;
+  font-weight: 900;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 @container catalog-selection-panel (max-width: 390px) {
   .collection-manager-grid { grid-template-columns: 1fr 1fr; }

@@ -12,6 +12,18 @@ const presentation=Composition.normalizePresentation({distribution:'balanced',ty
 if(presentation.blocks.length!==1) fail('normalizePresentation deve preservar blocos');
 const plan=Collection.planCollection(block,products.slice(2,6),template); if(plan.columns!==4||plan.localRowCount!==2||plan.rowSpan!==2) fail('grade/rowSpan da coleção divergente');
 if(plan.items.find(i=>i.productId==='p6')?.slotSpan!==2) fail('Largo local deve usar dois slots');
+const technicalBlock=Collection.normalizeBlock({...block,itemPreset:'technical'}); if(technicalBlock.itemPreset!=='technical') fail('preset technical deve normalizar como válido');
+if(Collection.normalizeBlock({...block,itemPreset:'commercial'}).itemPreset!=='commercial') fail('preset commercial legado deve permanecer válido');
+if(Collection.normalizeBlock({...block,itemPreset:'unknown'}).itemPreset!=='visual') fail('preset desconhecido deve continuar falhando para Visual');
+const technicalProduct={...product('tech'),specs:[{label:'Capacidade',value:'35 kg'},{label:'Vazio',value:''},{label:'Ciclos',value:'40 mil'},{label:'Aplicação',value:'Inferior'}]};
+const technicalBefore=JSON.stringify(technicalProduct);
+const simpleDetail=Collection.technicalDetailFor(technicalProduct,{width:'simple'});
+const wideDetail=Collection.technicalDetailFor(technicalProduct,{width:'wide'});
+const fullDetail=Collection.technicalDetailFor(technicalProduct,{width:'full'});
+if(simpleDetail.limit!==1||simpleDetail.specs.length!==1||simpleDetail.specs[0].label!=='Capacidade'||simpleDetail.omittedSpecCount!==2) fail('simple deve projetar exatamente a primeira spec factual');
+if(wideDetail.limit!==2||wideDetail.specs.map(spec=>spec.label).join(',')!=='Capacidade,Ciclos'||wideDetail.omittedSpecCount!==1) fail('wide deve projetar duas specs factuais em ordem');
+if(fullDetail.limit!==2||fullDetail.specs.map(spec=>spec.value).join(',')!=='35 kg,40 mil') fail('full deve manter orçamento bounded de duas specs');
+if(JSON.stringify(technicalProduct)!==technicalBefore) fail('projeção técnica não pode mutar produto/specs');
 const state={products,selectedIds,catalog:{title:'Elétrica',templateId:'technical',showPrices:true,createdAt:'2026-08-26T12:00:00Z',presentation}};
 const doc=CatalogDocument.build(state,template); if(doc.schemaVersion!==4) fail('documento canônico deve ser v4'); if(doc.pageCount!==2) fail(`esperava 2 páginas, recebeu ${doc.pageCount}`); if(doc.orderedIds.join(',')!==selectedIds.join(',')) fail('coleção não pode reordenar');
 const item=doc.pages.flatMap(p=>p.items).find(i=>i.type==='collection'); if(!item||item.memberIds.join(',')!=='p3,p4,p5,p6'||item.span!==6||item.rowSpan!==2) fail('coleção não materializou corretamente');
@@ -19,4 +31,4 @@ const reversed=Composition.normalizePresentation({...presentation,blocks:[{...bl
 const invalid=Composition.normalizePresentation({blocks:[{...block,memberIds:['p2','p4']}]}); const invalidDoc=CatalogDocument.build({...state,catalog:{...state.catalog,presentation:invalid}},template); if(invalidDoc.pages.flatMap(p=>p.items).some(i=>i.type==='collection')) fail('gap inválido deve cair para cards');
 const overlapping=Composition.normalizePresentation({blocks:[{...block,id:'first',memberIds:['p2','p3','p4']},{...block,id:'second',memberIds:['p4','p5','p6']}]}); const overlapDoc=CatalogDocument.build({...state,catalog:{...state.catalog,presentation:overlapping}},template); const overlap=overlapDoc.pages.flatMap(p=>p.items).filter(i=>i.type==='collection'); if(overlap.length!==1||overlap[0].blockId!=='first') fail('primeiro bloco sobreposto deve vencer');
 if(Collection.normalizeBlock({...block,memberIds:Array.from({length:20},(_,i)=>`x${i}`)}).memberIds.length!==Collection.MAX_MEMBERS) fail('limite de 12 membros deve permanecer');
-console.log('PASS collection block fixture: canonical document');
+console.log('PASS collection block fixture: canonical document + bounded technical detail');
