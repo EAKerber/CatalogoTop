@@ -160,7 +160,7 @@ try {
   if (preview.duplicateCards) throw new Error('membros técnicos não podem aparecer também como cards');
 
   await page.evaluate(() => window.CatalogoTop.ComposerSelection.select({ kind: 'collection', blockId: 'collection-r5b' }));
-  await page.waitForSelector('#contextualInspector [data-inspector-collection-field="itemPreset"] option[value="technical"]');
+  await page.waitForSelector('#contextualInspector [data-inspector-collection-field="itemPreset"] option[value="technical"]', { state: 'attached' });
   const inspectorOption = await page.$eval('#contextualInspector [data-inspector-collection-field="itemPreset"] option[value="technical"]', option => option.textContent.trim());
   if (inspectorOption !== 'Técnico') throw new Error(`inspector não derivou preset técnico: ${inspectorOption}`);
 
