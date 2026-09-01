@@ -34,6 +34,7 @@ function seedState() {
   const svg = label => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="white"/><rect x="45" y="55" width="510" height="290" rx="30" fill="#d9dde2"/><circle cx="155" cy="200" r="64" fill="#777"/><text x="370" y="216" text-anchor="middle" font-family="Arial" font-size="42" fill="#222">${label}</text></svg>`)}`;
   const product = (id, label) => ({
     id,
+    folderId: 'f-ferragens',
     code: id.toUpperCase(),
     description: `Produto ${id}`,
     category: 'Ferragens',
@@ -52,6 +53,7 @@ function seedState() {
   const p2 = product('p2', 'table-two');
   NS.Core.setState({
     schemaVersion: 9,
+    folders: [{ id: 'f-ferragens', parentId: null, name: 'Ferragens' }],
     products: [p1, p2],
     selectedIds: ['p1', 'p2'],
     catalog: {
