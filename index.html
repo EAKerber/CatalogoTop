@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="commercial-presentation.css" />
   <link rel="stylesheet" href="catalog-date.css" />
   <link rel="stylesheet" href="editor-command-layout.css" />
+  <link rel="stylesheet" href="preflight.css" />
   <link rel="stylesheet" href="print.css" media="print" />
 </head>
 <body>
@@ -128,7 +129,7 @@
     </section>
 
     <section class="panel" id="catalog">
-      <div class="section-heading catalog-heading"><div><p class="eyebrow">COMPOSIÇÃO</p><h2>Selecione os produtos e ajuste a composição.</h2><p class="muted">Clique no A4 para editar. Use a lista para incluir, navegar e ordenar produtos.</p></div><div class="heading-actions"><button class="catalog-save-status" id="catalogSaveStatus" type="button" data-save-state="new" title="Estado do catálogo salvo">Novo</button><button class="button secondary" id="btnSaveCatalog" type="button">Salvar</button><button class="button secondary" id="btnNewCatalog">Novo catálogo</button><button class="button primary" id="btnPrint">Gerar PDF / Imprimir</button></div></div>
+      <div class="section-heading catalog-heading"><div><p class="eyebrow">COMPOSIÇÃO</p><h2>Selecione os produtos e ajuste a composição.</h2><p class="muted">Clique no A4 para editar. Use a lista para incluir, navegar e ordenar produtos.</p></div><div class="heading-actions"><button class="catalog-save-status" id="catalogSaveStatus" type="button" data-save-state="new" title="Estado do catálogo salvo">Novo</button><button class="button secondary" id="btnSaveCatalog" type="button">Salvar</button><button class="button secondary" id="btnNewCatalog">Novo catálogo</button><button class="button secondary preflight-status" id="preflightStatus" type="button" data-preflight-status="ready" aria-controls="preflightPanel" aria-expanded="false">Pronto</button><button class="button primary" id="btnPrint">Gerar PDF / Imprimir</button></div></div>
       <div class="catalog-controls editorial-controls card">
         <label>Nome do catálogo<input id="catalogTitle" value="Categoria" /></label>
         <label>Template<select id="catalogTemplate"></select></label>
@@ -137,6 +138,7 @@
         <label class="checkbox-label"><input id="catalogShowPrices" type="checkbox" checked /> Mostrar preços</label>
         <div class="catalog-meta"><span>Criado em</span><strong id="catalogCreatedAt">—</strong></div>
       </div>
+      <section class="preflight-panel card" id="preflightPanel" aria-live="polite" hidden></section>
       <div class="selection-layout">
         <aside class="card selection-panel">
           <div class="selection-toolbar"><input id="searchSelection" type="search" placeholder="Filtrar produtos" /><select id="selectionCategory"><option value="">Todas as categorias</option></select></div>
@@ -243,6 +245,7 @@
   <script defer src="src/collection.js"></script>
   <script defer src="src/table-block.js"></script>
   <script defer src="src/catalog-document.js"></script>
+  <script defer src="src/preflight.js"></script>
   <script defer src="src/collection-document.js"></script>
   <script defer src="src/table-document.js"></script>
   <script defer src="src/render.js"></script>
@@ -265,6 +268,7 @@
   <script defer src="src/variation-result.js"></script>
   <script defer src="src/catalog-selection-order.js"></script>
   <script defer src="src/app.js"></script>
+  <script defer src="src/preflight-controls.js"></script>
   <script defer src="src/header-data-menu.js"></script>
   <script defer src="src/variation-bundle-controls.js"></script>
   <script defer src="src/variation-result-controls.js"></script>
