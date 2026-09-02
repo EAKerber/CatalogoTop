@@ -26,51 +26,102 @@
   border-color: #a7191d;
   background: #a7191d;
 }
+
+/* Cadastro: identificação visual é parte da linha; a linha inteira abre edição. */
+#cadastroContextPanel .cadastro-product-table th:last-child { display: none; }
+#cadastroContextPanel .cadastro-product-row {
+  cursor: pointer;
+  transition: background .14s ease, box-shadow .14s ease;
+}
+#cadastroContextPanel .cadastro-product-row:hover { background: #fafafa; }
+#cadastroContextPanel .cadastro-product-row:focus-visible {
+  outline: 2px solid rgba(239,23,27,.28);
+  outline-offset: -2px;
+  background: #fffafa;
+}
+#cadastroContextPanel .cadastro-product-row.is-editing {
+  background: #fff7f7;
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+#cadastroContextPanel .cadastro-product-identity {
+  min-width: 126px;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+#cadastroContextPanel .cadastro-product-identity strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ações dependentes do produto persistido pertencem ao formulário em edição,
+ * não são repetidas em cada linha da consulta contextual. */
+#productForm > .form-head { flex-wrap: wrap; gap: 8px 10px; }
+#productForm > .form-head > div:first-child { min-width: 0; flex: 1 1 180px; }
+#productForm > .form-head > .form-head-actions { flex: 0 0 auto; }
+#productForm > .form-head > .editing-context-actions {
+  flex: 1 1 100%;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+#productForm > .form-head > .editing-context-actions[hidden] { display: none !important; }
+#productForm > .form-head > .editing-context-actions .button {
+  min-height: 32px;
+  padding: 6px 9px;
+  font-size: 10px;
+}
+
 @media (max-width: 639px) {
   .product-row-actions { gap: 2px; }
   .product-row-actions .icon-button { min-width: 34px; min-height: 34px; }
   .product-row-actions .danger-action { min-width: 54px; }
 
-  /* Cadastro uses a four-column contextual table. The legacy mobile table
-     hides columns 4/5 because V1 actions lived in column 6, so give Cadastro
-     an explicit compact card layout instead of inheriting that column map. */
+  /* A consulta contextual deixa de herdar o mapa V1 de seis colunas.
+   * Miniatura + código formam a primeira unidade, produto a segunda e pasta a terceira. */
   #cadastroContextPanel .cadastro-product-table thead { display: none; }
   #cadastroContextPanel .cadastro-product-table tr {
-    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
   #cadastroContextPanel .cadastro-product-table td:nth-child(1) {
     grid-column: 1;
     grid-row: 1;
+    padding-bottom: 4px;
   }
   #cadastroContextPanel .cadastro-product-table td:nth-child(2) {
-    grid-column: 2;
-    grid-row: 1;
+    grid-column: 1;
+    grid-row: 2;
+    padding-top: 2px;
+    padding-bottom: 3px;
+    font-weight: 650;
   }
   #cadastroContextPanel .cadastro-product-table td:nth-child(3) {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    padding-top: 0;
-    padding-bottom: 6px;
-  }
-  #cadastroContextPanel .cadastro-product-table td:nth-child(4) {
     display: block;
-    grid-column: 1 / -1;
+    grid-column: 1;
     grid-row: 3;
     padding-top: 0;
+    padding-bottom: 8px;
   }
-  #cadastroContextPanel .cadastro-product-table .product-row-actions {
+  #cadastroContextPanel .cadastro-product-identity {
+    grid-template-columns: 50px minmax(0, 1fr);
+    gap: 9px;
+    min-width: 0;
+  }
+  #cadastroContextPanel .cadastro-product-identity .product-thumb {
+    width: 50px;
+    height: 50px;
+  }
+  #productForm > .form-head > .editing-context-actions {
     display: grid;
-    grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr);
-    gap: 6px;
-    width: 100%;
-    white-space: normal;
+    grid-template-columns: 1fr 1fr;
   }
-  #cadastroContextPanel .cadastro-product-table .product-row-actions .button {
+  #productForm > .form-head > .editing-context-actions .button {
     width: 100%;
     min-width: 0;
     min-height: 36px;
-    padding-left: 8px;
-    padding-right: 8px;
   }
 }

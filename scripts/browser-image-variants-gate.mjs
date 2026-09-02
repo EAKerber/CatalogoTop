@@ -200,7 +200,7 @@ try {
 
   // Editor de galeria do produto: carrega, edita e remove em rascunho; estado só muda no submit.
   await page.click('[data-tab="products"]');
-  await page.click('[data-cadastro-edit="p1"]');
+  await page.click('[data-cadastro-product="p1"]');
   await page.click('[data-form-step-target="2"]');
   await page.waitForSelector('#productImageGalleryList .product-image-gallery-item:nth-child(2)');
   let galleryUi = await page.evaluate(() => ({

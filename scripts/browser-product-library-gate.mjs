@@ -40,6 +40,7 @@ function seedLibrary() {
     { id: 'profiles', parentId: null, name: 'Perfis' },
     { id: 'empty', parentId: null, name: 'Vazia' }
   ];
+  const thumb = `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120"><rect width="160" height="120" fill="white"/><rect x="20" y="42" width="120" height="36" rx="8" fill="#d9dde2"/></svg>')}`;
   const base = (id, folderId, extras = {}) => ({
     id,
     code: id.toUpperCase(),
@@ -50,7 +51,7 @@ function seedLibrary() {
     price: 'R$ 10,00',
     status: 'Ativo',
     notes: '',
-    image: '',
+    image: thumb,
     imageGallery: [],
     specs: [],
     variants: [],
@@ -96,12 +97,29 @@ try {
 
   await page.click('[data-tab="library"]');
   await page.waitForSelector('#library.active #productLibraryAdmin');
-  const initial = await page.evaluate(() => ({
-    rows: document.querySelectorAll('#libraryProductList [data-library-product]').length,
-    folderButtons: document.querySelectorAll('#libraryFolderTree [data-library-folder]').length,
-    activePanel: document.getElementById('library')?.classList.contains('active')
-  }));
-  if (!initial.activePanel || initial.rows !== 3 || initial.folderButtons < 6) throw new Error(`Biblioteca inicial inválida: ${JSON.stringify(initial)}`);
+  const initial = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('#libraryProductList [data-library-product]'));
+    const controls = ['libraryProductSearch', 'libraryMoveDestination', 'catalogLibraryMoveDestination', 'assetLibraryUsageFilter'].map(id => {
+      const node = document.getElementById(id);
+      const style = node ? getComputedStyle(node) : null;
+      return { id, radius: style?.borderRadius || '', minHeight: style?.minHeight || '' };
+    });
+    return {
+      rows: rows.length,
+      thumbnails: rows.filter(row => {
+        const image = row.querySelector('.library-product-thumb');
+        const rect = image?.getBoundingClientRect();
+        return Boolean(image?.getAttribute('src') && rect?.width >= 50 && rect?.height >= 45);
+      }).length,
+      folderButtons: document.querySelectorAll('#libraryFolderTree [data-library-folder]').length,
+      activePanel: document.getElementById('library')?.classList.contains('active'),
+      controls
+    };
+  });
+  if (!initial.activePanel || initial.rows !== 3 || initial.thumbnails !== 3 || initial.folderButtons < 6) throw new Error(`Biblioteca inicial inválida: ${JSON.stringify(initial)}`);
+  if (initial.controls.some(control => control.radius !== '9px' || Number.parseFloat(control.minHeight) < 38)) {
+    throw new Error(`controles compartilhados da Biblioteca fora da linha visual: ${JSON.stringify(initial.controls)}`);
+  }
 
   await page.click('[data-library-folder="hardware"]');
   await page.waitForFunction(() => document.querySelectorAll('#libraryProductList [data-library-product]').length === 2);
@@ -192,19 +210,63 @@ try {
     const edit = document.querySelector('[data-library-edit="p2"]');
     const style = edit ? getComputedStyle(edit) : null;
     const rect = edit?.getBoundingClientRect();
+    const thumb = document.querySelector('[data-library-product="p2"] .library-product-thumb');
+    const thumbRect = thumb?.getBoundingClientRect();
     return {
       view: document.getElementById('productLibraryAdmin')?.dataset.mobileView,
       editVisible: Boolean(edit && style?.display !== 'none' && style?.visibility !== 'hidden' && rect?.width && rect?.height),
+      thumbVisible: Boolean(thumb && thumbRect?.width >= 48 && thumbRect?.height >= 44),
       overflowX: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
       switchVisible: getComputedStyle(document.querySelector('.library-mobile-switch')).display !== 'none'
     };
   });
-  if (mobile.view !== 'products' || !mobile.editVisible || !mobile.switchVisible || mobile.overflowX > 2) throw new Error(`Biblioteca mobile regrediu: ${JSON.stringify(mobile)}`);
+  if (mobile.view !== 'products' || !mobile.editVisible || !mobile.thumbVisible || !mobile.switchVisible || mobile.overflowX > 2) throw new Error(`Biblioteca mobile regrediu: ${JSON.stringify(mobile)}`);
 
   await page.click('[data-library-edit="p2"]');
   await page.waitForFunction(() => document.getElementById('products')?.classList.contains('active') && document.getElementById('productId')?.value === 'p2');
+  const editContext = await page.evaluate(() => {
+    const actions = document.querySelector('#productForm .editing-context-actions');
+    const clone = actions?.querySelector('[data-cadastro-clone="p2"]');
+    const library = actions?.querySelector('[data-cadastro-library="p2"]');
+    return {
+      visible: Boolean(actions && !actions.hidden && getComputedStyle(actions).display !== 'none'),
+      clone: Boolean(clone),
+      library: Boolean(library)
+    };
+  });
+  if (!editContext.visible || !editContext.clone || !editContext.library) throw new Error(`ações contextuais do Cadastro ausentes: ${JSON.stringify(editContext)}`);
 
-  console.log('PASS browser Product Library R1e gate: recursive tree/search, multi-move, folder lifecycle, bulk delete cleanup, mobile and Cadastro handoff');
+  await page.click('[data-mobile-workspace-target="context"]');
+  await page.waitForSelector('#cadastroProductRows [data-cadastro-product="p2"]');
+  const cadastroRows = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('#cadastroProductRows [data-cadastro-product]'));
+    return {
+      rows: rows.length,
+      thumbs: rows.filter(row => row.querySelector('.product-thumb')?.getAttribute('src')).length,
+      rowButtons: rows.reduce((sum, row) => sum + row.querySelectorAll('button').length, 0),
+      p2Editing: document.querySelector('[data-cadastro-product="p2"]')?.classList.contains('is-editing') || false
+    };
+  });
+  if (cadastroRows.rows !== 2 || cadastroRows.thumbs !== 2 || cadastroRows.rowButtons !== 0 || !cadastroRows.p2Editing) {
+    throw new Error(`lista contextual do Cadastro inválida: ${JSON.stringify(cadastroRows)}`);
+  }
+
+  await page.click('[data-cadastro-product="p3"]');
+  await page.waitForFunction(() => document.getElementById('productId')?.value === 'p3');
+  await page.click('[data-mobile-workspace-target="context"]');
+  await page.focus('[data-cadastro-product="p2"]');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.getElementById('productId')?.value === 'p2');
+  await page.click('#productForm [data-cadastro-clone="p2"]');
+  await page.waitForFunction(() => document.getElementById('code')?.value === '' && document.getElementById('formTitle')?.textContent?.includes('Novo produto baseado em P2'));
+  const cloneContext = await page.evaluate(() => ({
+    productId: document.getElementById('productId')?.value || '',
+    actionsHidden: document.querySelector('#productForm .editing-context-actions')?.hidden === true,
+    productPersisted: window.CatalogoTop.Core.getState().products.some(product => String(product.id) === String(document.getElementById('productId')?.value || ''))
+  }));
+  if (!cloneContext.productId || !cloneContext.actionsHidden || cloneContext.productPersisted) throw new Error(`Usar como base não virou novo draft isolado: ${JSON.stringify(cloneContext)}`);
+
+  console.log('PASS browser Product Library R1e gate: controls, thumbnails, recursive tree/search, multi-move, folder lifecycle, bulk delete cleanup, mobile and Cadastro row/context actions');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
