@@ -154,7 +154,7 @@ try {
   await page.emulateMedia({ media: 'screen' });
 
   await page.click('[data-tab="products"]');
-  await page.click('[data-cadastro-edit="p1"]');
+  await page.click('[data-cadastro-product="p1"]');
   await page.click('[data-form-step-target="2"]');
   await page.waitForSelector('[data-form-step="2"].active #hasQuantityPrice');
   const loaded = await page.evaluate(() => ({
@@ -170,7 +170,7 @@ try {
   await page.click('#btnSaveProduct');
   await page.waitForFunction(() => window.CatalogoTop.Core.getState().products.find(product => product.id === 'p1')?.quantityPrice === null);
 
-  await page.click('[data-cadastro-edit="p1"]');
+  await page.click('[data-cadastro-product="p1"]');
   await page.click('[data-form-step-target="2"]');
   await page.waitForSelector('[data-form-step="2"].active #hasQuantityPrice');
   await page.check('#hasQuantityPrice');
