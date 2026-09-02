@@ -29,11 +29,11 @@ const server = createServer(async (request, response) => {
   }
 });
 
-const LONG_CARD = 'CORREDIÇA TELESCÓPICA REFORÇADA COM AMORTECIMENTO ABERTURA TOTAL DESLIZAMENTO SUAVE DURÁVEL';
+const CARD_WORDS = 'CORREDIÇA TELESCÓPICA REFORÇADA AMORTECIMENTO ABERTURA TOTAL DESLIZAMENTO SUAVE DURABILIDADE ACABAMENTO ZINCADO MÓVEIS RESIDENCIAIS CORPORATIVOS COZINHAS DORMITÓRIOS PROJETOS FERRAGENS GUIA INTEGRADA PRECISÃO MOVIMENTO SILENCIOSO'.split(' ');
 const LONG_COLLECTION = 'SISTEMA DESLIZANTE REFORÇADO COM AMORTECIMENTO INTEGRADO ABERTURA TOTAL GUIA TELESCÓPICA DESLIZAMENTO SUAVE ALTA DURABILIDADE ACABAMENTO ZINCADO PARA MÓVEIS RESIDENCIAIS CORPORATIVOS COZINHAS DORMITÓRIOS E PROJETOS SOB MEDIDA';
 const LONG_TABLE = 'LINHA COMERCIAL MUITO LONGA PARA CONTROLE NEGATIVO DE TABELA SEM CONTRATO TEXTFIT NESTE RECORTE';
 
-function seedState({ longCard, longCollection, longTable }) {
+function seedState({ longCollection, longTable }) {
   const NS = window.CatalogoTop;
   const image = `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="600" height="400" fill="white"/><rect x="70" y="80" width="460" height="240" fill="#ddd"/></svg>')}`;
   const product = (id, code, description) => ({
@@ -42,7 +42,7 @@ function seedState({ longCard, longCollection, longTable }) {
   });
   const products = [
     product('p1', 'P1', 'Corrediça simples'),
-    product('p2', 'P2', longCard),
+    product('p2', 'P2', 'Descrição a calibrar'),
     product('p3', 'P3', longCollection),
     product('p4', 'P4', 'Membro curto'),
     product('p5', 'P5', longTable),
@@ -92,8 +92,43 @@ try {
     window.CatalogoTop?.TextFit && window.CatalogoTop?.App && window.CatalogoTop?.Print
   ));
 
-  await page.evaluate(seedState, { longCard: LONG_CARD, longCollection: LONG_COLLECTION, longTable: LONG_TABLE });
+  await page.evaluate(seedState, { longCollection: LONG_COLLECTION, longTable: LONG_TABLE });
   await page.click('[data-tab="catalog"]');
+
+  const calibratedCard = await page.evaluate(cardWords => {
+    const NS = window.CatalogoTop;
+    const words = Array.isArray(cardWords) ? cardWords : [];
+    const setCard = (description, width) => {
+      NS.Core.mutate(draft => {
+        const product = draft.products.find(item => item.id === 'p2');
+        product.description = description;
+        const presentation = NS.Composition.normalizePresentation(draft.catalog.presentation);
+        presentation.itemStyles.p2 = { ...NS.Composition.styleFor(presentation, 'p2'), width };
+        draft.catalog.presentation = presentation;
+      });
+      NS.App.renderAll();
+      const node = document.querySelector('#catalogPreview .catalog-card[data-product-id="p2"] h3');
+      return node?.dataset.descriptionTruncated === 'true';
+    };
+
+    const candidates = [];
+    for (let repeat = 1; repeat <= 3; repeat += 1) {
+      for (let count = 5; count <= words.length; count += 1) {
+        candidates.push(Array.from({ length: repeat }, () => words.slice(0, count)).flat().join(' '));
+      }
+    }
+
+    for (const candidate of candidates) {
+      const simpleTruncated = setCard(candidate, 'simple');
+      const fullTruncated = setCard(candidate, 'full');
+      if (simpleTruncated && !fullTruncated) {
+        setCard(candidate, 'simple');
+        return candidate;
+      }
+    }
+    throw new Error('Fixture R6b não encontrou descrição com simple truncado e full íntegro.');
+  }, CARD_WORDS);
+
   await page.waitForFunction(() => {
     const card = document.querySelector('#catalogPreview .catalog-card[data-product-id="p2"] h3');
     const member = document.querySelector('#catalogPreview .catalog-collection-item[data-product-id="p3"] .catalog-collection-copy b');
@@ -139,7 +174,7 @@ try {
   if (initial.card.text.includes('…') || initial.card.text.includes('...') || initial.member.text.includes('…') || initial.member.text.includes('...')) {
     throw new Error('TextFit introduziu reticências na cópia publicada');
   }
-  if (initial.card.full !== LONG_CARD || initial.member.full !== LONG_COLLECTION) throw new Error(`full description factual não foi preservada: ${JSON.stringify(initial)}`);
+  if (initial.card.full !== calibratedCard || initial.member.full !== LONG_COLLECTION) throw new Error(`full description factual não foi preservada: ${JSON.stringify({ calibratedCard, initial })}`);
 
   const noSecondFit = await page.evaluate(() => {
     const NS = window.CatalogoTop;
