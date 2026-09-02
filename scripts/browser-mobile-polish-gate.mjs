@@ -52,8 +52,8 @@ try {
     const panel = document.querySelector('#cadastroContextPanel');
     const rows = [...document.querySelectorAll('#cadastroProductRows tr')];
     const first = rows[0];
-    const edit = first?.querySelector('[data-cadastro-edit]');
-    const clone = first?.querySelector('[data-cadastro-clone]');
+    const thumb = first?.querySelector('.product-thumb');
+    const thumbRect = thumb?.getBoundingClientRect();
     return {
       selected: document.querySelector('[data-mobile-workspace-target="context"]')?.getAttribute('aria-selected'),
       label: document.querySelector('[data-mobile-workspace-target="context"]')?.textContent?.trim(),
@@ -61,14 +61,16 @@ try {
       panelActive: panel.classList.contains('mobile-workspace-active'),
       rowCount: rows.length,
       rowHeight: first?.getBoundingClientRect().height || 0,
-      editVisible: Boolean(edit && edit.getClientRects().length),
-      cloneVisible: Boolean(clone && clone.getClientRects().length),
+      thumbVisible: Boolean(thumb && thumb.getAttribute('src') && thumbRect?.width >= 48 && thumbRect?.height >= 48),
+      rowButtons: first?.querySelectorAll('button').length || 0,
+      rowRole: first?.getAttribute('role') || '',
+      rowTabIndex: first?.tabIndex,
       destructiveVisible: [...panel.querySelectorAll('[data-delete-product-direct], [data-delete-category], [data-library-delete-products]')].some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length),
       legacyPresent: Boolean(document.querySelector('[data-r1d-legacy-product-list-compat], #categoryFolders, #productRows')),
       overflowX: Math.max(0, panel.scrollWidth - panel.clientWidth)
     };
   });
-  if (existing.selected !== 'true' || existing.label !== 'Existentes' || existing.panelDisplay === 'none' || !existing.panelActive || existing.rowCount !== 14 || existing.rowHeight < 44 || !existing.editVisible || !existing.cloneVisible || existing.destructiveVisible || existing.legacyPresent || existing.overflowX > 3) {
+  if (existing.selected !== 'true' || existing.label !== 'Existentes' || existing.panelDisplay === 'none' || !existing.panelActive || existing.rowCount !== 14 || existing.rowHeight < 60 || !existing.thumbVisible || existing.rowButtons !== 0 || existing.rowRole !== 'button' || existing.rowTabIndex !== 0 || existing.destructiveVisible || existing.legacyPresent || existing.overflowX > 3) {
     throw new Error(`Existentes mobile regrediu: ${JSON.stringify(existing)}`);
   }
 
@@ -152,7 +154,7 @@ try {
   }));
   if (anchor.filter <= anchor.inspector || anchor.mode !== 'general' || !anchor.returning) throw new Error(`⚙ mobile não ancorou no topo da configuração: ${JSON.stringify(anchor)}`);
 
-  console.log('PASS browser mobile polish gate: Cadastro Existentes R1 final, rails, callout, escopo editorial e anchor contextual');
+  console.log('PASS browser mobile polish gate: Cadastro Existentes com miniatura/linha editável, rails, callout, escopo editorial e anchor contextual');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
