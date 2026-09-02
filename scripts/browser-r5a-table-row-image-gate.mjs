@@ -103,6 +103,7 @@ try {
   await page.click('[data-tab="catalog"]');
   const rowSelector = '#catalogPreview .catalog-table-block[data-table-block-id="table-r5a"] tr[data-table-row-id="p1"]';
   const imageSelector = `${rowSelector} .table-cell-image > img`;
+  const frameSelector = '#contextualInspector [data-table-row-image-frame][data-image-frame-editor="p1"]';
   await page.waitForSelector(imageSelector);
 
   const before = await page.evaluate(({ rowSelector, imageSelector }) => {
@@ -122,7 +123,16 @@ try {
   }
 
   await page.click(rowSelector);
-  await page.waitForSelector('#contextualInspector [data-table-row-image-frame][data-image-frame-editor="p1"]');
+  // O frame é injetado em microtask. Depois, o workspace cria a aba Imagem e o modo
+  // general passa a escondê-lo intencionalmente. Esperar "visible" aqui fazia o gate
+  // depender da curta janela entre esses dois passos. Sincronizamos no contrato final.
+  await page.waitForSelector(frameSelector, { state: 'attached' });
+  await page.waitForSelector('#contextualInspector [data-inspector-image-tab]', { state: 'visible' });
+  await page.waitForFunction(() => {
+    const inspector = document.querySelector('#contextualInspector');
+    return inspector?.dataset.hasImageMode === 'true' && inspector?.dataset.inspectorMode === 'general';
+  });
+  await page.waitForSelector(frameSelector, { state: 'hidden' });
   await page.waitForSelector('#contextualInspector [data-image-choice-editor="p1"] [data-image-choice-cycle="1"]', { state: 'visible' });
 
   await page.click('#contextualInspector [data-image-choice-editor="p1"] [data-image-choice-cycle="1"]');
@@ -132,6 +142,7 @@ try {
   await page.waitForSelector('#contextualInspector [data-inspector-image-tab]', { state: 'visible' });
   await page.click('#contextualInspector [data-inspector-image-tab]');
   await page.waitForFunction(() => document.querySelector('#contextualInspector')?.dataset.inspectorMode === 'image');
+  await page.waitForSelector(frameSelector, { state: 'visible' });
   await page.waitForSelector('#contextualInspector [data-image-frame-editor="p1"] input[data-image-frame-field="fit"][value="cover"]', { state: 'visible' });
   await page.check('#contextualInspector [data-image-frame-editor="p1"] input[data-image-frame-field="fit"][value="cover"]');
   for (const [field, value] of [['zoom', '1.7'], ['x', '18'], ['y', '82']]) {
@@ -201,7 +212,7 @@ try {
     throw new Error(`Table sem coluna Imagem expôs editor inadequado: ${JSON.stringify(unavailable)}`);
   }
 
-  console.log('PASS R5a table row image gate: seleção, framing, geometria, print e eligibility');
+  console.log('PASS R5a table row image gate: seleção, framing, inspector mode settlement, geometria, print e eligibility');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
