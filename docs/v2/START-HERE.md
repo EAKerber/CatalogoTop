@@ -5,11 +5,12 @@ Baseline estável V1: **`main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v
 
 ## Estado atual
 
-A linha V2 concluiu R1, R2, R3, **R4 — Constrained Template System 2.0**, **R5 — Editorial Vocabulary 2.0** e o primeiro recorte de R6.
+A linha V2 concluiu R1, R2, R3, **R4 — Constrained Template System 2.0**, **R5 — Editorial Vocabulary 2.0** e **R6a — Structural Preflight Foundation**.
 
-Authority funcional promovida:
+Authority atual após o closeout de R6a:
 
-- `v2@4a7dfbdaeb5bcf918c29a764d862956b0e120d3b` — **R6a Structural Preflight Foundation**;
+- `v2@ef07409b233a79f2e3bf6ed6680e86c3c9bbdccb`;
+- R6a funcional foi promovido em `v2@4a7dfbdaeb5bcf918c29a764d862956b0e120d3b`;
 - `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` permanece V1 estável e não é destino rotineiro do desenvolvimento V2.
 
 Entregas consolidadas:
@@ -26,17 +27,18 @@ Entregas consolidadas:
 
 R5 está fechado após R5a + R5b. Não criar `Callout`, Collection 2.0, imagem em `commercialRows`, nesting ou outro primitivo por simetria.
 
-R6a está completo. **Não existe R6b predefinido.** O próximo passo é biópsia pós-R6a dos sinais render-aware antes de selecionar outro recorte.
+A biópsia pós-R6a selecionou um próximo recorte pequeno: **R6b — Rendered Description Truncation**. R6b está **planejado, não implementado**. Ele promove somente o sinal explícito já produzido por TextFit para descrições truncadas de Card/Collection; imagem quebrada, colisão, Table truncation e página física permanecem fora do recorte.
 
 ## Ordem de leitura
 
 1. `docs/v2/START-HERE.md` — bootstrap e fronteiras atuais;
-2. `docs/v2/R6A-CLOSEOUT.md` — authority promovida, gates e estado pós-R6a;
-3. `docs/v2/R6A-STRUCTURAL-PREFLIGHT-FOUNDATION-INTENT.md` — contrato final do Preflight estrutural;
-4. `docs/v2/ROADMAP.md` — milestones e próximo ponto de decisão;
-5. `docs/v2/R5-CLOSEOUT.md` — fechamento do vocabulário editorial;
-6. `docs/v2/CI-H1-ASSET-INDEX-WRITE-SETTLEMENT.md` — hardening da race conhecida do AssetIndex gate;
-7. closeouts/intents R1–R4 quando precisar de decisões históricas específicas.
+2. `docs/v2/R6B-RENDERED-DESCRIPTION-TRUNCATION-INTENT.md` — próximo recorte selecionado, ainda não implementado;
+3. `docs/v2/R6A-CLOSEOUT.md` — authority promovida, gates e estado pós-R6a;
+4. `docs/v2/R6A-STRUCTURAL-PREFLIGHT-FOUNDATION-INTENT.md` — contrato final do Preflight estrutural;
+5. `docs/v2/ROADMAP.md` — milestones e dependências;
+6. `docs/v2/R5-CLOSEOUT.md` — fechamento do vocabulário editorial;
+7. `docs/v2/CI-H1-ASSET-INDEX-WRITE-SETTLEMENT.md` — hardening da race conhecida do AssetIndex gate;
+8. closeouts/intents R1–R4 quando precisar de decisões históricas específicas.
 
 ## Authorities V2
 
@@ -59,8 +61,11 @@ Apresentação catalog-local
   ├─ image selection/framing -> presentation por productId
   └─ ordem editorial -> CatalogOrder
 
-Preflight
+Preflight estrutural
   └─ projeção efêmera de state + CatalogDocument; não é persistence authority
+
+Render-aware planejado em R6b
+  └─ leitura dos datasets já materializados por TextFit; não é nova authority
 ```
 
 Shared UI não implica shared store. `FolderTree` é vocabulário puro reutilizável; namespaces e revisions permanecem provider-scoped.
@@ -75,8 +80,12 @@ state
 
 state + CatalogDocument
   -> Preflight.inspect(state)
-  -> PreflightReport
-  -> status/painel autor-facing
+  -> structural PreflightReport
+
+preview já finalizado por TextFit                [R6b planejado]
+  -> PreflightRender.inspect(root)
+  -> render issues
+  -> merge puro no mesmo PreflightReport
 ```
 
 Preflight observa a mesma autoridade que gera o documento. Ele não corrige state, não substitui CatalogDocument e não cria uma segunda materialização.
@@ -103,8 +112,10 @@ Preflight observa a mesma autoridade que gera o documento. Ele não corrige stat
 - AssetIndex pode projetar mutação local antes do write remoto; consumers de revisão autoritativa devem esperar settlement.
 - Preflight é efêmero e não possui store/revision.
 - Preflight detecta; não muta dados para fazer um issue desaparecer.
-- R6a não desabilita/intercepta PDF por causa da primeira taxonomia de blockers.
-- `src/preflight.js` não mede DOM.
+- R6a não desabilita/intercepta PDF por causa da taxonomia de blockers.
+- `src/preflight.js` permanece sem DOM/geometry.
+- R6b, se implementado conforme intent, consome somente sinais explícitos já produzidos pelo render; não mede layout de novo.
+- Table não recebe truncation semantics apenas por simetria enquanto TextFit não expuser esse contrato.
 - Preflight chrome nunca entra no documento print.
 - `main` continua somente leitura para a missão V2 atual até decisão explícita de release.
 
@@ -128,6 +139,32 @@ Imagem é avaliada pelo uso materializado:
 - Table só é single-image para `rowSource:'products'` com coluna `image` ativa;
 - `commercialRows` permanece fora desse contrato.
 
+## Próximo recorte selecionado — R6b
+
+**R6b — Rendered Description Truncation** nasce de um sinal já existente, não de uma heurística nova.
+
+`TextFit.fitCatalog()` já materializa em Card/Collection:
+
+- `data-full-description`;
+- `data-description-truncated`;
+- `data-fit-lines`;
+- `data-visible-words`.
+
+O renderer termina esse fitting antes de publicar `catalogotop:catalog-rendered`. R6b deve apenas projetar `data-description-truncated="true"` como `description_truncated` warning no relatório existente.
+
+Fronteiras:
+
+- Card e Collection apenas;
+- Table fora do recorte;
+- `src/preflight.js` continua DOM-free;
+- render-aware projection lê dataset, não executa fitting nem mede geometria;
+- sem timers/MutationObserver;
+- sem persistência de issues;
+- sem auto-fix ou enforcement de PDF;
+- preview/print parity é gate, não segunda runtime authority.
+
+Ver `R6B-RENDERED-DESCRIPTION-TRUNCATION-INTENT.md` antes de implementar.
+
 ## Ambiente de teste V2
 
 O ambiente Netlify V2 é autoridade operacional separada do Git. Não inferir deploy state a partir do branch `v2`.
@@ -140,23 +177,15 @@ Nenhuma ação Netlify está implícita por uma promoção Git.
 
 Backup JSON continua sendo transporte compatível do estado monolítico legado e passa por `Core.migrate`. Não é uma authority V2.
 
-## Próximo ponto de decisão — biópsia pós-R6a
+## Depois de R6b
 
-Não nomear R6b por sequência numérica.
+Não agrupar automaticamente os demais sinais render-aware.
 
-O candidato mais forte é uma camada **render-aware** porque já existem sinais concretos fora do domínio estrutural puro:
+Ainda requerem biópsias próprias:
 
-- TextFit registra truncamento no elemento renderizado;
-- browser gates verificam geometria A4 e páginas físicas;
-- falhas de carregamento de imagem só são conhecidas depois da resolução/render;
-- overflow/collision dependem de geometria real.
+- falha real de carregamento de imagem — lifecycle assíncrono diferente;
+- collision/overflow — exige geometria real e política de estabilidade;
+- página física/logical parity autor-facing — pode pertencer mais ao isolated print/release gate do que ao runtime;
+- Table truncation — não possui hoje o sinal explícito de TextFit usado por R6b.
 
-Antes de implementar outro recorte, determinar quais desses sinais são estáveis, úteis ao autor e podem ser projetados para o mesmo `PreflightReport` sem:
-
-- criar um segundo CatalogDocument;
-- copiar heurísticas frágeis de teste para runtime;
-- introduzir um rules engine genérico;
-- persistir resultados efêmeros;
-- transformar warning observacional em enforcement sem decisão explícita.
-
-Ver `R6A-CLOSEOUT.md` antes da próxima biópsia.
+Cada candidato deve provar sua authority antes de entrar no `PreflightReport`.
