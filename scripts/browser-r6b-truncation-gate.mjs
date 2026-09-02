@@ -52,7 +52,7 @@ function seedState({ longCollection, longTable }) {
   const presentation = NS.Composition.normalizePresentation({
     order,
     itemStyles: {
-      p2: { contentPreset: 'visual', emphasis: 'normal', width: 'simple', priceStyle: 'standard' }
+      p2: { contentPreset: 'standard', emphasis: 'normal', width: 'simple', priceStyle: 'standard' }
     },
     blocks: [
       {
@@ -103,7 +103,11 @@ try {
         const product = draft.products.find(item => item.id === 'p2');
         product.description = description;
         const presentation = NS.Composition.normalizePresentation(draft.catalog.presentation);
-        presentation.itemStyles.p2 = { ...NS.Composition.styleFor(presentation, 'p2'), width };
+        presentation.itemStyles.p2 = {
+          ...NS.Composition.styleFor(presentation, 'p2'),
+          contentPreset: 'standard',
+          width
+        };
         draft.catalog.presentation = presentation;
       });
       NS.App.renderAll();
@@ -112,7 +116,7 @@ try {
     };
 
     const candidates = [];
-    for (let repeat = 1; repeat <= 3; repeat += 1) {
+    for (let repeat = 1; repeat <= 4; repeat += 1) {
       for (let count = 5; count <= words.length; count += 1) {
         candidates.push(Array.from({ length: repeat }, () => words.slice(0, count)).flat().join(' '));
       }
@@ -126,7 +130,7 @@ try {
         return candidate;
       }
     }
-    throw new Error('Fixture R6b não encontrou descrição com simple truncado e full íntegro.');
+    throw new Error('Fixture R6b não encontrou descrição standard com simple truncado e full íntegro.');
   }, CARD_WORDS);
 
   await page.waitForFunction(() => {
@@ -231,7 +235,11 @@ try {
     const NS = window.CatalogoTop;
     NS.Core.mutate(draft => {
       const presentation = NS.Composition.normalizePresentation(draft.catalog.presentation);
-      presentation.itemStyles.p2 = { ...NS.Composition.styleFor(presentation, 'p2'), width: 'full' };
+      presentation.itemStyles.p2 = {
+        ...NS.Composition.styleFor(presentation, 'p2'),
+        contentPreset: 'standard',
+        width: 'full'
+      };
       draft.catalog.presentation = presentation;
     });
     NS.App.renderAll();
@@ -241,9 +249,10 @@ try {
   const afterWidth = await page.evaluate(() => ({
     status: document.getElementById('preflightStatus')?.textContent.trim(),
     truncations: window.CatalogoTop.PreflightControls.getLastReport()?.issues?.filter(item => item.code === 'description_truncated').map(item => item.resourceId),
-    width: document.querySelector('#catalogPreview .catalog-card[data-product-id="p2"]')?.dataset.cardWidth
+    width: document.querySelector('#catalogPreview .catalog-card[data-product-id="p2"]')?.dataset.cardWidth,
+    standard: document.querySelector('#catalogPreview .catalog-card[data-product-id="p2"]')?.classList.contains('content-standard')
   }));
-  if (afterWidth.status !== 'Revisar · 1' || JSON.stringify(afterWidth.truncations) !== JSON.stringify(['p3']) || afterWidth.width !== 'full') {
+  if (afterWidth.status !== 'Revisar · 1' || JSON.stringify(afterWidth.truncations) !== JSON.stringify(['p3']) || afterWidth.width !== 'full' || !afterWidth.standard) {
     throw new Error(`warning não respondeu ao bounded width rerender: ${JSON.stringify(afterWidth)}`);
   }
 
@@ -309,7 +318,7 @@ try {
   }));
   if (overflow.doc > overflow.client + 2 || overflow.catalog > overflow.catalogClient + 2) throw new Error(`R6b criou overflow mobile: ${JSON.stringify(overflow)}`);
 
-  console.log('PASS R6b rendered description truncation: explicit TextFit signal, Card/Collection only, canonical merge, reactive width, no second fit, preview-print parity and mobile geometry');
+  console.log('PASS R6b rendered description truncation: explicit TextFit signal, Card/Collection only, canonical merge, reactive standard-card width, no second fit, preview-print parity and mobile geometry');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
