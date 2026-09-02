@@ -36,6 +36,10 @@
     return product?.folderId ? pathFor(product.folderId, folders) : [product?.category, product?.subcategory].filter(Boolean).join(' / ');
   }
 
+  function productImage(product) {
+    return product?.image || Render.PLACEHOLDER;
+  }
+
   function scopedProducts(text = search.value.trim()) {
     const current = state();
     return ProductQuery.query({
@@ -118,6 +122,7 @@
         <label class="library-product-check">
           <input type="checkbox" data-library-select="${Render.esc(product.id)}" ${selectedProductIds.has(String(product.id)) ? 'checked' : ''} aria-label="Selecionar ${Render.esc(product.code)}" />
         </label>
+        <img class="library-product-thumb" src="${Render.esc(productImage(product))}" alt="" loading="lazy" />
         <div class="library-product-copy">
           <div><strong>${Render.esc(product.code)}</strong><span class="status ${product.status === 'Ativo' ? 'active' : 'inactive'}">${Render.esc(product.status)}</span></div>
           <span>${Render.esc(product.description)}</span>

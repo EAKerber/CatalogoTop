@@ -27,6 +27,8 @@
       || !form || !panel || !pathInput || !pathOptions || !categoryInput || !subcategoryInput
       || !codeInput || !productIdInput || !contextSearch || !contextRows || !contextEmpty || !scopedCount) return;
 
+  let editingContextActions = null;
+
   function pathSegments(value = pathInput.value) {
     const raw = String(value || '').trim();
     if (!raw) return [];
@@ -99,21 +101,56 @@
     return folderPathForId(product.folderId) || [product.category, product.subcategory].filter(Boolean).join(' / ');
   }
 
+  function productImage(product) {
+    return product?.image || Render.PLACEHOLDER;
+  }
+
+  function currentEditingProduct() {
+    const id = String(productIdInput.value || '').trim();
+    if (!id) return null;
+    return Core.getState().products.find(product => String(product.id) === id) || null;
+  }
+
+  function ensureEditingContextActions() {
+    if (editingContextActions?.isConnected) return editingContextActions;
+    const head = form.querySelector('.form-head');
+    if (!head) return null;
+    editingContextActions = document.createElement('div');
+    editingContextActions.className = 'editing-context-actions';
+    editingContextActions.hidden = true;
+    editingContextActions.setAttribute('aria-label', 'Ações do produto em edição');
+    editingContextActions.innerHTML = '<button class="button secondary compact" type="button" data-cadastro-clone="">Usar como base</button><button class="button secondary compact" type="button" data-cadastro-library="">Biblioteca</button>';
+    head.appendChild(editingContextActions);
+    return editingContextActions;
+  }
+
+  function syncEditingContextActions() {
+    const actions = ensureEditingContextActions();
+    if (!actions) return;
+    const product = currentEditingProduct();
+    actions.hidden = !product;
+    const clone = actions.querySelector('[data-cadastro-clone]');
+    const library = actions.querySelector('[data-cadastro-library]');
+    if (clone) clone.dataset.cadastroClone = product ? String(product.id) : '';
+    if (library) library.dataset.cadastroLibrary = product ? String(product.id) : '';
+  }
+
   function renderContext() {
     renderFolderOptions();
+    syncEditingContextActions();
     const products = scopeProducts();
+    const editingId = String(currentEditingProduct()?.id || '');
     scopedCount.textContent = `${products.length} ${products.length === 1 ? 'produto' : 'produtos'}`;
-    contextRows.innerHTML = products.map(product => `
-      <tr data-cadastro-product="${Render.esc(product.id)}">
-        <td><strong>${Render.esc(product.code)}</strong></td>
+    contextRows.innerHTML = products.map(product => {
+      const id = String(product.id);
+      const editing = id === editingId;
+      return `
+      <tr class="cadastro-product-row${editing ? ' is-editing' : ''}" data-cadastro-product="${Render.esc(id)}" tabindex="0" role="button" aria-label="Editar ${Render.esc(product.code)} — ${Render.esc(product.description)}">
+        <td><div class="cadastro-product-identity"><img class="product-thumb" src="${Render.esc(productImage(product))}" alt="" loading="lazy" /><strong>${Render.esc(product.code)}</strong></div></td>
         <td>${Render.esc(product.description)}</td>
         <td><small>${Render.esc(productPath(product) || '—')}</small></td>
-        <td><div class="product-row-actions">
-          <button class="button secondary compact" type="button" data-cadastro-edit="${Render.esc(product.id)}">Editar</button>
-          <button class="button secondary compact" type="button" data-cadastro-clone="${Render.esc(product.id)}">Usar como base</button>
-          <button class="button secondary compact" type="button" data-cadastro-library="${Render.esc(product.id)}">Biblioteca</button>
-        </div></td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
     contextEmpty.classList.toggle('hidden', products.length !== 0);
   }
 
@@ -214,12 +251,22 @@
   form.addEventListener('submit', () => setTimeout(renderContext, 0));
 
   panel.addEventListener('click', event => {
-    const editButton = event.target.closest('[data-cadastro-edit]');
-    if (editButton) return editProduct(editButton.dataset.cadastroEdit);
+    const row = event.target.closest('[data-cadastro-product]');
+    if (row) editProduct(row.dataset.cadastroProduct);
+  });
+  panel.addEventListener('keydown', event => {
+    if (!['Enter', ' '].includes(event.key)) return;
+    const row = event.target.closest('[data-cadastro-product]');
+    if (!row) return;
+    event.preventDefault();
+    editProduct(row.dataset.cadastroProduct);
+  });
+
+  form.addEventListener('click', event => {
     const cloneButton = event.target.closest('[data-cadastro-clone]');
-    if (cloneButton) return useAsBase(cloneButton.dataset.cadastroClone);
+    if (cloneButton?.dataset.cadastroClone) return useAsBase(cloneButton.dataset.cadastroClone);
     const libraryButton = event.target.closest('[data-cadastro-library]');
-    if (libraryButton) openLibrary(libraryButton.dataset.cadastroLibrary);
+    if (libraryButton?.dataset.cadastroLibrary) openLibrary(libraryButton.dataset.cadastroLibrary);
   });
 
   ['btnNewProduct', 'btnCancelEdit'].forEach(id => {
@@ -231,6 +278,7 @@
     if (event.detail?.tabId === 'products') renderContext();
   });
 
+  ensureEditingContextActions();
   renderContext();
 
   NS.CadastroSurface = Object.freeze({
