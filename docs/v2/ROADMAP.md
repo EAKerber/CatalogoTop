@@ -10,7 +10,7 @@ Stable V1 authority:
 Active V2 product-development line:
 
 - `v2`;
-- current functional authority after R6a: `v2@4a7dfbdaeb5bcf918c29a764d862956b0e120d3b`.
+- current authority after R6a closeout: `v2@ef07409b233a79f2e3bf6ed6680e86c3c9bbdccb`.
 
 The V2 goal is not to turn CatalogoTop into a free-form page editor. The product remains a constrained catalog-authoring system centered on reliable product data, reusable resources, bounded editorial structures, deterministic A4 composition and explicit publication quality.
 
@@ -25,8 +25,8 @@ A roadmap slot is directional, not automatic authorization. Recut names do not j
 - **R5 — Editorial Vocabulary 2.0: COMPLETE** after biopsy-driven R5a + R5b; no R5c.
 - **CI-H1 — AssetIndex Write Settlement Gate: COMPLETE** as CI/test hygiene.
 - **R6 — Preflight / Publication Quality: ACTIVE**.
-  - **R6a — Structural Preflight Foundation: COMPLETE**, promoted in `v2@4a7dfbdaeb5bcf918c29a764d862956b0e120d3b`.
-  - no R6b selected yet; next step is post-R6a biopsy.
+  - **R6a — Structural Preflight Foundation: COMPLETE**, functional promotion `v2@4a7dfbdaeb5bcf918c29a764d862956b0e120d3b`, closeout authority `v2@ef07409b233a79f2e3bf6ed6680e86c3c9bbdccb`.
+  - **R6b — Rendered Description Truncation: PLANNED**, selected by post-R6a biopsy; not implemented.
 - R7+ remain directional and are not authorized merely by appearing in historical plans or future discussions.
 
 ## Architectural direction — one Library UI, multiple authorities
@@ -62,11 +62,15 @@ state
 
 state + CatalogDocument
   -> Preflight.inspect(state)
-  -> PreflightReport
-  -> author-facing status / issues
+  -> structural PreflightReport
+
+rendered preview after existing TextFit                [R6b planned]
+  -> PreflightRender.inspect(root)
+  -> rendered issues
+  -> canonical report merge
 ```
 
-Preflight observes the document authority; it does not replace it or repair it.
+Preflight observes existing document/render authorities; it does not replace or repair them.
 
 ## V2-R1 — Product Library Foundation — COMPLETE
 
@@ -241,30 +245,61 @@ Delivered:
 - no print-button enforcement;
 - no Preflight chrome in isolated print.
 
-Feature head `3018c8fbe89786c17c3d8243e3d209a3c9d4508b` passed push Validate #1101 / Browser #912 and PR Validate #1102 / Browser #913. PR #70 was squash-merged with expected-head protection into `v2@4a7dfbdaeb5bcf918c29a764d862956b0e120d3b`.
+Feature head `3018c8fbe89786c17c3d8243e3d209a3c9d4508b` passed push Validate #1101 / Browser #912 and PR Validate #1102 / Browser #913. PR #70 was squash-merged with expected-head protection into `v2@4a7dfbdaeb5bcf918c29a764d862956b0e120d3b`; PR #71 then closed the R6a documentation in `v2@ef07409b233a79f2e3bf6ed6680e86c3c9bbdccb` after Validate #1103 / Browser #914.
 
 See `R6A-STRUCTURAL-PREFLIGHT-FOUNDATION-INTENT.md` and `R6A-CLOSEOUT.md`.
 
-### Next R6 decision — post-R6a biopsy
+### R6b — Rendered Description Truncation — PLANNED
 
-**No R6b is selected yet.**
+Post-R6a biopsy isolated one render-time signal already explicit enough for product use: TextFit description truncation.
 
-The strongest directional evidence is render-aware publication quality, because several meaningful facts only exist after render/materialization:
+Evidence:
 
-- TextFit already records truncation on rendered elements;
-- actual image-load failure occurs after URL resolution;
-- collision/overflow depends on real geometry;
-- physical browser gates already know A4/page-count facts.
+- `TextFit.fitText()` preserves the full factual copy and sets `data-description-truncated`, `data-fit-lines` and `data-visible-words`;
+- `TextFit.fitCatalog()` measures Card/Collection at actual geometry with preview scale neutralized;
+- renderer finalization runs TextFit before `catalogotop:catalog-rendered` is dispatched;
+- the existing render-fidelity gate already proves controlled Collection fitting parity between preview and isolated print.
 
-Before naming/implementing another recut, answer:
+R6b therefore adds only one planned warning:
 
-1. Which render-time signals are stable enough to become author-facing issues rather than test-only heuristics?
-2. Can they be projected into the existing `PreflightReport` without creating another CatalogDocument/materialization authority?
-3. Which checks are blockers versus warnings based on actual publication consequence, not preference?
-4. Does author-facing physical-page validation need runtime measurement, an isolated render, or remain a release/test gate?
-5. Is any export enforcement now justified, or should Preflight remain observational longer?
+```text
+description_truncated — warning
+```
 
-Do not copy every Browser gate assertion into runtime. Test instrumentation and product-quality semantics are related but not identical authorities.
+for Card/Collection descriptions whose already-materialized TextFit result says they were shortened.
+
+Planned architecture:
+
+```text
+Preflight.inspect(state)                 -> structural report
+PreflightRender.inspect(#catalogPreview) -> rendered issues from TextFit datasets only
+canonical pure report merge              -> same status/panel
+```
+
+Boundaries:
+
+- `src/preflight.js` remains DOM-free;
+- new render projection reads datasets; it does not call TextFit or measure geometry;
+- Card and Collection only;
+- Table truncation is not inferred because TextFit exposes no equivalent Table contract;
+- no timers, MutationObserver, persistence, auto-fix or print enforcement;
+- preview/print parity stays a browser gate, not a second runtime report authority;
+- image network failures, collisions/overflow and physical page reporting remain separate future decisions.
+
+Detailed contract: `R6B-RENDERED-DESCRIPTION-TRUNCATION-INTENT.md`.
+
+### Post-R6b direction
+
+Do not bundle every render-aware concern after truncation merely because R6b establishes a DOM-read-only projection.
+
+Remaining candidates differ materially:
+
+- image-load failure has asynchronous image lifecycle and currently no explicit persisted/dataset signal;
+- collision/overflow requires geometry and a stability policy;
+- logical-vs-physical page reporting may belong to isolated print/release validation rather than live runtime;
+- Table truncation needs an explicit visibility contract before it can join Preflight.
+
+Biopsy each independently after R6b is exercised.
 
 ## Optional research reintegration — semantic image variation
 
@@ -303,6 +338,8 @@ Transport success alone is insufficient.
 21. `Preflight.inspect` remains pure/ephemeral unless a future real use case justifies persistence.
 22. Render-aware checks must not create a second materialization authority.
 23. Export enforcement requires an explicit policy decision; severity labels alone are not authorization to intercept print.
+24. Render-aware Preflight projections consume explicit renderer signals before introducing new geometry measurement.
+25. A capability proven for Card/Collection is not automatically generalized to Table.
 
 ## Sequence rationale
 
@@ -318,6 +355,6 @@ R5 expanded editorial expressiveness only through observed gaps and then closed 
 
 CI-H1 separated a known asynchronous gate race from new product regressions.
 
-R6a now establishes the issue/report vocabulary and structural observer before any render-aware/enforcement layer. This lets later quality checks reuse a proven contract instead of accumulating one-off UI warnings.
+R6a established issue/report vocabulary and structural observation. R6b is selected next because it can reuse a pre-existing explicit TextFit fact without changing document authority or inventing a generalized render-quality engine.
 
 The roadmap remains directional. Split/re-plan when uncertainty is high; do not pull adjacent concerns forward merely because they touch nearby files.
