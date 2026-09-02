@@ -89,6 +89,7 @@ try {
     const category = document.querySelector('#category');
     const subcategory = document.querySelector('#subcategory');
     const destructive = [...(panel?.querySelectorAll('[data-delete-product-direct], [data-delete-category], [data-library-delete-products]') || [])];
+    const editActions = document.querySelector('#productForm .editing-context-actions');
     return {
       categoryHidden: category?.type === 'hidden',
       subcategoryHidden: subcategory?.type === 'hidden',
@@ -96,11 +97,12 @@ try {
       mobileLabel: document.querySelector('[data-mobile-workspace-target="context"]')?.textContent?.trim(),
       legacyAbsent: !document.querySelector('[data-r1d-legacy-product-list-compat], #categoryFolders, #productRows'),
       destructiveVisible: destructive.some(node => getComputedStyle(node).display !== 'none' && node.getClientRects().length > 0),
-      libraryHandoff: Boolean(panel?.querySelector('[data-cadastro-library]'))
+      rowActionsAbsent: !panel?.querySelector('[data-cadastro-edit], [data-cadastro-clone], [data-cadastro-library]'),
+      formActionsHidden: Boolean(editActions?.hidden)
     };
   });
-  if (!shell.categoryHidden || !shell.subcategoryHidden || !shell.deleteAbsent || shell.mobileLabel !== 'Existentes' || !shell.legacyAbsent || shell.destructiveVisible || !shell.libraryHandoff) {
-    throw new Error(`Cadastro final ainda expõe responsabilidades legadas/destrutivas ou perdeu handoff: ${JSON.stringify(shell)}`);
+  if (!shell.categoryHidden || !shell.subcategoryHidden || !shell.deleteAbsent || shell.mobileLabel !== 'Existentes' || !shell.legacyAbsent || shell.destructiveVisible || !shell.rowActionsAbsent || !shell.formActionsHidden) {
+    throw new Error(`Cadastro final ainda expõe responsabilidades legadas/destrutivas ou ações fora de contexto: ${JSON.stringify(shell)}`);
   }
 
   await page.fill('#productFolderPath', 'Ferragens / Corrediças');
@@ -114,16 +116,29 @@ try {
   if (scope.join(',') !== 'p1') throw new Error(`busca contextual não priorizou código exato: ${scope.join(',')}`);
   await page.fill('#cadastroProductSearch', '');
 
-  await page.click('[data-cadastro-clone="p1"]');
+  await page.click('[data-cadastro-product="p1"]');
+  await page.waitForFunction(() => document.querySelector('#productId')?.value === 'p1');
+  const editingActions = await page.evaluate(() => {
+    const actions = document.querySelector('#productForm .editing-context-actions');
+    return {
+      visible: Boolean(actions && !actions.hidden && getComputedStyle(actions).display !== 'none'),
+      clone: Boolean(actions?.querySelector('[data-cadastro-clone="p1"]')),
+      library: Boolean(actions?.querySelector('[data-cadastro-library="p1"]'))
+    };
+  });
+  if (!editingActions.visible || !editingActions.clone || !editingActions.library) throw new Error(`ações do produto em edição não foram materializadas: ${JSON.stringify(editingActions)}`);
+
+  await page.click('#productForm [data-cadastro-clone="p1"]');
   const cloneDraft = await page.evaluate(() => ({
     productId: document.querySelector('#productId').value,
     code: document.querySelector('#code').value,
     path: document.querySelector('#productFolderPath').value,
     title: document.querySelector('#formTitle').textContent,
     sourceCount: window.CatalogoTop.Core.getState().products.length,
-    deleteAbsent: !document.querySelector('#btnDeleteProduct')
+    deleteAbsent: !document.querySelector('#btnDeleteProduct'),
+    editActionsHidden: document.querySelector('#productForm .editing-context-actions')?.hidden === true
   }));
-  if (!cloneDraft.productId || cloneDraft.productId === 'p1' || cloneDraft.code !== '' || cloneDraft.path !== 'Ferragens / Corrediças / Telescópicas' || cloneDraft.sourceCount !== 3 || !cloneDraft.deleteAbsent || !cloneDraft.title.includes('ABC-100')) {
+  if (!cloneDraft.productId || cloneDraft.productId === 'p1' || cloneDraft.code !== '' || cloneDraft.path !== 'Ferragens / Corrediças / Telescópicas' || cloneDraft.sourceCount !== 3 || !cloneDraft.deleteAbsent || !cloneDraft.editActionsHidden || !cloneDraft.title.includes('ABC-100')) {
     throw new Error(`Usar como base não ficou como draft desacoplado: ${JSON.stringify(cloneDraft)}`);
   }
 
@@ -173,13 +188,14 @@ try {
   await page.fill('#productFolderPath', 'Ferragens / Corrediças');
   await page.fill('#cadastroProductSearch', 'ABC-200');
   await page.waitForFunction(() => document.querySelectorAll('#cadastroProductRows tr').length === 1);
-  await page.click('[data-cadastro-edit="p2"]');
+  await page.click('[data-cadastro-product="p2"]');
   const edit = await page.evaluate(() => ({
     productId: document.querySelector('#productId').value,
     path: document.querySelector('#productFolderPath').value,
-    code: document.querySelector('#code').value
+    code: document.querySelector('#code').value,
+    libraryAction: Boolean(document.querySelector('#productForm [data-cadastro-library="p2"]'))
   }));
-  if (edit.productId !== 'p2' || edit.path !== 'Ferragens / Corrediças' || edit.code !== 'ABC-200') throw new Error(`Editar contextual perdeu identidade/pasta: ${JSON.stringify(edit)}`);
+  if (edit.productId !== 'p2' || edit.path !== 'Ferragens / Corrediças' || edit.code !== 'ABC-200' || !edit.libraryAction) throw new Error(`Editar contextual perdeu identidade/pasta/handoff: ${JSON.stringify(edit)}`);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.click('[data-mobile-workspace-target="context"]');
@@ -190,7 +206,7 @@ try {
   }));
   if (mobile.selected !== 'true' || !mobile.panelActive || mobile.display === 'none') throw new Error(`mobile não abriu Existentes de forma explícita: ${JSON.stringify(mobile)}`);
 
-  console.log('PASS browser Cadastro R1 final gate: folder path, recursive context, clone draft, duplicate guard, deep create, Library handoff and mobile existing-products surface');
+  console.log('PASS browser Cadastro R1 final gate: folder path, recursive context, row editing, contextual clone/Library actions, duplicate guard, deep create and mobile existing-products surface');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
