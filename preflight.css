@@ -1,0 +1,29 @@
+.preflight-status{white-space:nowrap}
+.preflight-status[data-preflight-status="ready"]{border-color:rgba(24,122,73,.24);background:rgba(24,122,73,.08)}
+.preflight-status[data-preflight-status="review"]{border-color:rgba(180,118,0,.28);background:rgba(180,118,0,.08)}
+.preflight-status[data-preflight-status="blocked"]{border-color:rgba(194,37,45,.28);background:rgba(194,37,45,.08)}
+.preflight-status[data-preflight-status="error"]{border-color:rgba(194,37,45,.28)}
+.preflight-panel{margin-top:-2px;padding:14px 16px;min-width:0}
+.preflight-panel[hidden]{display:none!important}
+.preflight-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.preflight-panel-head>div{display:grid;gap:3px;min-width:0}
+.preflight-panel-head strong{font-size:14px;line-height:1.35;color:#20242a}
+.preflight-panel-head span{font-size:12px;line-height:1.45;color:#747a82}
+.preflight-issues{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:7px}
+.preflight-issue{display:grid;grid-template-columns:8px minmax(0,1fr);gap:9px;align-items:start;padding:9px 10px;border:1px solid #e5e7ea;border-radius:8px;background:#fff;min-width:0}
+.preflight-issue-marker{width:7px;height:7px;border-radius:999px;margin-top:5px;background:#8b9097}
+.preflight-issue.severity-blocker .preflight-issue-marker{background:#c2252d}
+.preflight-issue.severity-warning .preflight-issue-marker{background:#b47600}
+.preflight-issue-copy{display:grid;gap:2px;min-width:0}
+.preflight-issue-copy strong{font-size:12px;line-height:1.4;color:#24282d;overflow-wrap:anywhere}
+.preflight-issue-copy span{font-size:10px;line-height:1.35;color:#80858c;overflow-wrap:anywhere}
+.preflight-ready-copy{margin-top:10px;padding:10px;border:1px dashed #d8dcdf;border-radius:8px;color:#687078;font-size:12px}
+@media(max-width:639px){
+  .preflight-status{font-size:11px;padding-inline:9px}
+  .preflight-panel{padding:12px}
+  .preflight-panel-head{gap:8px}
+  .preflight-issue{padding:8px}
+}
+@media print{
+  .preflight-status,.preflight-panel{display:none!important}
+}
