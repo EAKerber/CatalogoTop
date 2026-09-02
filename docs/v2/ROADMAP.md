@@ -10,7 +10,7 @@ Stable V1 authority:
 Active V2 product-development line:
 
 - `v2`;
-- current functional authority after R6b: `v2@f589053dcee8aac7b37d417b3036cd92513f24cc`.
+- current authority after R6b closeout: `v2@5218e39c36739b538aaf5198ab1ef5d6f7ed766b`.
 
 CatalogoTop remains a constrained catalog-authoring system centered on reliable product data, reusable resources, bounded editorial structures, deterministic A4 composition and explicit publication quality. A roadmap slot is directional, not automatic authorization.
 
@@ -22,10 +22,11 @@ CatalogoTop remains a constrained catalog-authoring system centered on reliable 
 - **R4 — Constrained Template System 2.0: COMPLETE** after R4a + R4b.
 - **R5 — Editorial Vocabulary 2.0: COMPLETE** after biopsy-driven R5a + R5b; no R5c.
 - **CI-H1 — AssetIndex Write Settlement Gate: COMPLETE** as CI/test hygiene.
-- **R6 — Preflight / Publication Quality: ACTIVE**.
+- **R6 — Preflight / Publication Quality: COMPLETE** after R6a + R6b; no R6c.
   - **R6a — Structural Preflight Foundation: COMPLETE**; functional promotion `4a7dfbda...`, docs closeout `ef07409b...`.
-  - **R6b — Rendered Description Truncation: COMPLETE**; functional promotion `f589053dcee8aac7b37d417b3036cd92513f24cc`.
-  - **No R6c selected**; next action is biopsy of remaining publication signals.
+  - **R6b — Rendered Description Truncation: COMPLETE**; functional promotion `f589053d...`, docs closeout `5218e39c...`.
+  - post-R6b biopsy found no additional candidate with a sufficiently explicit authority/lifecycle for R6c.
+- **No next functional recut is selected by this roadmap.**
 - R7+ remain directional and are not authorized merely by appearing in plans.
 
 ## Architectural direction
@@ -98,9 +99,11 @@ Corrected an old browser-gate race by waiting for provider write settlement befo
 
 See `CI-H1-ASSET-INDEX-WRITE-SETTLEMENT.md`.
 
-## R6 — Preflight / Publication Quality — ACTIVE
+## R6 — Preflight / Publication Quality — COMPLETE
 
 Purpose: make publication readiness explicit and inspectable without turning validation into mutation or a generalized geometry engine.
+
+R6 closes after two recuts because the remaining nearby quality concerns do not share one authority/lifecycle.
 
 ### R6a — Structural Preflight Foundation — COMPLETE
 
@@ -135,31 +138,56 @@ Delivered:
 - no persistence, auto-fix, observer/timer or export enforcement;
 - controlled preview/isolated-print parity regression gate.
 
-Final feature head `678f7be1228a47bfeea5c5b7c7fa78692eb57f19` passed push Validate #1117 / Browser #928 and PR Validate #1118 / Browser #929. PR #73 was squash-merged with expected-head protection into `v2@f589053dcee8aac7b37d417b3036cd92513f24cc`.
+Final feature head `678f7be1228a47bfeea5c5b7c7fa78692eb57f19` passed push Validate #1117 / Browser #928 and PR Validate #1118 / Browser #929. PR #73 was squash-merged with expected-head protection into `v2@f589053dcee8aac7b37d417b3036cd92513f24cc`; PR #74 closed R6b documentation into `v2@5218e39c36739b538aaf5198ab1ef5d6f7ed766b` after Validate #1119 / Browser #930.
 
-A gate-design finding is now explicit: `full + visual` changes both width and typography, so “more width means less truncation” is not a valid invariant. The stable reactivity proof keeps `standard` preset fixed and varies only width, allowing the issue to follow actual TextFit truth.
+A gate-design finding is explicit: `full + visual` changes both width and typography, so “more width means less truncation” is not a valid invariant. The stable reactivity proof keeps `standard` preset fixed and varies only width, allowing the issue to follow actual TextFit truth.
 
 See `R6B-RENDERED-DESCRIPTION-TRUNCATION-INTENT.md` and `R6B-CLOSEOUT.md`.
 
-### Next R6 decision — post-R6b biopsy
+### Post-R6b biopsy — no R6c
 
-**No R6c is selected.**
+Four adjacent candidates were inspected.
 
-Remaining candidates require different evidence and should not be bundled simply because R6b introduced a render-aware projection:
+#### 1. Image-load failure — parked
 
-1. **Image load failure** — asynchronous lifecycle; distinguish missing/placeholder-intended image from a resolved URL/blob that actually failed to decode/load.
-2. **Collision / overflow** — geometry-dependent; requires stable semantic definition before browser-test geometry can become product runtime policy.
-3. **Logical vs physical page validation** — isolated-print concern; determine whether it benefits authors live or remains a regression/release gate.
-4. **Table factual visibility** — Table currently lacks the explicit TextFit contract that justified Card/Collection truncation warnings.
+`Print.waitForImages()` already observes `complete`, `naturalWidth`, `decode`, `load` and `error`, but the live preview publishes `catalogotop:catalog-rendered` before remote images necessarily settle.
 
-Selection criteria for another recut:
+A correct author-facing issue therefore needs an explicit asynchronous settlement/invalidation contract. Reading `naturalWidth` synchronously or using arbitrary delays would create false failures.
 
-- real author-facing consequence;
-- explicit/stable signal or a narrowly justified new signal;
-- one clear lifecycle authority;
-- no second CatalogDocument/materialization path;
-- no generic rules/geometry engine unless repeated cases prove it necessary;
-- no enforcement policy inferred merely from severity.
+#### 2. Table factual visibility — parked
+
+Table has deterministic width planning and CSS clipping, but no explicit per-cell factual-visibility signal. `columnDemand` is a bounded text-length planning heuristic, not rendered truncation truth.
+
+Do not generalize R6b by selector symmetry.
+
+#### 3. Collision / overflow — parked
+
+Browser gates use targeted geometry measurements for known invariants. There is no generic policy that every overlap or overflow is a publication defect.
+
+A runtime scanner would first need bounded participants, tolerances, stability timing and intentional-overlap exclusions.
+
+#### 4. Logical vs physical page parity — keep in Browser/CI authority
+
+`Print.renderPages()` verifies logical page count against rendered `.catalog-page` nodes. The Browser Print Gate additionally generates a Chromium PDF and checks its physical page count with `pdf-lib`.
+
+The browser editor does not possess that same physical-PDF observation capability. DOM page count must not be relabeled as physical PDF parity.
+
+Detailed comparison and re-entry conditions: `R6-POST-R6B-BIOPSY.md`.
+
+### R6 closeout decision
+
+**No R6c.**
+
+R6 delivered a small trustworthy observation system:
+
+```text
+state/document truth -> structural Preflight
+explicit renderer truth -> bounded render-aware Preflight
+```
+
+The remaining candidates require new signal sources or execution environments. Keeping them separate is preferable to turning Preflight into a generic validation framework.
+
+See `R6-CLOSEOUT.md`.
 
 ## Cross-cutting invariants
 
@@ -180,10 +208,17 @@ Selection criteria for another recut:
 15. Severity does not authorize print/export interception; enforcement requires explicit policy.
 16. Tests requiring authoritative provider revision wait for write settlement.
 17. Browser regression heuristics are evidence, not automatically product-runtime semantics.
-18. No Netlify operation is implied by Git promotion.
+18. Physical PDF page parity remains a Browser/CI concern until an actual author-facing physical artifact validator exists.
+19. No Netlify operation is implied by Git promotion.
 
 ## Sequence rationale
 
 R1 established reusable-resource organization; R2 made catalogs reopenable; R3 stabilized asset identity; R4 established bounded templates; R5 stabilized observed editorial gaps. CI-H1 isolated a known test-race before quality work. R6a then established structural issue vocabulary, and R6b proved one render-aware extension by consuming a stable existing TextFit fact.
 
-The roadmap remains directional. Stop and biopsy again when a candidate would require a materially different authority, lifecycle or policy.
+R6 closes when the next candidates stop sharing that authority model. The roadmap should now return to fresh evidence rather than continue numbering automatically.
+
+## Next product decision
+
+No R7 slice is selected here.
+
+The next recut should be chosen from a concrete user/editor/release problem and may belong to a different axis entirely. If a candidate would require a new persistence authority, asynchronous settlement protocol, generic geometry engine or unavailable physical-PDF runtime capability, make that architectural decision explicitly before implementation.
