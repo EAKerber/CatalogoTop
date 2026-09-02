@@ -2,39 +2,34 @@
 
 ## Baseline and intent
 
-V2 starts from the stable V1 release:
+Stable V1 authority:
 
-- `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9`
-- tag `v1.0.0`
-- active product-development line: `v2`
-- promoted R5 closeout authority: `v2@92ee4802ec7045ab89b00d40bb98f9d9df0e0b01`
-- image-generation research remains isolated in `research/semantic-image-variation-v2`
+- `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9`;
+- tag `v1.0.0` at the same SHA.
 
-The V2 goal is not to turn CatalogoTop into a free-form page editor. The product remains a constrained catalog-authoring system whose main value is reliable product data, repeatable editorial structures, fast composition, predictable A4 output and low operational friction.
+Active V2 product-development line:
 
-The primary change in V2 is that the app stops treating the current browser session as the center of the product. Products, catalogs, reusable assets and templates are explicit resources that can be found, organized and reopened without collapsing their authorities into one monolithic state object.
+- `v2`;
+- current functional authority after R6a: `v2@4a7dfbdaeb5bcf918c29a764d862956b0e120d3b`.
+
+The V2 goal is not to turn CatalogoTop into a free-form page editor. The product remains a constrained catalog-authoring system centered on reliable product data, reusable resources, bounded editorial structures, deterministic A4 composition and explicit publication quality.
+
+A roadmap slot is directional, not automatic authorization. Recut names do not justify abstractions by symmetry.
 
 ## Current milestone status
 
-- **R1 — Product Library Foundation: complete**.
-- **R2 — Saved Catalog Documents: complete** after R2a + R2b. See `R2-CLOSEOUT.md`.
-- **R3 — Asset Library / reusable media index: complete** after R3a + R3b. See `R3-CLOSEOUT.md`.
-- **R4 — Constrained Template System 2.0: complete** after R4a + R4b.
-  - **R4a — Template Contract & Versioned Binding: complete**. See `R4A-TEMPLATE-CONTRACT-INTENT.md` and `R4A-CLOSEOUT.md`.
-  - **R4b — Template Library & Immutable Versions: complete**. See `R4B-TEMPLATE-LIBRARY-VERSIONS-INTENT.md` and `R4B-CLOSEOUT.md`.
-- **R5 — Editorial Vocabulary 2.0: complete** after biopsy-driven R5a + R5b. See `R5-CLOSEOUT.md`.
-  - **R5a — Table Row Image Editing Parity: complete**, promoted in `v2@798c8f6d292138e669d7943f65ee8bf99e740761`.
-  - **R5b — Collection Technical Detail: complete**, promoted in `v2@a6e461086420733edea162f91da35668c3225a2e`. See `R5B-CLOSEOUT.md`.
-  - **No R5c**: the post-R5b biopsy found no additional concrete editorial gap with enough evidence to justify another recut.
-- **CI-H1 — AssetIndex Write Settlement Gate: complete as CI/test hygiene**, preserving runtime optimistic-write semantics. See `CI-H1-ASSET-INDEX-WRITE-SETTLEMENT.md`.
-- **R6 — Preflight / Publication Quality: next milestone; planning/intent required before functional implementation**.
-- R7+ remain directional and are not authorized merely by appearing in this roadmap.
-
-The same closure rule applies across milestones: do not create R4c, R5c, `Callout`, Collection 2.0 or another abstraction for symmetry. A future editorial recut may reopen the vocabulary only when an irreducible observed case exists.
+- **R1 — Product Library Foundation: COMPLETE**.
+- **R2 — Saved Catalog Documents: COMPLETE** after R2a + R2b.
+- **R3 — Asset Library / reusable media index: COMPLETE** after R3a + R3b.
+- **R4 — Constrained Template System 2.0: COMPLETE** after R4a + R4b.
+- **R5 — Editorial Vocabulary 2.0: COMPLETE** after biopsy-driven R5a + R5b; no R5c.
+- **CI-H1 — AssetIndex Write Settlement Gate: COMPLETE** as CI/test hygiene.
+- **R6 — Preflight / Publication Quality: ACTIVE**.
+  - **R6a — Structural Preflight Foundation: COMPLETE**, promoted in `v2@4a7dfbdaeb5bcf918c29a764d862956b0e120d3b`.
+  - no R6b selected yet; next step is post-R6a biopsy.
+- R7+ remain directional and are not authorized merely by appearing in historical plans or future discussions.
 
 ## Architectural direction — one Library UI, multiple authorities
-
-The visible `Biblioteca` is a single navigation surface, while persistence grows by resource provider rather than through one universal `LibraryStore`.
 
 ```text
 Biblioteca UI
@@ -47,311 +42,282 @@ Renderer-facing template projection -> Templates registry / TemplateContract
 Built-in templates -> application-owned immutable contracts
 ```
 
-A shared pure `FolderTree` vocabulary may be reused by providers, but folder namespaces and revision authorities remain provider-scoped unless a later real use case proves a global tree is superior. R4b deliberately keeps template resources flat.
+Shared UI does not imply shared persistence. A shared pure `FolderTree` vocabulary may be reused, but namespaces/revisions stay provider-scoped until a real case proves otherwise.
 
-Reason: saving a catalog should not conflict merely because another client renamed a product folder. Likewise asset metadata and template publication should not share ProductStore or CatalogStore revisions.
-
-## Product navigation target
-
-Primary application navigation is:
+Primary application navigation remains:
 
 `Cadastro | Catálogo | Biblioteca`
 
-- `Cadastro` owns creation/editing/duplication of one product at a time and lightweight contextual lookup.
-- `Catálogo` owns composition of the current catalog document.
-- `Biblioteca` owns finding, organizing and administering resource providers.
-- `Templates` is not a top-level application tab; reusable template management lives inside `Biblioteca`, while template selection remains available inside `Catálogo`.
+- Cadastro owns creation/editing of one product at a time.
+- Catálogo owns composition of the current document and Preflight presentation.
+- Biblioteca owns finding/organizing/administering reusable resources.
 
-## Dependency roadmap
+## Authoritative document pipeline
 
-### V2-R1 — Product Library Foundation — COMPLETE
+```text
+state
+  -> CatalogOrder
+  -> CatalogDocument
+  -> preview / print
+
+state + CatalogDocument
+  -> Preflight.inspect(state)
+  -> PreflightReport
+  -> author-facing status / issues
+```
+
+Preflight observes the document authority; it does not replace it or repair it.
+
+## V2-R1 — Product Library Foundation — COMPLETE
 
 Purpose: establish stable hierarchical organization for products and split product authoring from product administration without changing the A4 renderer.
 
-Core deliverables:
+Delivered:
 
-- provider-scoped `FolderTree` domain;
-- `ProductSnapshot v2` with `folders[]` + `products[].folderId`;
-- deterministic migration from legacy `category/subcategory`;
-- shared recursive `ProductQuery`;
-- explicit `cloneAsNewProduct` / `Usar como base`;
-- `Cadastro | Catálogo | Biblioteca` shell;
-- Product Library UI with move/bulk/destructive operations;
+- provider-scoped folder vocabulary;
+- `ProductSnapshot v2` with folders and stable product identity;
+- deterministic legacy migration;
+- recursive product query;
+- explicit clone-as-new-product flow;
+- Cadastro / Catálogo / Biblioteca shell;
+- Product Library administration;
 - V1 renderer compatibility through derived legacy mirrors.
 
-The detailed intent contract lives in `R1-PRODUCT-LIBRARY-INTENT.md`.
+Detailed authority: `R1-PRODUCT-LIBRARY-INTENT.md`.
 
-### V2-R2 — Saved Catalog Documents — COMPLETE
+## V2-R2 — Saved Catalog Documents — COMPLETE
 
-Purpose: make a catalog an explicit reopenable resource instead of only a transient local session/backup.
+Purpose: make catalogs reopenable resources rather than transient browser sessions/backups.
 
-Delivered through R2a + R2b:
+Delivered:
 
-- stable catalog ID/metadata;
-- create/open/save/duplicate catalog;
-- independent optimistic revision/readback/cache/conflict semantics;
-- catalog folders in the Library;
-- catalog-local composition state separate from product truth;
-- explicit dirty/saved state;
-- compatible migration/import from current session/backup shape;
-- current A4 materialization remains `state/catalog record -> CatalogOrder -> CatalogDocument -> preview/print`.
+- stable catalog identity/metadata;
+- independent `CatalogStore`/`CatalogSnapshot` revision authority;
+- create/open/save/duplicate;
+- catalog folders and Library administration;
+- dirty/saved state;
+- catalog-local composition separate from product truth;
+- deterministic migration/import compatibility;
+- unchanged `CatalogOrder -> CatalogDocument` A4 path.
 
 See `R2-SAVED-CATALOGS-INTENT.md`, `R2B-CATALOG-LIBRARY-ADMIN-INTENT.md` and `R2-CLOSEOUT.md`.
 
-### V2-R3 — Asset Library / reusable media index — COMPLETE
+## V2-R3 — Asset Library / reusable media index — COMPLETE
 
-Purpose: turn the existing content-addressed blob store into a usable resource system without losing immutability/deduplication.
+Purpose: make content-addressed image blobs discoverable/reusable without losing immutability/deduplication.
 
-Delivered responsibilities:
+Delivered:
 
-- metadata/index separate from immutable blob bytes;
-- reusable managed image references;
-- provider-scoped foldering/search/usage information;
-- authoritative current-reference accounting without conflating `Sem uso` with deletion safety;
-- product images and catalog-local variants can reference the same immutable content;
-- no automatic deletion of a hash merely because one product/resource stopped referencing it.
+- AssetIndex authority separate from immutable AssetStore bytes;
+- indexed/discovered inventory union;
+- usage derived from authoritative Product/Catalog snapshots;
+- image folders/search/accounting;
+- standalone ingest and physical deduplication;
+- reuse from Cadastro;
+- mobile Library flow;
+- no automatic physical delete/GC.
 
-This recut reuses AssetStore rather than replacing it.
+`Sem uso` remains accounting, not proof a blob is safe to delete.
 
-#### R3a — Asset Inventory & Reuse Foundation — COMPLETE
+The post-R3b audit found no concrete need for a destructive R3c. See `R3-CLOSEOUT.md`.
 
-Delivered first vertical:
+## V2-R4 — Constrained Template System 2.0 — COMPLETE
 
-- separate `AssetIndexSnapshot` / `AssetIndexStore` authority;
-- inventory = indexed assets union managed hashes referenced by persisted ProductSnapshot/CatalogSnapshot;
-- derived usage projection rather than persisted usage counters;
-- `Imagens` provider inside Biblioteca;
-- human label editing;
-- reuse of an existing managed asset from Cadastro without re-upload/copy;
-- no blob deletion/GC.
+Purpose: make templates reusable visual systems without arbitrary HTML/CSS/JS or XY authoring.
 
-Detailed contract: `R3A-ASSET-INVENTORY-REUSE-INTENT.md`.
+### R4a — Template Contract & Versioned Binding — COMPLETE
 
-#### R3b — Asset Organization & Ingest — COMPLETE
+Delivered:
 
-Delivered operationalization:
+- bounded `TemplateContract v1`;
+- immutable built-ins;
+- exact persisted `templateId + templateVersion`;
+- fail-closed unknown bindings;
+- declarative layout/content budgets;
+- app-owned document chrome;
+- same resolved template for preview and print.
 
-- provider-scoped folder tree using the `folders[]`/`folderId` already reserved in AssetIndexSnapshot v1;
-- recursive folder scope plus virtual `Sem pasta`;
-- `Todos | Em uso | Sem uso` accounting filter derived from authoritative usages;
-- multiselect and batch move;
-- adoption into the index of assets previously discovered only by Product/Catalog usage;
-- standalone image upload through the existing `AssetClient.prepareImage` + `/api/assets` path;
-- physical hash deduplication with metadata registration kept separate;
-- local pending metadata projection without inventing local usage;
-- mobile `Pastas | Imagens`, preserving `Imagens` as the initial/picker view;
-- no physical delete and no garbage collection.
+### R4b — Template Library & Immutable Versions — COMPLETE
 
-Detailed contract: `R3B-ASSET-ORGANIZATION-INGEST-INTENT.md`.
+Delivered:
 
-The post-R3b closure audit found no concrete functional gap requiring a destructive R3c. Garbage collection remains a future retention/cleanup decision, not an unfinished R3 requirement. See `R3-CLOSEOUT.md`.
+- independent `TemplateStore` / `TemplateSnapshot` revision authority;
+- Library > Templates;
+- custom versions immutable and append-only;
+- exact historical resolution;
+- bounded custom editor;
+- built-ins remain app-owned, not copied into custom persistence.
 
-### V2-R4 — Constrained Template System 2.0 — COMPLETE
+Post-R4b biopsy found no R4c. See R4 closeout/intent documents.
 
-Purpose: make templates reusable visual systems rather than hard-coded style choices, without reopening arbitrary HTML/CSS/JS authoring.
+## V2-R5 — Editorial Vocabulary 2.0 — COMPLETE
 
-R4 closed after two staged recuts. R4a established the bounded language and exact persisted binding; R4b added persistent reusable resources and immutable custom version history. The post-R4b audit found no concrete reason for R4c.
+Purpose: expand expressive power only where real catalog/editor gaps justify it.
 
-#### R4a — Template Contract & Versioned Binding — COMPLETE
+R5 did not implement a predetermined Collection 2.0, Callout or generic editor.
 
-Delivered responsibilities:
+### R5a — Table Row Image Editing Parity — COMPLETE
 
-- `TemplateContract v1`, strict bounded data-only contract;
-- immutable built-ins `technical@1`, `compact@1`, `showcase@1`;
-- `perPage` derived from rows × columns;
-- persisted exact `templateId + templateVersion` binding;
-- Core schema 9 and CatalogSnapshot v2 deterministic migration;
-- unknown ID/version combinations fail closed rather than silently changing visual system;
-- content budgets/layout behavior driven by contract properties/tokens rather than template-ID runtime branches;
-- shared institutional chrome extracted behind application-owned `DocumentChrome`, initial primitive `top-mobili-v1`;
-- preview and print driven by the same resolved template contract;
-- existing physical A4 behavior preserved.
+Observed gap: products-source Table displayed image cells but lacked the existing single-image selection/framing editing parity.
 
-Detailed contract: `R4A-TEMPLATE-CONTRACT-INTENT.md`. Closure: `R4A-CLOSEOUT.md`.
+Delivered:
 
-#### R4b — Template Library & Immutable Versions — COMPLETE
+- eligible `table-row` with products source + active image column;
+- reuse of `presentation.imageSelections[productId]` and `imageFrames[productId]`;
+- same selected image/framing applied to Table image cell;
+- no placement/row-scoped image authority;
+- `commercialRows` excluded.
 
-Delivered responsibilities:
+Promoted through PR #64 to `v2@798c8f6d292138e669d7943f65ee8bf99e740761`.
 
-- independent `TemplateSnapshot` / `TemplateStore` revision authority;
-- backend `/api/templates`, provider-specific optimistic revision/readback/history and independent IndexedDB cache;
-- `Biblioteca > Templates`, without a new primary application tab;
-- built-ins exposed as immutable sources/presets without copying them into TemplateSnapshot;
-- duplicate built-in/custom version into a local custom draft with zero write until publish;
-- first publication creates custom v1;
-- editing latest appends exactly the next immutable version and preserves historical versions;
-- runtime registry resolves built-ins and exact historical custom versions;
-- catalog selector binds `templateId + templateVersion` atomically;
-- historical catalog binding never silently upgrades to latest;
-- bounded editor limited to TemplateContract-supported values;
-- no template folders, delete, GC, arbitrary executable templates, free CSS or XY authoring;
-- custom preview/print remains on the same A4 materialization pipeline;
-- mobile Library behavior remains regression-gated.
+### R5b — Collection Technical Detail — COMPLETE
 
-Final feature head `662957c3839c17e550354d3242eb056fbf9bf63d` passed Validate #1063 and Browser #874. PR #62 passed Validate #1064 and Browser #875 on the same head and was squash-merged with expected-head protection into `v2@7f6046f7448ff4f1b80082c8aa176d7e75798b24`.
+Observed gap: Collection could hide small factual technical context already available in `product.specs`.
 
-Detailed contract: `R4B-TEMPLATE-LIBRARY-VERSIONS-INTENT.md`. Closure: `R4B-CLOSEOUT.md`.
+Delivered:
 
-### V2-R5 — Editorial Vocabulary 2.0 — COMPLETE
+- bounded `technical` Collection preset;
+- factual spec projection;
+- width-derived budgets `simple=1`, `wide=2`, `full=2`;
+- no placeholders or dynamic measurement;
+- no ProductStore/schema/CatalogDocument/TemplateContract change.
 
-Purpose: expand expressive power through observed catalog/editor gaps while preserving the constrained structural vocabulary and explicit TemplateContract established by R4.
+Promoted through PR #65 to `v2@a6e461086420733edea162f91da35668c3225a2e`.
 
-R5 did **not** implement a predetermined Collection 2.0, Callout or generic editor. Each delivered recut was selected independently after a concrete case proved a missing capability.
+### R5 closure
 
-#### R5a — Table Row Image Editing Parity — COMPLETE
+Post-R5b biopsy found no comparable evidence for another editorial recut:
 
-Observed gap: a products-source Table could display an image column, but selecting a Table row did not expose the same single-image selection/framing controls already available to Card and Collection members.
+- Table already had mature structural/commercial behavior plus R5a image parity;
+- Collection already had bounded presets/overrides plus R5b technical detail;
+- image semantics for `commercialRows` remained unresolved and therefore were not invented;
+- no real case proved a fourth top-level Callout primitive irreducible.
 
-Delivered behavior:
+R5 closes after R5a + R5b. See `R5-CLOSEOUT.md`.
 
-- eligible target is `table-row` in a `rowSource:'products'` Table with the `image` column active;
-- reuses existing `presentation.imageSelections[productId]` and `presentation.imageFrames[productId]`;
-- Table image cells receive the same selected image and non-destructive framing projection;
-- inspector reuses existing single-image controls;
-- `commercialRows` remains outside the image-editing contract;
-- no row-scoped/placement-scoped image authority was introduced;
-- no schema, ProductStore, TableBlock, CatalogDocument or pagination redesign.
+## CI-H1 — AssetIndex Write Settlement Gate — COMPLETE
 
-Promoted through PR #64 into `v2@798c8f6d292138e669d7943f65ee8bf99e740761`.
+CI-H1 is test hygiene, not a product milestone.
 
-Detailed contract: `R5A-TABLE-ROW-IMAGE-EDITING-INTENT.md`.
-
-#### R5b — Collection Technical Detail — COMPLETE
-
-Observed gap: grouping products into a visual Collection preserved the family but removed the small factual technical context available in `product.specs`.
-
-Delivered behavior:
-
-- fourth Collection preset `technical` / `Técnico`;
-- pure `Collection.technicalDetailFor(product, style)` projection;
-- only non-empty factual spec values are eligible;
-- spec order remains product order;
-- bounded budget derives from existing local width:
-  - `simple`: 1;
-  - `wide`: 2;
-  - `full`: 2;
-- no invented placeholder for members without specs;
-- no dynamic DOM measurement or page-layout heuristic;
-- existing local width/emphasis and image selection/framing remain active;
-- Collection remains full-width top-level and atomic;
-- no ProductStore/schema/CatalogOrder/CatalogDocument/TemplateContract change.
-
-Final feature head `2476d6edd64e168c4dbdd8ef5f00eeadec0aeaa0` passed Validate #1083 and Browser #894. PR #65 passed Validate #1084 and Browser #895 on the same head and was squash-merged with expected-head protection into `v2@a6e461086420733edea162f91da35668c3225a2e`.
-
-Detailed contract: `R5B-COLLECTION-TECHNICAL-DETAIL-INTENT.md`. Closure: `R5B-CLOSEOUT.md`.
-
-#### R5 closure decision
-
-The post-R5b biopsy did not find another concrete editorial gap with evidence comparable to R5a/R5b:
-
-- Table already has products/commercial row sources, semantic columns, density, elastic widths, commercial price styles, deterministic fragmentation and products-row image framing;
-- Collection already has four bounded presets, theme, local width/emphasis/price style and shared product image framing;
-- image support for `commercialRows` would require an unresolved product/row/placement authority decision;
-- no observed case requires a fourth top-level `Callout` primitive rather than current Card/Collection/Table vocabulary.
-
-Therefore R5 closes after R5a + R5b. Future editorial work can reopen the vocabulary only from new real-case evidence. See `R5-CLOSEOUT.md`.
-
-### CI-H1 — AssetIndex Write Settlement Gate — COMPLETE
-
-CI-H1 is CI/test hygiene, not a product milestone.
-
-Observed race:
-
-- `AssetIndexStore.publishCandidate()` exposes the optimistic candidate snapshot with `pendingWrite=true` before remote persistence completes and revision advances;
-- the R3b Browser Asset Library gate historically waited only until the changed asset/folder appeared in the snapshot, then immediately started another write or asserted the revision;
-- the test could therefore observe correct optimistic state with the previous authoritative revision.
+Observed race: AssetIndex exposes a correct optimistic local candidate before remote persistence advances its authoritative revision. The old browser gate could observe optimistic content and immediately assert the previous revision/start another write.
 
 Delivered hardening:
 
-- runtime optimistic semantics remain unchanged;
-- a shared browser-fixture helper waits for `hasPendingWrite() === false` and `hasConflict() === false` before authoritative revision assertions or subsequent AssetIndex mutations;
-- a small deterministic fixture delay on AssetIndex PUTs makes the optimistic window reproducible rather than runner-speed dependent;
-- folder create/move/rename, asset adoption/move and upload sequencing all use explicit settlement;
-- physical upload/dedup post counts and revision behavior remain unchanged.
+- runtime optimistic semantics unchanged;
+- gate waits for `hasPendingWrite() === false` and no conflict before authoritative revision assertions/subsequent writes;
+- fixture delay makes the optimistic window reproducible;
+- upload/dedup behavior remains gated.
 
-Detailed contract: `CI-H1-ASSET-INDEX-WRITE-SETTLEMENT.md`.
+See `CI-H1-ASSET-INDEX-WRITE-SETTLEMENT.md`.
 
-### V2-R6 — Preflight / Publication Quality — NEXT PRODUCT MILESTONE
+## V2-R6 — Preflight / Publication Quality — ACTIVE
 
-Purpose: make “ready to export/publish” an explicit, inspectable state rather than a visual guess.
+Purpose: make publication readiness explicit and inspectable without making validation a mutation mechanism.
 
-The post-R5 biopsy found stronger evidence for publication observability than for additional editorial primitives. Existing runtime behavior already exposes useful signals:
+### R6a — Structural Preflight Foundation — COMPLETE
 
-- TextFit can truncate product descriptions and records truncation on the rendered element;
-- missing product images render the `SEM IMAGEM` placeholder;
-- stale/invalid persisted editorial blocks can fail materialization and fall back to individual Cards;
-- obsolete image selections resolve deterministically to the Original;
-- template bindings already fail closed;
-- physical browser gates already compare logical/physical output and A4 geometry.
+Observed need: CatalogoTop could truthfully render degraded/stale states but did not surface one author-facing publication assessment.
 
-R6 must begin with a planning/intent pass and then a bounded first vertical. Do not implement every expected check at once.
+Delivered:
 
-Expected eventual checks include:
+- pure ephemeral `Preflight.inspect(state)`;
+- deterministic issue/report contract;
+- `ready | review | blocked` status;
+- bounded severities `blocker | warning | info`;
+- eight structural checks:
+  - exact template unavailable;
+  - no publishable products;
+  - selected product missing;
+  - selected product inactive;
+  - required code/description missing;
+  - persisted Collection/Table not materialized;
+  - explicit image selection fallback;
+  - visible single-image usage missing its resolved image;
+- placement-aware image semantics from `CatalogDocument.pages[].items`;
+- compact Catálogo status/panel;
+- no auto-fix;
+- no Preflight persistence authority;
+- no DOM measurement in the pure domain;
+- no print-button enforcement;
+- no Preflight chrome in isolated print.
 
-- required product facts and unresolved placeholders;
-- missing/unavailable assets;
-- invalid editorial blocks or stale references;
-- overflow/truncation/collision/layout anomalies;
-- logical page count vs physical print pages;
-- template/resource compatibility;
-- preview/print parity;
-- clear distinction between blocking errors, warnings and editorial suggestions.
+Feature head `3018c8fbe89786c17c3d8243e3d209a3c9d4508b` passed push Validate #1101 / Browser #912 and PR Validate #1102 / Browser #913. PR #70 was squash-merged with expected-head protection into `v2@4a7dfbdaeb5bcf918c29a764d862956b0e120d3b`.
 
-The gate should inspect the materialized document and related explicit signals. It must not mutate commercial facts or editorial state to make validation pass.
+See `R6A-STRUCTURAL-PREFLIGHT-FOUNDATION-INTENT.md` and `R6A-CLOSEOUT.md`.
 
-A likely first vertical is a pure issue model (`code`, `severity`, `scope`, resource reference/message) plus structural checks that do not depend on DOM measurement. DOM/physical checks can follow in a later recut.
+### Next R6 decision — post-R6a biopsy
+
+**No R6b is selected yet.**
+
+The strongest directional evidence is render-aware publication quality, because several meaningful facts only exist after render/materialization:
+
+- TextFit already records truncation on rendered elements;
+- actual image-load failure occurs after URL resolution;
+- collision/overflow depends on real geometry;
+- physical browser gates already know A4/page-count facts.
+
+Before naming/implementing another recut, answer:
+
+1. Which render-time signals are stable enough to become author-facing issues rather than test-only heuristics?
+2. Can they be projected into the existing `PreflightReport` without creating another CatalogDocument/materialization authority?
+3. Which checks are blockers versus warnings based on actual publication consequence, not preference?
+4. Does author-facing physical-page validation need runtime measurement, an isolated render, or remain a release/test gate?
+5. Is any export enforcement now justified, or should Preflight remain observational longer?
+
+Do not copy every Browser gate assertion into runtime. Test instrumentation and product-quality semantics are related but not identical authorities.
 
 ## Optional research reintegration — semantic image variation
 
-The image-variation research branch is deliberately not on the critical path above.
+Image-variation research remains outside the critical path. A future capability may re-enter only with:
 
-A future capability may re-enter V2 only when research provides:
-
-- a placement-aware intent contract;
+- placement-aware intent;
 - fidelity invariants;
-- a useful quality benchmark, including “do not generate” cases;
+- useful quality benchmark including do-not-generate cases;
 - explicit approval semantics;
-- a compatibility seam into `presentation.imageVariants` / `product.imageGallery` without overwriting `product.image`.
+- compatibility with `presentation.imageVariants` / `product.imageGallery` without overwriting `product.image`.
 
-Transport success alone is not sufficient.
+Transport success alone is insufficient.
 
-## Cross-cutting invariants for all V2 recuts
+## Cross-cutting invariants
 
-1. `main` remains the stable V1 production line until an explicit V2 release decision.
+1. `main` remains stable V1 until explicit V2 release decision.
 2. Product truth and presentation truth stay separate.
-3. Resource identity is stable; move/rename operations change metadata/path, not identity.
-4. Revisions are scoped to their resource authority; avoid one global write-conflict domain.
+3. Resource identity is stable through move/rename.
+4. Revisions remain scoped to their resource authority.
 5. Shared UI does not imply shared persistence.
-6. Migration from V1 must be deterministic and testable.
-7. Subtractive/unifying solutions are valid; do not preserve obsolete V1 UI merely because code exists.
-8. A4 renderer/pagination changes require their own explicit recut and physical browser gates.
+6. Migration from V1 is deterministic/testable.
+7. Subtractive/unifying solutions are valid; do not preserve obsolete UI for symmetry.
+8. A4 renderer/pagination changes require explicit recut and physical gates.
 9. No free-form editor, generic nesting or arbitrary executable template system without a new product decision.
-10. Browser-local session state is not a substitute for saved-resource persistence.
-11. Content-addressed asset bytes remain immutable; metadata/index lifecycle must not rewrite or silently garbage-collect blobs.
-12. Usage/accounting must derive from authoritative resource snapshots rather than transient Core/session projections.
-13. `Sem uso` is an accounting state, not proof that a blob is safe to delete.
-14. Saved catalogs bind to an exact template ID/version and must not silently fall back or auto-upgrade to another visual system.
-15. Persisted template resources remain bounded data validated by the application-owned TemplateContract.
-16. Published custom template versions are immutable and append-only; registry projection is not persistence authority.
-17. Card, Collection and Table remain the default top-level structural vocabulary; new primitives require irreducible observed cases.
-18. R5 stabilized catalog-local presentation authorities; future validation should observe them rather than replace them with corrective side effects.
-19. Preflight/quality checks must distinguish detection from mutation. A failing check is not permission to rewrite product or catalog truth.
-20. Tests that require authoritative provider revisions must synchronize on provider write settlement rather than local optimistic projection alone.
+10. Browser-local session state is not saved-resource persistence.
+11. Asset bytes stay content-addressed and immutable.
+12. Usage/accounting derives from authoritative persisted snapshots.
+13. `Sem uso` is accounting, not physical-delete authorization.
+14. Catalogs bind exact template ID/version; no silent fallback/upgrade.
+15. Persisted template resources remain bounded data.
+16. Published custom template versions are immutable/append-only.
+17. Card, Collection and Table remain default top-level vocabulary.
+18. Validation observes catalog/product/presentation authorities rather than replacing them with corrective effects.
+19. Preflight detection is not permission to mutate truth.
+20. Tests requiring provider revisions synchronize on write settlement rather than optimistic projection.
+21. `Preflight.inspect` remains pure/ephemeral unless a future real use case justifies persistence.
+22. Render-aware checks must not create a second materialization authority.
+23. Export enforcement requires an explicit policy decision; severity labels alone are not authorization to intercept print.
 
 ## Sequence rationale
 
-R1 came first because every later resource-management workflow benefits from a stable Library/folder vocabulary.
+R1 established resource organization before later Library workflows.
 
-R2 came before major template/editor work because reopenable catalog identity is a prerequisite for meaningful template migration, version compatibility and preflight history.
+R2 created reopenable catalog identity before richer editor/template/preflight work.
 
-R3 precedes richer templates because reusable assets should have stable references before templates begin to depend on them.
+R3 stabilized reusable asset identity before templates and publication checks depended on images.
 
-R4a preceded template-resource persistence because the language and version binding needed to be trustworthy before TemplateStore could save it. R4b then added reusable template resources without inventing a second template model. R4 is closed.
+R4 established bounded template language/versioning before later editorial vocabulary.
 
-R5 followed R4 so new editorial vocabulary could be constrained by an explicit template contract rather than accumulated as one-off renderer exceptions. R5a and R5b demonstrated the intended pattern: identify one observed asymmetry, reuse an existing authority, gate the bounded change, then return to biopsy. The post-R5b biopsy found no justified R5c, so R5 is closed.
+R5 expanded editorial expressiveness only through observed gaps and then closed when evidence ran out.
 
-CI-H1 is intentionally separated from product milestones because it hardens an old asynchronous gate assumption without changing runtime semantics.
+CI-H1 separated a known asynchronous gate race from new product regressions.
 
-R6 follows stabilization/closure of the editorial contracts and CI-H1 hardening so preflight can validate authoritative structures without conflating known gate races with new feature regressions.
+R6a now establishes the issue/report vocabulary and structural observer before any render-aware/enforcement layer. This lets later quality checks reuse a proven contract instead of accumulating one-off UI warnings.
 
-This order is directional, not a promise to implement every item unchanged. A recut may be split when uncertainty is high; large adjacent concerns should not be silently pulled forward merely because implementation touches the same files.
+The roadmap remains directional. Split/re-plan when uncertainty is high; do not pull adjacent concerns forward merely because they touch nearby files.
