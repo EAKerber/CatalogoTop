@@ -1,9 +1,10 @@
 (function () {
   'use strict';
 
-  const NS = window.CatalogoTop = window.CatalogoTop || {};
+  const NS = window.CatalogoTop;
   const statusButton = document.getElementById('preflightStatus');
   const panel = document.getElementById('preflightPanel');
+  const preview = document.getElementById('catalogPreview');
   if (!statusButton || !panel || !NS.Preflight || !NS.Core) return;
 
   let lastReport = null;
@@ -43,22 +44,28 @@
     statusButton.dataset.preflightStatus = report.status;
     statusButton.textContent = statusLabel(report);
     statusButton.setAttribute('title', report.status === 'ready'
-      ? 'Preflight estrutural sem issues.'
+      ? 'Preflight estrutural e renderizado sem issues.'
       : `${report.counts.blockers} bloqueio(s) · ${report.counts.warnings} aviso(s).`);
 
     const summary = report.status === 'ready'
-      ? '<strong>Pronto para revisão final.</strong><span>Nenhum problema estrutural detectado neste recorte.</span>'
+      ? '<strong>Pronto para revisão final.</strong><span>Nenhum problema detectado pelos checks atuais.</span>'
       : `<strong>${report.counts.blockers} bloqueio(s) · ${report.counts.warnings} aviso(s)</strong><span>Preflight observa o documento atual; nenhuma correção é aplicada automaticamente.</span>`;
     const issues = report.issues.length
       ? `<ol class="preflight-issues">${report.issues.map(issueMarkup).join('')}</ol>`
-      : '<div class="preflight-ready-copy">Estrutura atual sem issues de R6a.</div>';
+      : '<div class="preflight-ready-copy">Estrutura e sinais renderizados atuais sem issues cobertos pelo Preflight.</div>';
 
     panel.innerHTML = `<div class="preflight-panel-head"><div><p class="eyebrow">PREFLIGHT</p>${summary}</div><button class="icon-button" type="button" data-preflight-close aria-label="Fechar Preflight">×</button></div>${issues}`;
   }
 
-  function refresh() {
+  function reportForCurrentState(includeRendered = true) {
+    const structural = NS.Preflight.inspect(NS.Core.getState());
+    if (!includeRendered || !preview || !NS.PreflightRender?.inspect || !NS.Preflight.withIssues) return structural;
+    return NS.Preflight.withIssues(structural, NS.PreflightRender.inspect(preview));
+  }
+
+  function refresh(includeRendered = true) {
     try {
-      render(NS.Preflight.inspect(NS.Core.getState()));
+      render(reportForCurrentState(includeRendered));
     } catch (error) {
       console.error('Falha inesperada no Preflight:', error);
       lastReport = null;
@@ -78,11 +85,12 @@
     if (event.target.closest('[data-preflight-close]')) setOpen(false);
   });
 
-  ['catalogotop:catalog-rendered', 'catalogotop:products-updated', 'catalogotop:catalogs-updated', 'catalogotop:templates-updated'].forEach(name => {
-    window.addEventListener(name, refresh);
+  window.addEventListener('catalogotop:catalog-rendered', () => refresh(true));
+  ['catalogotop:products-updated', 'catalogotop:catalogs-updated', 'catalogotop:templates-updated'].forEach(name => {
+    window.addEventListener(name, () => refresh(false));
   });
   window.addEventListener('catalogotop:tab-changed', event => {
-    if (event.detail?.tabId === 'catalog') refresh();
+    if (event.detail?.tabId === 'catalog') refresh(true);
   });
 
   NS.PreflightControls = Object.freeze({
@@ -92,5 +100,5 @@
     setOpen
   });
 
-  refresh();
+  refresh(true);
 })();

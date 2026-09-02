@@ -16,7 +16,7 @@
     });
   }
 
-  function issue({ code, severity, scope, resourceType = '', resourceId = '', message, ...detail }) {
+  function issue({ id: _ignoredId, code, severity, scope, resourceType = '', resourceId = '', message, ...detail }) {
     if (!SEVERITIES.includes(severity)) throw new Error(`Severidade de Preflight inválida: ${severity}.`);
     const normalizedType = String(resourceType || '');
     const normalizedId = String(resourceId || '');
@@ -56,6 +56,20 @@
       counts: Object.freeze(counts),
       issues: Object.freeze(ordered)
     });
+  }
+
+  function withIssues(baseReport, extraIssues) {
+    const byId = new Map();
+    const records = [
+      ...(Array.isArray(baseReport?.issues) ? baseReport.issues : []),
+      ...(Array.isArray(extraIssues) ? extraIssues : [])
+    ];
+    records.forEach(record => {
+      if (!record || typeof record !== 'object') return;
+      const canonical = issue(record);
+      if (!byId.has(canonical.id)) byId.set(canonical.id, canonical);
+    });
+    return reportFor(Array.from(byId.values()));
   }
 
   function rawSelectionContext(state) {
@@ -283,6 +297,7 @@
   NS.Preflight = Object.freeze({
     SEVERITIES,
     inspect,
+    withIssues,
     sortIssues,
     singleImageUsages,
     productHasVariantImages
