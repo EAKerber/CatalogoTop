@@ -19,6 +19,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"><rect width="2" height="2" fill="black"/></svg>');
 const D = createHash('sha256').update(svg).digest('hex');
 const urlD = `/api/assets/sha256/${D}`;
+const ASSET_INDEX_WRITE_DELAY_MS = 75;
 
 let productSnapshot = {
   schemaVersion: 2, revision: 5, updatedAt: '2026-08-31T12:00:00.000Z', writeId: 'products-5',
@@ -109,6 +110,7 @@ const server = createServer(async (request, response) => {
       if (request.method === 'GET') { response.writeHead(200); response.end(JSON.stringify(assetIndexSnapshot)); return; }
       if (request.method === 'PUT') {
         const body = await readJson(request);
+        await new Promise(resolve => setTimeout(resolve, ASSET_INDEX_WRITE_DELAY_MS));
         if (Number(body.expectedRevision) !== assetIndexSnapshot.revision) { response.writeHead(409); response.end(JSON.stringify({ error: 'revision_conflict', currentRevision: assetIndexSnapshot.revision })); return; }
         assetIndexSnapshot = { schemaVersion: 1, revision: assetIndexSnapshot.revision + 1, updatedAt: new Date().toISOString(), writeId: String(body.writeId || ''), folders: body.folders || [], assets: body.assets || [] };
         response.writeHead(200); response.end(JSON.stringify(assetIndexSnapshot)); return;
@@ -147,11 +149,19 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const baseUrl = `http://127.0.0.1:${server.address().port}/`;
 const browser = await chromium.launch({ headless: true });
 
+async function waitAssetIndexSettled(page) {
+  await page.waitForFunction(() => {
+    const store = window.CatalogoTop?.AssetIndexStore;
+    return Boolean(store) && store.hasPendingWrite() === false && store.hasConflict() === false;
+  });
+}
+
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.CatalogoTop?.AssetLibrary && window.CatalogoTop?.AssetIndexStore && window.CatalogoTop?.AssetQuery));
   await page.waitForFunction(() => window.CatalogoTop.ProductStore.getRevision() === 5 && window.CatalogoTop.CatalogStore.getRevision() === 2);
+  await waitAssetIndexSettled(page);
   await page.click('[data-tab="library"]');
   await page.click('[data-library-provider="images"]');
   await page.waitForFunction(() => document.querySelectorAll('#assetLibraryList [data-asset-resource]').length === 3);
@@ -159,9 +169,11 @@ try {
   page.once('dialog', dialog => dialog.accept('Produtos'));
   await page.click('#assetLibraryCreateFolder');
   await page.waitForFunction(() => window.CatalogoTop.AssetIndexStore.getSnapshot().folders.some(folder => folder.name === 'Produtos'));
+  await waitAssetIndexSettled(page);
   page.once('dialog', dialog => dialog.accept('Corrediças'));
   await page.click('#assetLibraryCreateFolder');
   await page.waitForFunction(() => window.CatalogoTop.AssetIndexStore.getSnapshot().folders.some(folder => folder.name === 'Corrediças'));
+  await waitAssetIndexSettled(page);
   const folderIds = await page.evaluate(() => Object.fromEntries(window.CatalogoTop.AssetIndexStore.getSnapshot().folders.map(folder => [folder.name, folder.id])));
   const nestedId = folderIds['Corrediças'];
   const parentId = folderIds['Produtos'];
@@ -172,6 +184,7 @@ try {
   await page.selectOption('#assetLibraryMoveDestination', nestedId);
   await page.click('#assetLibraryMoveAssets');
   await page.waitForFunction(({ A, nestedId }) => window.CatalogoTop.AssetIndexStore.getSnapshot().assets.some(asset => asset.sha256 === A && asset.folderId === nestedId), { A, nestedId });
+  await waitAssetIndexSettled(page);
   if (assetUploadPosts !== 0) throw new Error('adotar/mover asset descoberto não pode fazer upload');
 
   await page.click(`[data-asset-library-folder="${parentId}"]`);
@@ -186,9 +199,11 @@ try {
   page.once('dialog', dialog => dialog.accept('Corrediças Premium'));
   await page.click('#assetLibraryRenameFolder');
   await page.waitForFunction(id => window.CatalogoTop.AssetIndexStore.getSnapshot().folders.find(folder => folder.id === id)?.name === 'Corrediças Premium', nestedId);
+  await waitAssetIndexSettled(page);
   await page.selectOption('#assetLibraryFolderParent', '');
   await page.click('#assetLibraryMoveFolder');
   await page.waitForFunction(id => window.CatalogoTop.AssetIndexStore.getSnapshot().folders.find(folder => folder.id === id)?.parentId == null, nestedId);
+  await waitAssetIndexSettled(page);
 
   let dialogs = 0;
   const occupiedHandler = async dialog => { dialogs += 1; await dialog.accept(); };
@@ -201,6 +216,7 @@ try {
   const beforeUploadRevision = await page.evaluate(() => window.CatalogoTop.AssetIndexStore.getRevision());
   await page.setInputFiles('#assetLibraryUploadInput', { name: 'nova-imagem.svg', mimeType: 'image/svg+xml', buffer: svg });
   await page.waitForFunction(D => window.CatalogoTop.AssetIndexStore.getSnapshot().assets.some(asset => asset.sha256 === D), D);
+  await waitAssetIndexSettled(page);
   const afterFirstUploadRevision = await page.evaluate(() => window.CatalogoTop.AssetIndexStore.getRevision());
   if (afterFirstUploadRevision !== beforeUploadRevision + 1 || assetUploadPosts !== 1) throw new Error(`upload standalone inválido: r${beforeUploadRevision}->r${afterFirstUploadRevision}, posts=${assetUploadPosts}`);
 
@@ -213,6 +229,7 @@ try {
 
   await page.setInputFiles('#assetLibraryUploadInput', { name: 'outro-nome.svg', mimeType: 'image/svg+xml', buffer: svg });
   await page.waitForFunction(() => document.getElementById('assetLibraryUploadStatus')?.textContent === '');
+  await waitAssetIndexSettled(page);
   const afterDedupRevision = await page.evaluate(() => window.CatalogoTop.AssetIndexStore.getRevision());
   if (afterDedupRevision !== afterFirstUploadRevision || assetUploadPosts !== 2) throw new Error(`reupload deduplicado não pode alterar índice: r${afterFirstUploadRevision}->r${afterDedupRevision}, posts=${assetUploadPosts}`);
   const uploadedRecord = await page.evaluate(D => window.CatalogoTop.AssetIndexStore.getSnapshot().assets.find(asset => asset.sha256 === D), D);
@@ -259,7 +276,7 @@ try {
   const overflow = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, client: document.documentElement.clientWidth, root: document.getElementById('assetLibraryAdmin').scrollWidth, rootClient: document.getElementById('assetLibraryAdmin').clientWidth }));
   if (overflow.doc > overflow.client + 2 || overflow.root > overflow.rootClient + 2) throw new Error(`overflow mobile em Asset Library: ${JSON.stringify(overflow)}`);
 
-  console.log(`PASS browser R3b asset admin: folders, recursive query, adoption, occupied-folder guard, standalone/dedup upload, usage transition and mobile flow (${D.slice(0, 12)})`);
+  console.log(`PASS browser R3b asset admin: folders, recursive query, adoption, settled writes, occupied-folder guard, standalone/dedup upload, usage transition and mobile flow (${D.slice(0, 12)})`);
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
