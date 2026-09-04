@@ -11,6 +11,18 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 - Ao reaproveitar código ou contrato do Gerador V1, registrar a origem e manter apenas a parte necessária ao paradigma simplificado.
 - A auditoria inicial de reuso está em `docs/reuse-from-gerador-v1.md`.
 
+## Authority corrente da linha V2
+
+- Branch principal de evolução: `v2`.
+- Authority no início deste housekeeping documental: `v2@6112cef148db2f294cd73a1ded05e31fb858f74b`.
+- V1 estável: `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9`, tag `v1.0.0`.
+- R1–R6 estão completos; não existe R6c e nenhum R7 está pré-selecionado.
+- `docs/v2/START-HERE.md` é o primeiro read obrigatório para estado corrente, authorities e próximo ponto de decisão; `docs/v2/ROADMAP.md` explica milestones e candidatos parked.
+- Closeouts/intents preservam o estado histórico de seus recortes; não atualizar SHAs históricos só porque `v2` avançou depois.
+- Git e Netlify são authorities operacionais separadas. Antes de validar visualmente um deploy, confirmar contexto, branch e SHA servidos; merge em `v2` não prova atualização da URL de Production.
+- Para revisão corrente da linha V2, o alvo de produção pretendido no Netlify é `v2`; isso não promove V2 para `main` e não substitui uma decisão explícita de release.
+- Trabalho exploratório de integração externa de imagens permanece isolado até existir evidência/contrato suficiente para uma biópsia de integração; não antecipar placement semantics ou promotion para Product truth.
+
 ## Guardrails
 
 - Mudanças funcionais devem ser desenvolvidas em branch dedicada e promovidas por PR/gates; evitar commits diretos na `main` mesmo quando o recorte parecer pequeno.
@@ -77,15 +89,25 @@ Manter o CatalogoTop como um gerador de catálogo **simples, determinístico e o
 - A importação de Result Bundle pode solicitar sessão de escrita exclusivamente para armazenar blobs no AssetStore. Ela não pode usar essa sessão para publicar a base de produtos.
 - Depois de uploads assíncronos, recalcular/revalidar o pedido antes do commit. Se o contexto mudou, falhar fechado sem mutação editorial; um blob content-addressed já enviado pode ficar órfão, mas não deve provocar importação parcial.
 - O commit de resultado aceito deve ser uma única mutação em `presentation.imageVariants`. Reimport idêntico é idempotente; imagem nova não deve ser auto-selecionada.
-- Backup JSON da V1 preserva estado completo, inclusive galeria, variantes locais, proveniência, seleções e framing. A sessão local de catálogo em elaboração não deve ser confundida com persistência futura de catálogos salvos.
-- Persistência remota/filesystem de catálogos e a futura Biblioteca pertencem à V2. Não consolidar `localStorage` como solução de biblioteca/persistência de catálogos.
-- Netlify está autorizado como backend **estreito** para a base compartilhada de produtos e assets. Não promover seleção atual, template escolhido, estado de UI ou catálogo em elaboração a estado remoto sem decisão explícita.
+- Backup JSON da V1 preserva estado completo, inclusive galeria, variantes locais, proveniência, seleções e framing. A sessão local de catálogo em elaboração não deve ser confundida com a authority V2 de catálogos salvos.
+- A V2 já possui persistência remota provider-scoped de catálogos e Biblioteca compartilhada de recursos. Não backportar essas authorities para `main` V1 nem consolidar `localStorage` como substituto delas.
+- Netlify hospeda providers remotos V2 independentes; não tratar o fato de compartilharem plataforma como autorização para shared store/revision ou para promover estado efêmero da UI a remoto.
 - Produtos remotos usam snapshot revisionado e escrita protegida; não fazer overwrite silencioso quando `expectedRevision` divergir.
 - Deploy Preview nunca deve gravar no store global de produção. Produção usa store global; previews/branches usam store ligado ao deploy.
 - Leitura da base pode ser pública; escrita deve exigir sessão curta validada no servidor. Segredos nunca entram no repositório ou bundle do navegador.
 - Campos específicos da conta Netlify (site id, URL, domínio, previews) só podem ser documentados após readback; não inferir valores.
 
-## Estado atual
+## Estado atual — V2
+
+- R1 Product Library, R2 Saved Catalogs, R3 Asset Library, R4 Template System 2.0, R5 Editorial Vocabulary 2.0 e R6 Preflight / Publication Quality estão fechados.
+- R6 encerrou após R6a + R6b; os candidatos image-load failure, Table factual visibility, collision/overflow e physical PDF parity permanecem parked com condições de reentrada explícitas em `docs/v2/R6-POST-R6B-BIOPSY.md`.
+- CI-H1 e CI-H2 são hardening de testes, não novas semantics de runtime.
+- A melhoria pós-R6 de coerência das listas de produto foi promovida por PR #77 sem abrir milestone novo.
+- Não existe próximo recorte funcional autorizado por roadmap. Voltar para biópsia baseada em evidência quando surgir problema real de usuário/editor/publicação/release.
+
+### Histórico da linha V1/v0.x
+
+Os recortes abaixo são lineage histórica. Não os usar como “estado atual” quando contradisserem `docs/v2/START-HERE.md`.
 
 Recorte v0.8 consolidado: cadastro/importação e ProductStore remoto v0.7, categorias por páginas, composição editorial determinística, `CatalogDocument` materializado, impressão isolada com gate Chromium A4, preview mobile com Fit/zoom e scroll touch validado.
 
@@ -109,10 +131,9 @@ Recorte v0.11.3.0 consolidado na `main`: comandos compactos do compositor, atalh
 
 Recorte v0.11.3.1 consolidado na `main`: corrige o lifecycle de tabs usado pelo history mobile e reduz autoridades redundantes de runtime. `App.switchTab` publica `catalogotop:tab-changed`; CSS de comandos e framing usa bootstrap/stylesheet estático; browser gate cobre Catálogo → Produtos/Templates em mobile; `runtime-boundaries-fixture` impede regressão desses contratos. Ver `docs/editor-shortcuts-history-v0.11.3.0.md`.
 
-Recorte v0.11.4 em estabilização: schema 7 introduz `Product.imageGallery`, seleção editorial e derivados locais sem substituir `product.image`; o inspector permite ciclar Original/alternativas/derivados; o Variation Bundle exporta request ZIP com contexto material e importa result ZIP fail-closed, transacional e local-only. Preview/print, framing, backup round-trip, ZIP e segurança possuem gates dedicados. Ver `docs/image-variants-v0.11.4.md`.
+Recorte v0.11.4 em estabilização histórica: schema 7 introduziu `Product.imageGallery`, seleção editorial e derivados locais sem substituir `product.image`; o inspector permite ciclar Original/alternativas/derivados; o Variation Bundle exporta request ZIP com contexto material e importa result ZIP fail-closed, transacional e local-only. Preview/print, framing, backup round-trip, ZIP e segurança possuem gates dedicados. Ver `docs/image-variants-v0.11.4.md`.
 
 Primeira convergência com o Gerador V1: biblioteca institucional de ícones reaproveitada em `src/icons.js`; normalização/compilação determinística permanecem como princípios, sem portar o editor genérico.
-
 
 ## V1 stable boundary — external image variations retired
 
