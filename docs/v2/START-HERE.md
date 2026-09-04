@@ -7,11 +7,19 @@ Baseline estável V1: **`main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` / tag `v
 
 A linha V2 concluiu R1, R2, R3, **R4 — Constrained Template System 2.0**, **R5 — Editorial Vocabulary 2.0** e **R6 — Preflight / Publication Quality**.
 
-Authority atual após o closeout documental de R6b:
+Authority corrente no início deste housekeeping documental:
 
-- `v2@5218e39c36739b538aaf5198ab1ef5d6f7ed766b`;
-- R6b funcional foi promovido em `v2@f589053dcee8aac7b37d417b3036cd92513f24cc` por PR #73;
-- `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` permanece V1 estável e não é destino rotineiro do desenvolvimento V2.
+- `v2@6112cef148db2f294cd73a1ded05e31fb858f74b`;
+- `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9` permanece V1 estável e não é destino rotineiro do desenvolvimento V2;
+- não havia PR aberto contra `v2` no início deste recorte.
+
+Marcos e manutenção já promovidos que explicam a diferença entre o closeout de R6 e a authority corrente:
+
+- R6b funcional: `v2@f589053dcee8aac7b37d417b3036cd92513f24cc` por PR #73;
+- closeout documental de R6b: `v2@5218e39c36739b538aaf5198ab1ef5d6f7ed766b` por PR #74;
+- closeout de R6 sem R6c: `v2@99ce7caf30fd733d714a619bb3042f04f310c943` por PR #75;
+- **CI-H2 — R5a Inspector Image Mode Gate Settlement**: hardening de teste, sem mudança de runtime, promovido por PR #76;
+- **UX — product list visual coherence**: controles de Library alinhados, miniaturas em Product Library/Cadastro e linha do Cadastro como alvo de edição, promovido por PR #77 em `v2@6112cef148db2f294cd73a1ded05e31fb858f74b`.
 
 Entregas consolidadas:
 
@@ -22,7 +30,9 @@ Entregas consolidadas:
 - **R5a/R5b — Editorial Vocabulary 2.0**: Table image parity e Collection technical detail, com R5 fechado após biópsia;
 - **CI-H1 — AssetIndex Write Settlement Gate**: gate assíncrono distingue projeção otimista de settlement autoritativo sem mudar runtime;
 - **R6a — Structural Preflight Foundation**: relatório efêmero `ready | review | blocked`, oito checks estruturais e status/painel no Catálogo;
-- **R6b — Rendered Description Truncation**: warning `description_truncated` para Card/Collection a partir do sinal explícito já produzido por TextFit, sem segunda medição.
+- **R6b — Rendered Description Truncation**: warning `description_truncated` para Card/Collection a partir do sinal explícito já produzido por TextFit, sem segunda medição;
+- **CI-H2**: gate R5a espera o modo estável do inspector antes de assertar framing, removendo dependência de janela transitória;
+- **Product list visual coherence**: melhoria bounded de UX pós-R6, sem novo milestone arquitetural.
 
 R5 permanece fechado. Não criar `Callout`, Collection 2.0, imagem em `commercialRows`, nesting ou outro primitivo por simetria.
 
@@ -36,8 +46,8 @@ R6 também está fechado após **R6a + R6b**. **Não existe R6c.** A biópsia p�
 4. `docs/v2/R6B-CLOSEOUT.md` e `R6B-RENDERED-DESCRIPTION-TRUNCATION-INTENT.md` — recorte render-aware final;
 5. `docs/v2/R6A-CLOSEOUT.md` e `R6A-STRUCTURAL-PREFLIGHT-FOUNDATION-INTENT.md` — fundação estrutural do Preflight;
 6. `docs/v2/ROADMAP.md` — milestones e próximo ponto de decisão;
-7. `docs/v2/R5-CLOSEOUT.md` e `CI-H1-ASSET-INDEX-WRITE-SETTLEMENT.md` — fechamento editorial e hardening de CI;
-8. closeouts/intents R1–R4 quando precisar de decisões históricas específicas.
+7. `docs/v2/CI-H2-R5A-INSPECTOR-MODE-GATE.md` e `CI-H1-ASSET-INDEX-WRITE-SETTLEMENT.md` — hardening de CI comprovado;
+8. `docs/v2/R5-CLOSEOUT.md` e closeouts/intents R1–R4 quando precisar de decisões históricas específicas.
 
 ## Authorities V2
 
@@ -143,15 +153,7 @@ Preflight observa authorities existentes. Ele não corrige state, não substitui
 
 R6b preserva `data-full-description`, não injeta reticências e não altera Product truth. Repeated refresh não duplica issues; R6a blockers continuam dominando o status quando coexistem com warnings renderizados.
 
-## Aprendizado relevante de R6b
-
-Não assumir que “mais largura” implica menos truncamento.
-
-No preset `visual`, o Card full também aumenta tipografia; portanto largura e tamanho de texto mudam juntos. O gate final prova reatividade com `contentPreset:'standard'` fixo e varia apenas `simple -> full`, deixando o warning seguir a verdade já produzida pelo TextFit.
-
-Esse achado corrige a premissa do teste, não o design do Card.
-
-## Fechamento de R6
+## Fechamento de R6 e backlog parked
 
 A biópsia pós-R6b avaliou quatro candidatos:
 
@@ -169,18 +171,29 @@ Resumo:
 - **collision/overflow** precisa de uma classe de defeito bounded, participantes/tolerâncias e timing estável;
 - **physical parity** depende do Browser/Chromium/PDF gate e não pode ser fingida pelo editor a partir de DOM page count.
 
-Ver `R6-POST-R6B-BIOPSY.md` e `R6-CLOSEOUT.md`.
+Esses itens são condições de reentrada, não uma fila autorizada de implementação. Ver `R6-POST-R6B-BIOPSY.md` e `R6-CLOSEOUT.md`.
 
-## Ambiente de teste V2
+## Ambiente de teste/deploy V2
 
-O ambiente Netlify V2 é authority operacional separada do Git. Não inferir deploy state a partir de `v2`.
+O ambiente Netlify é authority operacional separada do Git. **Não inferir deploy state a partir de `v2`.**
 
-Nenhuma ação Netlify está implícita por uma promoção Git.
+Para revisão corrente da linha V2:
+
+- o alvo de produção pretendido é a branch `v2`;
+- antes de validar visualmente, conferir no Netlify a branch e o SHA efetivamente publicados;
+- um Deploy Preview ou branch deploy não implica que a URL de Production tenha avançado;
+- nenhuma ação Netlify está implícita por uma promoção Git.
+
+Em 2026-09-03 foi identificado manualmente um caso real de drift: Production ainda servia uma feature branch antiga de R4a enquanto `v2` já havia avançado. Esse incidente deve ser tratado como lembrete operacional para validar branch+SHA do deploy, não como motivo para acoplar deploy à authority Git.
+
+Ver `docs/netlify.md`.
 
 ## Próximo ponto de decisão
 
 Não existe recorte funcional pré-selecionado após R6.
 
 O próximo slice deve nascer de evidência nova e pode pertencer a publicação, editor, release ou outro eixo. Não usar proximidade no roadmap como autorização.
+
+A frente exploratória de integração externa de imagens permanece fora da linha V2 até existir um contrato/kit suficientemente provado para justificar uma biópsia de integração. Não antecipar placement semantics, promotion para `product.imageGallery` ou persistência antes dessa evidência.
 
 Se um candidato exigir scanner genérico, nova persistence authority, segunda materialização ou uma capacidade de PDF inexistente no browser runtime, parar e replanejar antes de implementar.

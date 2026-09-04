@@ -1,104 +1,105 @@
 # CatalogoTop
 
-Gerador simplificado de catálogos A4 para a Top Mobili.
+Gerador simplificado e determinístico de catálogos A4 para a Top Mobili.
 
-**Versão estável: 1.0.0.**
+## Linhas do produto
 
-A aplicação parte de um princípio deliberadamente menor que um editor livre: **produtos são cadastrados/importados, organizados por categoria, selecionados e materializados em um documento A4 determinístico**. Card, Collection e Table formam o vocabulário estrutural atual; cabeçalho, rodapé, paginação e data são componentes compartilhados.
+- **V1 estável:** `main@2ad3566033241ce2d8d4effd96d19b8fdbe513c9`, tag `v1.0.0`.
+- **Linha atual de evolução e validação:** `v2`.
+- **Authority V2 no início deste housekeeping:** `v2@6112cef148db2f294cd73a1ded05e31fb858f74b`.
 
-## Fluxo atual
+A V1 permanece preservada em `main`; o desenvolvimento V2 não deve ser inferido a partir do README ou deploy de `main`.
 
-1. Cadastre produtos manualmente ou importe CSV/XLSX/XLS/XLSM.
-2. Organize e navegue os produtos por categorias.
-3. Selecione os produtos que farão parte do catálogo.
-4. Ajuste Card, Collection ou Table pelo inspector contextual e escolha o template.
-5. Quando útil, escolha entre a imagem Original e alternativas reutilizáveis do produto.
-6. Revise a paginação A4 e use **Gerar PDF / Imprimir**.
+Para arquitetura, decisões atuais, milestones e guardrails V2, comece por **[`docs/v2/START-HERE.md`](docs/v2/START-HERE.md)** e depois consulte **[`docs/v2/ROADMAP.md`](docs/v2/ROADMAP.md)**.
 
-A base compartilhada de produtos e os assets content-addressed ficam no backend Netlify. O catálogo **em elaboração** mantém seu estado editorial na sessão local da V1 e pode ser exportado/importado como backup JSON completo.
+## Estado V2
 
-Essa sessão/backup não é a solução futura de catálogos salvos. Persistência remota de catálogos, filesystem e Biblioteca pertencem à V2.
+R1–R6 estão completos. Não existe R6c e nenhum R7 está pré-selecionado.
 
-## Produtos e categorias
+A linha V2 consolidou:
 
-A base de produtos possui uma navegação lateral por **pastas de categoria**. No cadastro manual, o campo Categoria é obrigatório e usa um seletor sobrescrevível (`datalist`): o usuário pode escolher uma categoria existente ou digitar um nome novo; a pasta passa a existir quando o produto é salvo.
+- **Product Library Foundation** — ProductSnapshot/ProductStore provider-scoped, folders, busca, Cadastro contextual e administração da Biblioteca;
+- **Saved Catalog Documents** — CatalogSnapshot/CatalogStore independentes, save/open/duplicate, folders e dirty-state;
+- **Asset Library** — AssetIndex separado dos bytes imutáveis content-addressed, ingest/dedup, organização, accounting e reuso;
+- **Template System 2.0** — TemplateContract bounded, binding exato e TemplateStore com versões custom imutáveis/append-only;
+- **Editorial Vocabulary 2.0** — Card, Collection e Table como vocabulário top-level estabilizado;
+- **Preflight / Publication Quality** — checks estruturais + warning render-aware de truncamento explícito para Card/Collection;
+- hardening de CI para settlement assíncrono e lifecycle do inspector;
+- coerência recente das listas de produto: controles alinhados, miniaturas em Biblioteca/Cadastro e linha do Cadastro como alvo de edição.
 
-Produtos importados sem categoria são normalizados para `Sem categoria`, evitando itens órfãos fora da navegação. Neste recorte, `Subcategoria` continua sendo metadado e não cria uma árvore de pastas aninhada.
+O próximo recorte funcional deve nascer de evidência real de uso/editor/publicação/release. Não criar milestone, primitivo, persistence authority ou scanner genérico apenas para continuar a sequência do roadmap.
 
-O contrato e os limites dessa metáfora estão em [`docs/category-browser.md`](docs/category-browser.md).
+## Modelo editorial
 
-## Documento editorial
+O princípio central continua menor que um editor livre:
 
-`selectedIds` representa membership do catálogo. A ordem editorial é mantida separadamente em `catalog.presentation.order` e resolvida por `CatalogOrder` antes de `CatalogDocument`.
+```text
+state
+  -> CatalogOrder
+  -> CatalogDocument
+  -> preview / print
+```
 
-O documento materializado suporta três primitivas top-level:
+- `selectedIds` representa membership do catálogo;
+- `catalog.presentation.order` representa ordem editorial;
+- `Card`, `Collection` e `Table` são as primitivas top-level atuais;
+- produto e apresentação permanecem separados;
+- preview e print partem da mesma materialização;
+- o documento de impressão permanece A4 físico `210 × 297 mm`.
 
-- **Card** — unidade individual, com conteúdo, ênfase e largura independentes;
-- **Collection** — agrupamento visual full-width e atômico entre páginas;
-- **Table** — agrupamento tabular full-width, fragmentável entre páginas com cabeçalho repetido.
+## Resources e authorities V2
 
-Preview e impressão partem da mesma materialização. O documento de impressão é isolado da UI do editor e permanece A4 físico `210 × 297 mm`.
+```text
+Biblioteca UI
+  ├─ Produtos   -> ProductStore / ProductSnapshot
+  ├─ Catálogos  -> CatalogStore / CatalogSnapshot
+  ├─ Imagens    -> AssetIndexStore / AssetIndexSnapshot
+  └─ Templates  -> TemplateStore / TemplateSnapshot
 
-## Imagens e variantes
+Bytes de imagem -> AssetStore content-addressed, imutável
+Templates runtime -> Templates registry / TemplateContract versionado
+```
 
-`product.image` é sempre o **Original canônico**. `product.imageGallery` guarda imagens alternativas fiéis e reutilizáveis do mesmo produto. Isso é separado de `product.variants`, que continua significando cores/acabamentos comerciais e pode renderizar uma grade de imagens.
+Shared UI não implica shared persistence. Revisions e identities permanecem provider-scoped.
 
-No catálogo, `presentation.imageSelections` escolhe de forma esparsa Original/galeria/derivado local, enquanto `presentation.imageFrames` controla enquadramento sem destruir o asset. Uma seleção ausente ou obsoleta volta deterministicamente ao Original.
+## Imagens
 
-O cadastro permite adicionar/remover/rotular imagens alternativas. Para usos de imagem única, o inspector oferece navegação compacta `‹ / › / Original`. A imagem efetiva é resolvida antes do framing, com paridade entre preview e PDF.
+- `product.image` é o Original canônico;
+- `product.imageGallery` contém alternativas fiéis reutilizáveis do produto;
+- `presentation.imageSelections` e `presentation.imageFrames` são apresentação local por `productId`;
+- derivados locais do catálogo não são promovidos automaticamente ao ProductStore;
+- ZIPs externos são entrada não confiável e devem permanecer fail-closed/transacionais conforme os contratos existentes.
 
-O contrato completo está em [`docs/image-variants-v0.11.4.md`](docs/image-variants-v0.11.4.md).
+O experimento antigo de variações externas foi retirado da V1 estável. Qualquer nova integração externa de imagem na V2 exige decisão explícita de produto e contrato próprio; trabalho exploratório deve permanecer isolado até existir evidência suficiente.
 
-## External image variations — retirado da V1
+## Preflight
 
-O experimento de geração/importação externa de derivados foi retirado do produto V1 estável. A seção **Dados → Imagens** permanece no HTML com atributo `hidden` para preservar um caminho de compatibilidade, mas não faz parte da interface suportada.
+R6 estabilizou um observador pequeno, não um framework genérico de validação:
 
-O schema 7 continua reconhecendo `presentation.imageVariants` e `presentation.imageSelections`. Na V1, a normalização remove apenas entradas com `provenance.kind = external-variation` e seleções que apontavam para elas. `product.image`, `product.imageGallery`, framing e alternativas reutilizáveis continuam válidos.
+```text
+state + CatalogDocument
+  -> Preflight.inspect(state)
 
-A decisão evita uma migração destrutiva e reserva compatibilidade para uma capability futura, que exige um contrato mais profundo de composição/semântica visual antes de ser reativada. Veja [`docs/v1-stable.md`](docs/v1-stable.md).
+preview já finalizado por TextFit
+  -> PreflightRender.inspect(root)
 
-## Importação de produtos
+issues
+  -> Preflight.withIssues(...)
+  -> ready | review | blocked
+```
 
-Campos reconhecidos por aliases em português:
+Preflight não corrige state, não cria segunda materialização e não transforma heurísticas de Browser/CI em semântica runtime por simetria.
 
-- `codigo` / `sku` / `referencia` → código;
-- `descricao` / `produto` / `nome` → descrição;
-- `categoria`, `subcategoria`, `preco`, `status`, `imagem`, `observacoes`;
-- qualquer outra coluna não vazia é preservada como **especificação** do produto.
+## Netlify e deploy
 
-Código e descrição são obrigatórios. Linhas inválidas são reportadas antes da confirmação da importação.
+Git e deploy são authorities operacionais separadas.
 
-O arquivo [`examples/produtos-modelo.csv`](examples/produtos-modelo.csv) contém apenas o cabeçalho-base, sem inventar dados comerciais.
+- promoção para `v2` **não prova** que o endereço publicado está servindo o mesmo SHA;
+- para revisão corrente da linha V2, o alvo de produção pretendido é a branch `v2`;
+- antes de validar visualmente uma mudança, confirme branch + SHA do deploy no Netlify;
+- Deploy Preview/branch deploy não deve escrever no store global de produção.
 
-## Templates
-
-A versão atual inclui:
-
-- **Técnico 2×4**;
-- **Compacto 3×4**;
-- **Destaque 2×3**.
-
-Um template altera densidade/tratamento visual dentro do contrato atual. Ele **não duplica** cabeçalho ou rodapé institucional.
-
-## Dados, storage e backup
-
-O ProductStore remoto usa snapshot revisionado e escrita protegida por sessão curta. Assets são imutáveis e content-addressed no AssetStore.
-
-O menu **Dados** concentra:
-
-- importação de produtos e CSV modelo;
-- fluxo externo de variações de imagem preservado apenas como capability `hidden`/reservada, não suportada na V1 estável;
-- exportação/importação de backup JSON.
-
-O backup JSON serializa o estado completo e, no schema 7, preserva `Product.imageGallery`, `presentation.imageVariants`, proveniência, `imageSelections` e `imageFrames`. Ao importar um backup, a publicação remota opcional continua limitada à base de produtos; o estado editorial do catálogo não é promovido ao ProductStore.
-
-## Relação com o Gerador V1
-
-O projeto `EAKerber/Gerador_de_catalogos_v1_AI` foi auditado como fonte somente leitura, na baseline `main@050589347e55613182a00ed1e22f6efd2f1a2540`.
-
-O CatalogoTop não é um fork do editor. Reaproveita apenas componentes e princípios que sobrevivem à simplificação. A primeira reutilização concreta foi o subconjunto da biblioteca vetorial institucional em `src/icons.js`; normalização, compilação determinística e preflight de impressão permanecem princípios, sem portar o editor genérico.
-
-A matriz de decisão está em [`docs/reuse-from-gerador-v1.md`](docs/reuse-from-gerador-v1.md).
+A política e o histórico observado estão em [`docs/netlify.md`](docs/netlify.md).
 
 ## Execução local
 
@@ -108,41 +109,22 @@ Não há build obrigatório para o frontend. Sirva a pasta por HTTP e abra `inde
 python -m http.server 8000
 ```
 
-A importação Excel usa SheetJS 0.18.5 via CDN. CSV e o restante da aplicação continuam funcionais sem essa dependência externa.
+A importação Excel usa SheetJS via CDN; CSV e o restante da aplicação continuam funcionais sem essa dependência externa.
 
-## Netlify
-
-O repositório inclui `netlify.toml` para manter o deploy estático e usar `npm test` como gate de publicação:
-
-```toml
-[build]
-  command = "npm test"
-  publish = "."
-```
-
-A política operacional está em [`docs/netlify.md`](docs/netlify.md).
-
-## Validação
+## Validação e promoção V2
 
 ```bash
 npm test
 ```
 
-O gate Node cobre sintaxe e contratos de domínio/storage/ZIP/bundle, incluindo migração schema 7 e round-trip de backup. O workflow `.github/workflows/browser-print.yml` executa a suíte Chromium de A4 e interações, incluindo imagem/framing, exportação do Request Bundle e importação transacional do Result Bundle.
+Mudanças funcionais devem usar branch dedicada e PR contra `v2`. O caminho normal exige Validate + Browser Print Gate verdes no mesmo head, readback de base/head/mergeability e promoção protegida. `main` continua fora do fluxo rotineiro da V2 até decisão explícita de release.
 
-Os dois gates devem permanecer verdes antes de promover mudanças funcionais para `main`.
+## Entry points
 
-## Estrutura principal
-
-- `index.html` — shell e bootstrap explícito da aplicação;
-- `src/core.js` — estado, migração schema 7 e normalização;
-- `src/product-store.js` / `src/asset-client.js` — produtos compartilhados e assets;
-- `src/catalog-order.js` / `src/catalog-document.js` — ordem e documento materializado;
-- `src/catalog-renderer.js` / `src/print.js` — preview e documento de impressão;
-- `src/composition.js` — apresentação local e contratos de imagem;
-- `src/presentation-actions.js` — mutações editoriais;
-- `src/variation-bundle.js` — Request Bundle;
-- `src/zip-store.js` / `src/zip-reader.js` — fronteira ZIP;
-- `src/variation-result.js` — validação/staging/commit de resultados;
-- `docs/image-variants-v0.11.4.md` — contrato de variantes e bundle;
-- `AGENTS.md` — guardrails e estado operacional do produto.
+- [`docs/v2/START-HERE.md`](docs/v2/START-HERE.md) — authority e fronteiras atuais;
+- [`docs/v2/ROADMAP.md`](docs/v2/ROADMAP.md) — milestones e próximo ponto de decisão;
+- [`docs/v2/R6-CLOSEOUT.md`](docs/v2/R6-CLOSEOUT.md) — último milestone funcional fechado;
+- [`docs/v2/R6-POST-R6B-BIOPSY.md`](docs/v2/R6-POST-R6B-BIOPSY.md) — candidatos parked e condições de reentrada;
+- [`AGENTS.md`](AGENTS.md) — guardrails operacionais e arquiteturais;
+- [`docs/netlify.md`](docs/netlify.md) — publicação e storage Netlify;
+- [`docs/v1-stable.md`](docs/v1-stable.md) — fronteira da V1 estável.

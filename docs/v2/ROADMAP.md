@@ -10,7 +10,7 @@ Stable V1 authority:
 Active V2 product-development line:
 
 - `v2`;
-- current authority after R6b closeout: `v2@5218e39c36739b538aaf5198ab1ef5d6f7ed766b`.
+- authority corrente no início deste housekeeping: `v2@6112cef148db2f294cd73a1ded05e31fb858f74b`.
 
 CatalogoTop remains a constrained catalog-authoring system centered on reliable product data, reusable resources, bounded editorial structures, deterministic A4 composition and explicit publication quality. A roadmap slot is directional, not automatic authorization.
 
@@ -26,8 +26,12 @@ CatalogoTop remains a constrained catalog-authoring system centered on reliable 
   - **R6a — Structural Preflight Foundation: COMPLETE**; functional promotion `4a7dfbda...`, docs closeout `ef07409b...`.
   - **R6b — Rendered Description Truncation: COMPLETE**; functional promotion `f589053d...`, docs closeout `5218e39c...`.
   - post-R6b biopsy found no additional candidate with a sufficiently explicit authority/lifecycle for R6c.
+- **CI-H2 — R5a Inspector Image Mode Gate Settlement: COMPLETE** as test hygiene; no runtime change.
+- **Post-R6 UX coherence — COMPLETE**: Library controls aligned, product thumbnails added to Product Library/Cadastro, Cadastro row becomes edit target; promoted by PR #77 to `v2@6112cef148db2f294cd73a1ded05e31fb858f74b`.
 - **No next functional recut is selected by this roadmap.**
 - R7+ remain directional and are not authorized merely by appearing in plans.
+
+Post-R6 maintenance does not reopen R6 and does not imply R7. It is recorded here only when it materially changes the current operational/product surface.
 
 ## Architectural direction
 
@@ -189,6 +193,26 @@ The remaining candidates require new signal sources or execution environments. K
 
 See `R6-CLOSEOUT.md`.
 
+## Post-R6 maintenance — not new milestones
+
+### CI-H2 — inspector image mode settlement
+
+A Browser gate race inherited from R5a asserted framing visibility during the short interval before the inspector stabilized its `general` / `image` mode. CI-H2 changed only the test contract: wait for stable `general`, prove framing is hidden there, click **Imagem**, then require the editor visible. Runtime remained unchanged.
+
+See `CI-H2-R5A-INSPECTOR-MODE-GATE.md`.
+
+### Product list visual coherence
+
+A user-observed UX gap after R6 justified a bounded non-milestone slice:
+
+- Library search/select controls use the shared visual language rather than native-looking pickers;
+- Product Library and Cadastro lists show product thumbnails using the existing `product.image -> Render.PLACEHOLDER` authority;
+- Cadastro existing rows are the edit target by click/Enter/Space;
+- persisted-product actions move from every row to the editing form header;
+- mobile remains free of new horizontal overflow.
+
+No Product schema, persistence authority, renderer, TemplateContract or Preflight semantics changed. PR #77 promoted the slice to `v2@6112cef148db2f294cd73a1ded05e31fb858f74b`.
+
 ## Cross-cutting invariants
 
 1. `main` remains stable V1 until explicit release decision.
@@ -210,15 +234,18 @@ See `R6-CLOSEOUT.md`.
 17. Browser regression heuristics are evidence, not automatically product-runtime semantics.
 18. Physical PDF page parity remains a Browser/CI concern until an actual author-facing physical artifact validator exists.
 19. No Netlify operation is implied by Git promotion.
+20. Visual validation against a hosted environment requires checking the deployed branch + SHA; Production, branch deploy and Deploy Preview are distinct authorities.
 
 ## Sequence rationale
 
 R1 established reusable-resource organization; R2 made catalogs reopenable; R3 stabilized asset identity; R4 established bounded templates; R5 stabilized observed editorial gaps. CI-H1 isolated a known test-race before quality work. R6a then established structural issue vocabulary, and R6b proved one render-aware extension by consuming a stable existing TextFit fact.
 
-R6 closes when the next candidates stop sharing that authority model. The roadmap should now return to fresh evidence rather than continue numbering automatically.
+R6 closes when the next candidates stop sharing that authority model. Subsequent CI/UX maintenance did not reopen it. The roadmap now returns to fresh evidence rather than continuing numbering automatically.
 
 ## Next product decision
 
 No R7 slice is selected here.
 
-The next recut should be chosen from a concrete user/editor/release problem and may belong to a different axis entirely. If a candidate would require a new persistence authority, asynchronous settlement protocol, generic geometry engine or unavailable physical-PDF runtime capability, make that architectural decision explicitly before implementation.
+The next recut should be chosen from a concrete user/editor/release problem and may belong to a different axis entirely. The external-image-kit experiment remains an isolated exploration until a proven contract creates enough evidence for a dedicated integration biopsy.
+
+If a candidate would require a new persistence authority, asynchronous settlement protocol, generic geometry engine or unavailable physical-PDF runtime capability, make that architectural decision explicitly before implementation.

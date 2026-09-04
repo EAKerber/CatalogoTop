@@ -1,4 +1,6 @@
-# Arquitetura — recorte inicial
+# Arquitetura — recorte inicial (histórico)
+
+> **Documento histórico.** Este arquivo registra a arquitetura do recorte inicial e preserva decisões/proveniência daquela fase. Ele **não** representa a authority corrente da linha V2. Para estado atual, resources provider-scoped, pipeline, Preflight, invariantes e próximo ponto de decisão, use [`docs/v2/START-HERE.md`](v2/START-HERE.md) e [`docs/v2/ROADMAP.md`](v2/ROADMAP.md).
 
 ## Objetivo
 

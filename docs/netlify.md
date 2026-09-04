@@ -1,8 +1,8 @@
-# Netlify — publicação e storage estreito do CatalogoTop
+# Netlify — publicação e storage do CatalogoTop
 
 ## Objetivo
 
-Publicar o CatalogoTop preservando frontend simples e estático, com uma exceção deliberada a partir do v0.7: Netlify Functions + Blobs formam a autoridade remota estreita da base compartilhada de produtos e dos assets gerenciados.
+Publicar o CatalogoTop preservando frontend simples e estático e hospedar as authorities remotas provider-scoped já estabelecidas pelo produto.
 
 O contrato versionado em `netlify.toml` permanece:
 
@@ -12,55 +12,96 @@ O contrato versionado em `netlify.toml` permanece:
   publish = "."
 ```
 
-O deploy continua servindo diretamente `index.html` e os assets estáticos do repositório. Functions vivem em `netlify/functions`, diretório padrão da plataforma, e são empacotadas durante o deploy.
+O deploy serve diretamente `index.html` e os assets estáticos do repositório. Functions vivem em `netlify/functions`, diretório padrão da plataforma, e são empacotadas durante o deploy.
 
-## Estado observado
+## Regra operacional principal
 
-Readback realizado em 2026-08-25/26 pela integração Netlify:
+**Git state e deploy state são authorities diferentes.**
+
+Um merge em `v2` prova somente a promoção Git. Antes de validar visualmente uma mudança hospedada, confirmar no Netlify:
+
+1. contexto do deploy (`Production`, branch deploy ou Deploy Preview);
+2. branch servida;
+3. SHA servido;
+4. status `ready/published` do deploy esperado.
+
+Não usar “o PR foi mergeado” como evidência de que a URL de Production já contém aquele runtime.
+
+## Linha V2 corrente
+
+Para a revisão corrente da linha V2, a **production branch pretendida é `v2`**.
+
+Isso é uma convenção operacional do ambiente de revisão, não uma promoção de `v2` para `main` nem uma decisão de release da V2.
+
+- `main` continua a authority Git da V1 estável;
+- `v2` continua a branch principal de evolução/revisão V2;
+- apontar o ambiente Netlify de revisão para `v2` não muda essa separação;
+- nenhuma operação Netlify está implícita por um merge Git.
+
+### Incidente de drift observado em 2026-09-03
+
+Durante validação manual, a UI publicada não refletia mudanças já promovidas em `v2`. A inspeção manual da interface Netlify mostrou que Production ainda estava apontada para a feature branch antiga `feat/v2-r4a-template-contract-binding`; por isso novos merges em `v2` não apareciam na URL de Production.
+
+Na mesma inspeção, branch deploys foram configurados para aceitar branches do repositório. Isso ajuda a obter URLs de branch, mas **não altera sozinho a production branch**.
+
+A lição operacional é bounded: antes de concluir que uma mudança Git “não funcionou”, comparar branch+SHA do deploy. Não acoplar runtime Git a Netlify nem automatizar promoção de Production sem decisão própria.
+
+## Readback histórico V1 — 2026-08-25/26
+
+O seguinte estado foi lido pela integração Netlify durante a estabilização V1 e deve ser tratado como registro histórico, não como configuração corrente presumida:
 
 - projeto: `topcatalogos`;
 - site id: `236cbacf-54ac-4167-9e50-83c078357bb8`;
 - URL de produção: `https://topcatalogos.netlify.app`;
-- branch de produção: `main`;
+- branch de produção naquele momento: `main`;
 - Git continuous deployment: ativo;
 - Deploy Previews: ativos;
 - build command efetivo: `npm test`;
 - publish directory efetivo: `.`;
 - forms: não habilitados;
-- custom domain: ainda não registrado.
+- custom domain: ainda não registrado naquele readback.
 
 O primeiro production deploy útil após a promoção do PR #1 publicou `main@a7a8fcc83c2ea0a0774719db6126164045127f9e` com estado `ready`. Deploy Previews foram comprovados repetidamente nos recortes posteriores.
 
-## Modelo operacional v0.7
+Campos específicos da conta Netlify devem continuar sendo documentados como **estado observado em data explícita**. Não transformar um readback antigo em “estado atual” por inferência.
 
-- Repositório: `EAKerber/CatalogoTop`.
-- Branch de produção: `main`.
-- PRs usam Deploy Preview.
-- Frontend continua sem framework/build obrigatório.
-- Base compartilhada de produtos usa Netlify Functions + Netlify Blobs.
-- Assets de upload usam Blob separado, content-addressed por SHA-256.
-- Sessões de escrita usam um terceiro Blob store, também isolado entre preview e produção.
-- Produção usa store global com consistência forte.
-- Deploy Preview/branch usam deploy store isolado; nunca devem gravar na base global.
-- seleção atual, template e catálogo em elaboração permanecem locais ao navegador.
+## Storage e isolamento
 
-## Autorização de escrita v0.7
+Os providers V2 permanecem independentes mesmo quando compartilham a plataforma Netlify.
 
-Não há API key, OAuth ou segredo de sessão para configurar na conta Netlify.
+Princípios:
+
+- produção usa store global quando o provider assim define;
+- Deploy Preview/branch deploy usa store ligado ao deploy e nunca deve gravar no store global de produção;
+- writes revisionados não podem sobrescrever silenciosamente uma revisão divergente;
+- assets gerenciados permanecem content-addressed e imutáveis;
+- sessão de escrita é curta e validada no servidor;
+- segredos nunca entram no repositório nem no bundle do navegador;
+- estado editorial efêmero não vira authority remota apenas porque Netlify já hospeda outros providers.
+
+As authorities V2 detalhadas estão em `docs/v2/START-HERE.md`.
+
+## Autorização de escrita — contrato herdado
+
+Não há API key, OAuth ou segredo de sessão para configurar no frontend.
 
 A frase compartilhada forte é verificada por um valor scrypt versionado no código. O verifier é público e não revela a frase, embora permita tentativa offline; por isso a frase deve continuar longa e exclusiva do CatalogoTop.
 
-Após a validação, a Function gera um token aleatório de 256 bits e grava apenas o SHA-256 desse token no store `catalogotop-sessions`, com expiração de uma hora. O token bruto volta ao browser apenas por cookie `HttpOnly`, `Secure`, `SameSite=Strict` e `Path=/api`.
+Após a validação, a Function gera um token aleatório de 256 bits e grava apenas o SHA-256 desse token no store de sessões, com expiração curta. O token bruto volta ao browser apenas por cookie `HttpOnly`, `Secure`, `SameSite=Strict` e `Path=/api`.
 
 `GET /api/write-session` consulta o cookie/store e permite reconhecer a sessão já aberta sem pedir novamente a frase durante sua validade.
 
-### Correção após o primeiro teste manual
+### Aprendizado do primeiro teste manual
 
-O primeiro Deploy Preview do v0.7 revelou duas falhas que os testes estáticos não capturaram: o cliente consultava `GET /api/write-session`, mas a Function inicialmente não implementava readback coerente da sessão; além disso, a primeira implementação dependia de variáveis de ambiente que não estavam materializadas no projeto apesar do retorno de upsert da integração. O efeito observado foi frase sendo solicitada repetidamente e writes sem efeito remoto.
+O primeiro Deploy Preview do v0.7 revelou duas falhas que os testes estáticos não capturaram: o cliente consultava `GET /api/write-session`, mas a Function inicialmente não implementava readback coerente da sessão; além disso, a primeira implementação dependia de variáveis de ambiente que não estavam materializadas no projeto apesar do retorno de upsert da integração.
 
-A correção removeu essa dependência: as sessões passaram a ser tokens aleatórios armazenados no próprio Blob store e a Function de sessão ganhou `GET` funcional. Esse caso agora faz parte do fixture estrutural para evitar regressão equivalente.
+A correção removeu essa dependência: sessões passaram a usar tokens aleatórios armazenados no próprio Blob store e a Function de sessão ganhou `GET` funcional. Esse caso permanece histórico útil para evitar regressão equivalente.
 
-## Rotas
+## Rotas e providers
+
+As rotas concretas evoluíram além do primeiro recorte V1; consultar o runtime e os documentos V2 específicos antes de assumir que a lista histórica abaixo é exaustiva.
+
+Contrato inicial comprovado:
 
 - `GET /api/products` — leitura pública da base;
 - `PUT /api/products` — escrita revisionada, exige sessão;
@@ -69,27 +110,24 @@ A correção removeu essa dependência: as sessões passaram a ser tokens aleat�
 - `POST /api/assets` — upload gerenciado, exige sessão;
 - `GET /api/assets/sha256/<hash>` — leitura pública de asset imutável.
 
-O contrato detalhado está em `docs/storage-v0.7.md`.
+A V2 adicionou authorities próprias para catálogos salvos, AssetIndex e templates. Shared UI/plataforma não implica shared revision/store.
 
 ## Continuous deployment
 
-Pushes promovidos para `main` geram production deploys. Pull requests contra `main` geram Deploy Previews e são o ambiente obrigatório para validar Functions/Blobs antes de promoção.
+### V2 review
 
-Para o v0.7, o gate inclui:
+A convenção atual é revisar a linha V2 a partir de deploy associado à branch `v2`.
 
-1. `npm test` passa;
-2. Deploy Preview fica `ready`;
-3. `GET /api/products` responde sem autenticação;
-4. frase incorreta não libera escrita;
-5. frase correta cria sessão;
-6. `GET /api/write-session` reconhece a sessão criada sem nova frase;
-7. PUT cria revisão no store do preview;
-8. GET faz readback da revisão criada;
-9. upload/readback de asset funciona;
-10. PUT com revisão obsoleta retorna conflito;
-11. produção permanece intocada durante esses testes.
+Antes de usar a URL de Production como prova de runtime:
 
-O gate visual A4 continua válido para mudanças de apresentação, mas storage não deve alterar geometria editorial.
+- confirmar branch `v2`;
+- confirmar o SHA esperado;
+- confirmar que o deploy concluiu;
+- em caso de dúvida, usar uma URL de branch/preview explicitamente identificada em vez de inferir o conteúdo de Production.
+
+### V1 histórico
+
+Durante a estabilização V1, pushes promovidos para `main` geravam production deploys e PRs contra `main` geravam Deploy Previews. Esse fluxo é histórico da V1 e não deve ser transplantado automaticamente para a linha V2.
 
 ## Dependência externa de planilha
 
@@ -99,19 +137,17 @@ A leitura de XLS/XLSX/XLSM usa SheetJS via jsDelivr no `index.html`. Se esse rec
 
 Código: preferir rollback para deploy anteriormente validado ou revert Git.
 
-Dados: snapshots anteriores de produtos são preservados no Blob store em `history/NNNNNNNN`. Não editar blobs de produção manualmente como procedimento normal; restauração deve ser uma operação explícita e auditável em recorte posterior.
+Dados: não editar stores/blobs de produção manualmente como procedimento normal. Restauração de dados precisa preservar a authority/revision específica do provider e deve ser uma operação explícita e auditável.
 
-## Campos operacionais atuais
+## Checklist antes de atribuir um problema ao código
 
 ```text
-Netlify project name: topcatalogos
-Netlify project/site id: 236cbacf-54ac-4167-9e50-83c078357bb8
-Default netlify.app URL: https://topcatalogos.netlify.app
-Production branch: main
-Custom domain: PENDING
-Git continuous deployment: ACTIVE / VERIFIED
-Deploy Previews: ACTIVE / VERIFIED
-Product/asset backend: IN DEVELOPMENT / v0.7
+[ ] Git branch/SHA esperado está correto?
+[ ] O deploy observado é Production, branch deploy ou Deploy Preview?
+[ ] Branch do deploy coincide com a branch que contém a mudança?
+[ ] SHA do deploy coincide com o commit esperado?
+[ ] Build/deploy terminou com sucesso?
+[ ] Um hard refresh ainda reproduz o problema?
 ```
 
-`PENDING` significa informação ainda não comprovada, não ausência do recurso.
+Só depois desses checks comparar runtime/DOM com o código promovido.
